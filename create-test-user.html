@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test User - BMECom</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #e0f2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Test User Account</h1>
+        
+        <div id="status"></div>
+        
+        <div class="info">
+            <strong>Test User Account Details:</strong><br>
+            Name: Test User<br>
+            Email: test@bmecom.com<br>
+            Password: test123<br>
+            Role: User
+        </div>
+        
+        <button class="btn" onclick="createTestUser()">Create Test User Account</button>
+        <button class="btn" onclick="checkExistingUsers()">Check Existing Users</button>
+        <a href="login.html" class="btn">Go to Login</a>
+        <a href="add-moderator-account.html" class="btn">Add Moderator Account</a>
+        
+        <div id="usersList" style="margin-top: 2rem; text-align: left;"></div>
+    </div>
+
+    <script>
+        function createTestUser() {
+            try {
+                // Get existing users or create empty array
+                const users = JSON.parse(localStorage.getItem('users')) || [];
+                
+                // Check if test user already exists
+                const existingTestUser = users.find(user => user.email === 'test@bmecom.com');
+                
+                if (existingTestUser) {
+                    showStatus('Test user account already exists!', 'info');
+                    return;
+                }
+                
+                // Create test user account
+                const testUser = {
+                    id: 'test_' + Date.now(),
+                    name: 'Test User',
+                    email: 'test@bmecom.com',
+                    password: 'test123',
+                    role: 'User',
+                    createdAt: new Date().toISOString()
+                };
+                
+                // Add to users array
+                users.push(testUser);
+                
+                // Save to localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                showStatus('Test user account created successfully! You can now login with test@bmecom.com / test123', 'success');
+                
+            } catch (error) {
+                showStatus('Error creating test user: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function checkExistingUsers() {
+            try {
+                const users = JSON.parse(localStorage.getItem('users')) || [];
+                
+                if (users.length === 0) {
+                    showStatus('No users found in the system.', 'info');
+                    return;
+                }
+                
+                let userList = '<div class="info"><strong>Existing Users:</strong></div>';
+                users.forEach((user, index) => {
+                    const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+                    const roleBadge = user.role === 'Moderator' ? 
+                        '<span style="background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Moderator</span>' : 
+                        '<span style="background: #6b7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">User</span>';
+                    
+                    userList += `
+                        <div style="margin: 10px 0; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: white;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <strong style="font-size: 1.1rem;">${user.name}</strong>
+                                ${roleBadge}
+                            </div>
+                            <div style="color: #6b7280; margin-bottom: 5px;">${user.email}</div>
+                            <div style="color: #9ca3af; font-size: 0.875rem;">Created: ${createdDate}</div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('usersList').innerHTML = userList;
+                
+            } catch (error) {
+                showStatus('Error checking users: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        // Auto-check for existing users on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkExistingUsers();
+        });
+    </script>
+</body>
+</html> 
