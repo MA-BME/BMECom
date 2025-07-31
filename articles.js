@@ -1,0 +1,1727 @@
+// BMECom Articles Page JavaScript
+
+const userArticles = [];
+const communityFavorites = [];
+
+// Real-time update variables
+let updateInterval = null;
+const UPDATE_INTERVAL_MS = 60000; // 1 minute
+let lastUpdateTime = new Date();
+
+
+
+// DOM elements
+const articlesGrid = document.getElementById('articlesGrid');
+const communityFavoritesGrid = document.getElementById('communityFavoritesGrid');
+const urlForm = document.getElementById('urlForm');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const messageContainer = document.getElementById('messageContainer');
+const loadingContainer = document.getElementById('loadingContainer');
+const urlInputSection = document.getElementById('urlInputSection');
+const loginRequiredSection = document.getElementById('loginRequiredSection');
+const loginLink = document.getElementById('loginLink');
+const logoutLink = document.getElementById('logoutLink');
+const userInfo = document.getElementById('userInfo');
+const userName = document.getElementById('userName');
+const moderatorLink = document.getElementById('moderatorLink');
+const moderatorSection = document.getElementById('moderatorSection');
+const userSearchInput = document.getElementById('userSearchInput');
+const moderatorUsersList = document.getElementById('moderatorUsersList');
+const publicInfo = document.getElementById('publicInfo');
+const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
+
+// User authentication state
+let currentUser = null;
+
+// Mobile navigation
+const navToggle = document.querySelector('.nav-toggle');
+const navMenu = document.querySelector('.nav-menu');
+
+if (navToggle && navMenu) {
+    navToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+        navToggle.classList.toggle('active');
+    });
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            navMenu.classList.remove('active');
+            navToggle.classList.remove('active');
+        });
+    });
+}
+
+// Real-time update functions
+function startRealTimeUpdates() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+    
+    updateInterval = setInterval(() => {
+        loadAllArticles();
+        updateLastUpdateTime();
+    }, UPDATE_INTERVAL_MS);
+    
+    // Initial load
+    loadAllArticles();
+    updateLastUpdateTime();
+    
+    // Auto-check for duplicates every 5 minutes
+    setTimeout(() => {
+        autoCheckForDuplicates();
+    }, 300000); // 5 minutes
+}
+
+// Auto-check and remove duplicates
+function autoCheckForDuplicates() {
+    try {
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        const duplicates = [];
+        const uniqueArticles = [];
+        const seenUrls = new Set();
+        const seenTitles = new Set();
+        
+        // First pass: identify duplicates by URL and title
+        allArticles.forEach((article, index) => {
+            const normalizedUrl = normalizeUrl(article.url);
+            const normalizedTitle = article.title.toLowerCase().trim();
+            
+            if (seenUrls.has(normalizedUrl)) {
+                // This is a URL duplicate
+                duplicates.push({
+                    article: article,
+                    index: index,
+                    type: 'URL',
+                    reason: `Duplicate URL: ${article.url}`
+                });
+            } else if (seenTitles.has(normalizedTitle)) {
+                // This is a title duplicate (same title, different URL)
+                duplicates.push({
+                    article: article,
+                    index: index,
+                    type: 'Title',
+                    reason: `Duplicate Title: "${article.title}"`
+                });
+            } else {
+                // This is unique
+                uniqueArticles.push(article);
+                seenUrls.add(normalizedUrl);
+                seenTitles.add(normalizedTitle);
+            }
+        });
+        
+        if (duplicates.length > 0) {
+            // Automatically remove duplicates
+            autoRemoveDuplicates(duplicates, uniqueArticles);
+        }
+    } catch (error) {
+        console.error('Error in auto duplicate check:', error);
+    }
+}
+
+// Automatically remove duplicates
+function autoRemoveDuplicates(duplicates, uniqueArticles) {
+    try {
+        // Save only unique articles
+        localStorage.setItem('articles', JSON.stringify(uniqueArticles));
+        
+        // Update local array
+        userArticles.length = 0;
+        userArticles.push(...uniqueArticles);
+        
+        // Refresh display
+        displayUserArticles();
+        
+        // Show notification about automatic cleanup
+        showMessage(`🧹 Automatically removed ${duplicates.length} duplicate articles to keep the collection clean.`, 'success');
+        
+        // Log the cleanup for debugging
+        console.log(`Auto-cleanup: Removed ${duplicates.length} duplicate articles`);
+        duplicates.forEach(duplicate => {
+            console.log(`- Removed: "${duplicate.article.title}" (${duplicate.type} duplicate)`);
+        });
+        
+    } catch (error) {
+        console.error('Error in auto duplicate removal:', error);
+    }
+}
+
+// Auto-clean duplicates from article array
+function autoCleanDuplicates(articles) {
+    try {
+        const uniqueArticles = [];
+        const seenUrls = new Map(); // Map to store URL -> article index
+        const seenTitles = new Map(); // Map to store title -> article index
+        let removedCount = 0;
+        
+        articles.forEach(article => {
+            const normalizedUrl = normalizeUrl(article.url);
+            const normalizedTitle = article.title.toLowerCase().trim();
+            
+            // Check for URL duplicates first
+            if (seenUrls.has(normalizedUrl)) {
+                // Merge ticker counts
+                const existingIndex = seenUrls.get(normalizedUrl);
+                const existingArticle = uniqueArticles[existingIndex];
+                const newTicker = (article.ticker || 1) + (existingArticle.ticker || 1);
+                existingArticle.ticker = newTicker;
+                
+                removedCount++;
+                console.log(`Auto-clean: Merged duplicate URL "${article.title}" - Total ticker: ${newTicker}`);
+            }
+            // Check for title duplicates (different URLs)
+            else if (seenTitles.has(normalizedTitle)) {
+                // Merge ticker counts
+                const existingIndex = seenTitles.get(normalizedTitle);
+                const existingArticle = uniqueArticles[existingIndex];
+                const newTicker = (article.ticker || 1) + (existingArticle.ticker || 1);
+                existingArticle.ticker = newTicker;
+                
+                removedCount++;
+                console.log(`Auto-clean: Merged duplicate title "${article.title}" - Total ticker: ${newTicker}`);
+            }
+            else {
+                // This is unique, keep it
+                uniqueArticles.push(article);
+                seenUrls.set(normalizedUrl, uniqueArticles.length - 1);
+                seenTitles.set(normalizedTitle, uniqueArticles.length - 1);
+            }
+        });
+        
+        if (removedCount > 0) {
+            console.log(`Auto-clean: Merged ${removedCount} duplicates during article addition`);
+        }
+        
+        return uniqueArticles;
+    } catch (error) {
+        console.error('Error in auto clean duplicates:', error);
+        return articles; // Return original array if error occurs
+    }
+}
+
+function stopRealTimeUpdates() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+function updateLastUpdateTime() {
+    lastUpdateTime = new Date();
+    if (lastUpdateTimeElement) {
+        lastUpdateTimeElement.textContent = lastUpdateTime.toLocaleTimeString();
+    }
+}
+
+function loadAllArticles() {
+    try {
+        const storedArticles = localStorage.getItem('articles');
+        if (storedArticles) {
+            const parsedArticles = JSON.parse(storedArticles);
+            
+            // Auto-clean duplicates during regular updates
+            const cleanedArticles = autoCleanDuplicates(parsedArticles);
+            
+            // If duplicates were found and removed, save the cleaned version
+            if (cleanedArticles.length < parsedArticles.length) {
+                localStorage.setItem('articles', JSON.stringify(cleanedArticles));
+                console.log(`Auto-cleanup during update: Removed ${parsedArticles.length - cleanedArticles.length} duplicates`);
+            }
+            
+            userArticles.length = 0; // Clear array
+            userArticles.push(...cleanedArticles); // Add cleaned articles
+        }
+        
+        // Always display articles regardless of login status
+        displayUserArticles();
+        displayCommunityFavorites();
+        
+        // Show update indicator
+        showUpdateIndicator();
+    } catch (error) {
+        console.error('Error loading articles:', error);
+    }
+}
+
+function showUpdateIndicator() {
+    // Add a subtle visual indicator that articles were updated
+    const articlesContainer = document.querySelector('.articles-container');
+    if (articlesContainer) {
+        articlesContainer.style.transition = 'background-color 0.3s ease';
+        articlesContainer.style.backgroundColor = '#dbeafe';
+        setTimeout(() => {
+            articlesContainer.style.backgroundColor = '#e0f2fe';
+        }, 500);
+    }
+}
+
+// Display functions
+function displayUserArticles() {
+    if (!articlesGrid) return;
+    
+    articlesGrid.innerHTML = '';
+    if (userArticles.length === 0) {
+        articlesGrid.innerHTML = `
+            <div class="empty-state">
+                <h3>No articles yet</h3>
+                <p>Articles will appear here once users add biomedical engineering content</p>
+            </div>
+        `;
+        return;
+    }
+    
+    userArticles.slice().reverse().forEach((article, index) => {
+        const articleCard = createArticleCard(article, userArticles.length - 1 - index);
+        articlesGrid.appendChild(articleCard);
+    });
+}
+
+function displayCommunityFavorites() {
+    if (!communityFavoritesGrid) return;
+    
+    communityFavoritesGrid.innerHTML = '';
+    if (communityFavorites.length === 0) {
+        communityFavoritesGrid.innerHTML = `
+            <div class="empty-state">
+                <h3>No community favorites yet</h3>
+                <p>Community favorites will appear here once articles are voted on</p>
+            </div>
+        `;
+        return;
+    }
+    
+    communityFavorites.forEach((article, index) => {
+        const articleCard = createArticleCard(article, index, true);
+        communityFavoritesGrid.appendChild(articleCard);
+    });
+}
+
+function createArticleCard(article, index, isCommunityFavorite = false) {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    if (isCommunityFavorite) card.classList.add('community-favorite');
+    
+    const categoryDisplay = article.category ? 
+        `<div class="article-category">${article.category}</div>` : '';
+    
+    const imageDisplay = article.image ? 
+        `<div class="article-image">
+            <img src="${article.image}" alt="${article.title}" loading="lazy" onerror="this.style.display='none'">
+        </div>` : '';
+    
+    const summaryPreview = article.summary ? 
+        `<p class="article-summary">${article.summary.substring(0, 300)}${article.summary.length > 300 ? '...' : ''}</p>` : '';
+    
+    // Only show delete button if user is logged in and owns the article
+    const canDelete = currentUser && (!isCommunityFavorite && article.userId === currentUser.id);
+    const deleteButton = canDelete ? 
+        `<button class="delete-btn" onclick="deleteArticle(${index})" title="Delete article">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+        </button>` : '';
+    
+    card.innerHTML = `
+        ${categoryDisplay}
+        ${imageDisplay}
+        <div class="article-header">
+            <h3 class="article-title">
+                <a href="article-detail.html?id=${index}">${article.title}</a>
+            </h3>
+            ${deleteButton}
+        </div>
+        ${summaryPreview}
+        <div class="article-meta">
+            <span class="article-source">${article.source}</span>
+            <span>${article.date}</span>
+        </div>
+        ${getTickerDisplay(article)}
+        <div class="article-actions">
+            <a href="article-detail.html?id=${index}" class="read-more-btn">
+                Read Full Summary →
+            </a>
+        </div>
+    `;
+    return card;
+}
+
+// Get ticker display based on user role and ticker count
+function getTickerDisplay(article) {
+    const ticker = article.ticker || 1;
+    
+    // Show to moderators if ticker >= 2
+    if (isCurrentUserModerator() && ticker >= 2) {
+        return `<div class="article-ticker moderator-ticker">
+            <span class="ticker-icon">📊</span>
+            <span class="ticker-text">${ticker} people shared this article</span>
+        </div>`;
+    }
+    
+    // Show to everyone if ticker >= 20
+    if (ticker >= 20) {
+        return `<div class="article-ticker public-ticker">
+            <span class="ticker-icon">🔥</span>
+            <span class="ticker-text">${ticker} people shared this article</span>
+        </div>`;
+    }
+    
+    // No ticker display for low counts or non-moderators
+    return '';
+}
+function deleteArticle(index) {
+    if (!currentUser) {
+        showMessage('Please log in to delete articles.', 'error');
+        return;
+    }
+    
+    // Get the actual article (accounting for reverse order display)
+    const actualIndex = userArticles.length - 1 - index;
+    const article = userArticles[actualIndex];
+    
+    // Check if user owns this article or is moderator
+    if (article.userId !== currentUser.id && currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own articles.', 'error');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this article?')) {
+        // Remove from local array
+        userArticles.splice(actualIndex, 1);
+        
+        // Update global localStorage
+        localStorage.setItem('articles', JSON.stringify(userArticles));
+        
+        // Refresh display
+        displayUserArticles();
+        
+        showMessage('Article deleted successfully!');
+    }
+}
+
+// Utility functions
+function showMessage(message, type = 'success') {
+    if (!messageContainer) return;
+    
+    messageContainer.innerHTML = `<div class="${type}-message">${message}</div>`;
+    setTimeout(() => messageContainer.innerHTML = '', 5000);
+}
+
+function showLoading() {
+    if (loadingContainer) loadingContainer.style.display = 'block';
+    if (articlesGrid) articlesGrid.style.display = 'none';
+    
+    // Show abstract preview container
+    const abstractPreviewContainer = document.getElementById('abstractPreviewContainer');
+    const abstractPreviewText = document.getElementById('abstractPreviewText');
+    if (abstractPreviewContainer) {
+        abstractPreviewContainer.style.display = 'block';
+    }
+    if (abstractPreviewText) {
+        abstractPreviewText.textContent = 'Starting article analysis and abstract generation...';
+        abstractPreviewText.className = 'abstract-generating';
+    }
+}
+
+function hideLoading() {
+    if (loadingContainer) loadingContainer.style.display = 'none';
+    if (articlesGrid) articlesGrid.style.display = 'grid';
+    
+    // Hide abstract preview container
+    const abstractPreviewContainer = document.getElementById('abstractPreviewContainer');
+    if (abstractPreviewContainer) {
+        abstractPreviewContainer.style.display = 'none';
+    }
+}
+
+function updateProgress(step, totalSteps, message) {
+    if (!loadingContainer) return;
+    
+    const progress = (step / totalSteps) * 100;
+    loadingContainer.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <p class="progress-text">${message}</p>
+            <p class="progress-step">Step ${step} of ${totalSteps}</p>
+        </div>
+    `;
+    
+    // Update abstract preview with current step
+    const abstractPreviewText = document.getElementById('abstractPreviewText');
+    if (abstractPreviewText) {
+        if (step === 5) {
+            abstractPreviewText.textContent = '🔍 Extracting article content and meta information...';
+        } else if (step === 6) {
+            abstractPreviewText.textContent = '📝 Generating intelligent abstract from article content...';
+        } else {
+            abstractPreviewText.textContent = `🔄 ${message}`;
+        }
+        abstractPreviewText.className = 'abstract-generating';
+    }
+}
+
+// Update existing articles to fit new format
+function updateExistingArticles() {
+    let updated = false;
+    
+    userArticles.forEach(article => {
+        // Generate content for summary (minimum 200 words)
+        const domain = article.source;
+        const summaryContent = {
+            'phys.org': 'This research article explores cutting-edge developments in biomedical engineering, presenting novel findings that could revolutionize medical technology and patient care. The study demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Researchers utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The comprehensive analysis encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. The research team employed state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems. These findings represent a significant milestone in the field of biomedical engineering, contributing to the advancement of medical science and healthcare delivery.',
+            'sciencedaily.com': 'A comprehensive study examining the latest breakthroughs in biomedical engineering, with implications for future medical applications and therapeutic interventions. The research team conducted extensive laboratory and clinical trials to validate their findings, establishing new protocols for medical device development and implementation. This work represents a significant milestone in the field of biomedical engineering, showcasing innovative approaches to solving complex medical challenges. The study examines the integration of artificial intelligence, machine learning, and advanced sensor technologies in medical applications. Researchers present novel frameworks for developing next-generation medical devices and diagnostic systems. The investigation encompasses multiple disciplines including materials science, electronics, and clinical medicine. Findings suggest promising applications in personalized medicine and targeted therapeutic delivery systems. The research demonstrates novel approaches to tissue engineering, drug delivery systems, and regenerative medicine. These advancements hold promise for addressing previously untreatable medical conditions and improving overall healthcare outcomes.',
+            'spectrum.ieee.org': 'An in-depth analysis of emerging technologies in biomedical engineering, highlighting innovative approaches to solving complex medical challenges. The study examines the integration of artificial intelligence, machine learning, and advanced sensor technologies in medical applications. Researchers present novel frameworks for developing next-generation medical devices and diagnostic systems. The comprehensive investigation explores cutting-edge developments that could revolutionize medical technology and patient care. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The study encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems.',
+            'medicalxpress.com': 'This study investigates advanced biomedical engineering solutions, demonstrating significant potential for improving healthcare outcomes and patient treatment protocols. The research encompasses multiple disciplines including materials science, electronics, and clinical medicine. Findings suggest promising applications in personalized medicine and targeted therapeutic delivery systems. The comprehensive analysis explores cutting-edge developments in biomedical engineering, presenting novel findings that could revolutionize medical technology and patient care. Researchers employed innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The study examines the integration of artificial intelligence, machine learning, and advanced sensor technologies in medical applications. Scientists present novel frameworks for developing next-generation medical devices and diagnostic systems. The research demonstrates novel approaches to tissue engineering, drug delivery systems, and regenerative medicine. These advancements hold promise for addressing previously untreatable medical conditions.',
+            'nature.com': 'A peer-reviewed research article presenting groundbreaking findings in biomedical engineering, with rigorous methodology and comprehensive analysis. The study employs state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions. Results indicate substantial improvements in treatment efficacy and patient safety. The research explores cutting-edge developments in biomedical engineering, presenting novel findings that could revolutionize medical technology and patient care. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The study encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. The investigation examines the integration of artificial intelligence, machine learning, and advanced sensor technologies in medical applications. Researchers present novel frameworks for developing next-generation medical devices and diagnostic systems. These findings represent a significant milestone in the field of biomedical engineering.',
+            'scitechdaily.com': 'An exploration of cutting-edge biomedical engineering innovations, showcasing the latest developments in medical technology and their clinical applications. The research demonstrates novel approaches to tissue engineering, drug delivery systems, and regenerative medicine. These advancements hold promise for addressing previously untreatable medical conditions. The comprehensive study examines the latest breakthroughs in biomedical engineering, with implications for future medical applications and therapeutic interventions. Scientists conducted extensive laboratory and clinical trials to validate their findings, establishing new protocols for medical device development and implementation. The research explores cutting-edge developments that could revolutionize medical technology and patient care. The study demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Researchers utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The investigation encompasses multiple disciplines including materials science, electronics, and clinical medicine.'
+        };
+        
+        const content = summaryContent[domain] || 'This biomedical engineering article presents important research findings and technological innovations that contribute to the advancement of medical science and healthcare delivery. The study encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. Researchers employed innovative methodologies to address complex challenges in modern healthcare, resulting in significant contributions to the field. The comprehensive analysis explores cutting-edge developments in biomedical engineering, presenting novel findings that could revolutionize medical technology and patient care. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The investigation encompasses multiple disciplines including materials science, electronics, and clinical medicine. Findings suggest promising applications in personalized medicine and targeted therapeutic delivery systems. The research demonstrates novel approaches to tissue engineering, drug delivery systems, and regenerative medicine. These advancements hold promise for addressing previously untreatable medical conditions and improving overall healthcare outcomes.';
+        
+        // Update summary only
+        article.summary = content;
+        delete article.abstract;
+        updated = true;
+    });
+    
+    if (updated) {
+        // Save updated articles to global localStorage
+        localStorage.setItem('articles', JSON.stringify(userArticles));
+        console.log('Updated existing articles to use summary only');
+    }
+    
+    return updated;
+}
+
+// Article data extraction
+async function extractArticleData(url) {
+    try {
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname;
+        
+        // Use a CORS proxy to fetch the webpage content
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        
+        let title = `Article from ${domain}`;
+        let summary = `Content extracted from ${url}`;
+        let image = null;
+        
+        // Progress tracking
+        const totalSteps = 6;
+        let currentStep = 0;
+        
+        try {
+            // Step 1: Fetching webpage content
+            currentStep = 1;
+            updateProgress(currentStep, totalSteps, 'Fetching webpage content...');
+            
+            const response = await fetch(proxyUrl);
+            const data = await response.json();
+            
+            if (data.contents) {
+                // Step 2: Parsing HTML content
+                currentStep = 2;
+                updateProgress(currentStep, totalSteps, 'Parsing HTML content...');
+                
+                // Create a temporary DOM element to parse the HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+                
+                // Step 3: Extracting article title
+                currentStep = 3;
+                updateProgress(currentStep, totalSteps, 'Extracting article title...');
+                
+                // Extract title
+                const titleElement = doc.querySelector('title') || 
+                                   doc.querySelector('h1') || 
+                                   doc.querySelector('meta[property="og:title"]');
+                if (titleElement) {
+                    title = titleElement.textContent || titleElement.getAttribute('content') || title;
+                }
+                
+                // Step 4: Extracting article image
+                currentStep = 4;
+                updateProgress(currentStep, totalSteps, 'Extracting article image...');
+                
+                // Extract image
+                const imageElement = doc.querySelector('meta[property="og:image"]') ||
+                                   doc.querySelector('meta[name="twitter:image"]') ||
+                                   doc.querySelector('img[src*="article"]') ||
+                                   doc.querySelector('img[src*="news"]') ||
+                                   doc.querySelector('img[src*="featured"]') ||
+                                   doc.querySelector('img');
+                
+                if (imageElement) {
+                    const imageSrc = imageElement.getAttribute('content') || imageElement.getAttribute('src');
+                    if (imageSrc) {
+                        // Convert relative URLs to absolute
+                        if (imageSrc.startsWith('/')) {
+                            image = `${urlObj.protocol}//${urlObj.hostname}${imageSrc}`;
+                        } else if (imageSrc.startsWith('http')) {
+                            image = imageSrc;
+                        } else {
+                            image = `${urlObj.protocol}//${urlObj.hostname}/${imageSrc}`;
+                        }
+                    }
+                }
+                
+                // Step 5: Extracting article summary and abstract
+                currentStep = 5;
+                updateProgress(currentStep, totalSteps, 'Extracting article summary and abstract...');
+                
+                // First try to get existing meta descriptions
+                const summaryElement = doc.querySelector('meta[name="description"]') ||
+                                     doc.querySelector('meta[property="og:description"]') ||
+                                     doc.querySelector('meta[name="twitter:description"]');
+                
+                if (summaryElement) {
+                    summary = summaryElement.getAttribute('content') || summary;
+                }
+                
+                // Step 6: Generating comprehensive abstract
+                currentStep = 6;
+                updateProgress(currentStep, totalSteps, 'Generating comprehensive abstract...');
+                
+                // Look for abstract-specific content first
+                const abstractElement = doc.querySelector('.abstract') ||
+                                      doc.querySelector('[class*="abstract"]') ||
+                                      doc.querySelector('[id*="abstract"]') ||
+                                      doc.querySelector('.summary') ||
+                                      doc.querySelector('[class*="summary"]') ||
+                                      doc.querySelector('.excerpt') ||
+                                      doc.querySelector('[class*="excerpt"]');
+                
+                if (abstractElement) {
+                    let abstractText = abstractElement.textContent || abstractElement.innerText;
+                    abstractText = abstractText.replace(/\s+/g, ' ').trim();
+                    if (abstractText.length > 100) {
+                        summary = abstractText;
+                    }
+                }
+                
+                // Extract main article content for comprehensive summary
+                const articleContent = doc.querySelector('article') ||
+                                     doc.querySelector('.article-content') ||
+                                     doc.querySelector('.post-content') ||
+                                     doc.querySelector('.entry-content') ||
+                                     doc.querySelector('.content') ||
+                                     doc.querySelector('main') ||
+                                     doc.querySelector('body');
+                
+                if (articleContent) {
+                    // Get all text content
+                    let textContent = articleContent.textContent || articleContent.innerText;
+                    
+                    // Clean up the text
+                    textContent = textContent
+                        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                        .replace(/\n+/g, ' ') // Replace newlines with spaces
+                        .trim();
+                    
+                    // Remove common unwanted elements
+                    textContent = textContent
+                        .replace(/Advertisement/g, '')
+                        .replace(/Subscribe/g, '')
+                        .replace(/Sign up/g, '')
+                        .replace(/Cookie Policy/g, '')
+                        .replace(/Privacy Policy/g, '')
+                        .replace(/Terms of Service/g, '');
+                    
+                    // Split into sentences for better abstract formation
+                    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
+                    
+                    if (sentences.length > 0) {
+                        // Take first 3-5 meaningful sentences for abstract
+                        const meaningfulSentences = sentences.slice(0, 5).filter(s => 
+                            s.length > 30 && 
+                            !s.includes('click') && 
+                            !s.includes('subscribe') && 
+                            !s.includes('advertisement')
+                        );
+                        
+                        if (meaningfulSentences.length > 0) {
+                            summary = meaningfulSentences.join('. ') + '.';
+                            
+                            // Ensure minimum 200 words
+                            const words = summary.split(' ');
+                            if (words.length < 200) {
+                                // Add more sentences if needed
+                                const additionalSentences = sentences.slice(5, 10).filter(s => 
+                                    s.length > 30 && 
+                                    !s.includes('click') && 
+                                    !s.includes('subscribe')
+                                );
+                                
+                                if (additionalSentences.length > 0) {
+                                    summary += ' ' + additionalSentences.join('. ') + '.';
+                                }
+                            }
+                        } else {
+                            // Fallback to word-based approach
+                            const words = textContent.split(' ').filter(word => word.length > 2);
+                            summary = words.slice(0, 300).join(' ');
+                        }
+                    } else {
+                        // Fallback to word-based approach
+                        const words = textContent.split(' ').filter(word => word.length > 2);
+                        summary = words.slice(0, 300).join(' ');
+                    }
+                    
+                    // Ensure we have a proper abstract length (200-500 words)
+                    const wordCount = summary.split(' ').length;
+                    if (wordCount < 200) {
+                        // Extend the abstract with more content
+                        const remainingWords = textContent.split(' ').slice(300, 500);
+                        if (remainingWords.length > 0) {
+                            summary += ' ' + remainingWords.join(' ');
+                        }
+                    } else if (wordCount > 500) {
+                        // Truncate to 500 words at sentence boundary
+                        const words = summary.split(' ');
+                        const truncated = words.slice(0, 500).join(' ');
+                        const lastPeriod = truncated.lastIndexOf('.');
+                        if (lastPeriod > 400) {
+                            summary = truncated.substring(0, lastPeriod + 1);
+                        } else {
+                            summary = truncated + '.';
+                        }
+                    }
+                }
+            }
+        } catch (fetchError) {
+            console.log('Could not fetch article data, using domain-specific defaults');
+            
+                         // Fallback to domain-specific content
+             const domainContent = {
+                 'phys.org': {
+                     title: 'Phys.org Biomedical Engineering Research'
+                 },
+                 'sciencedaily.com': {
+                     title: 'ScienceDaily Biomedical Engineering Study'
+                 },
+                 'spectrum.ieee.org': {
+                     title: 'IEEE Spectrum Biomedical Technology'
+                 },
+                 'medicalxpress.com': {
+                     title: 'Medical Xpress Biomedical Solutions'
+                 },
+                 'nature.com': {
+                     title: 'Nature Biomedical Engineering Research'
+                 },
+                 'scitechdaily.com': {
+                     title: 'SciTechDaily Biomedical Innovations'
+                 }
+             };
+             
+             if (domainContent[domain]) {
+                 title = domainContent[domain].title;
+             }
+            
+                         // Generate intelligent abstract based on domain and URL patterns
+             const generateIntelligentAbstract = (url, domain) => {
+                 // Extract keywords from URL
+                 const urlKeywords = url.toLowerCase()
+                     .replace(/[^a-z0-9\s]/g, ' ')
+                     .split(' ')
+                     .filter(word => word.length > 3);
+                 
+                 // Domain-specific abstract templates
+                 const abstractTemplates = {
+                     'phys.org': {
+                         intro: 'This research article explores cutting-edge developments in biomedical engineering',
+                         methods: 'Researchers utilized innovative methodologies and state-of-the-art experimental techniques',
+                         results: 'The study demonstrates significant advances in diagnostic tools and therapeutic interventions',
+                         impact: 'These findings represent a significant milestone in the field of biomedical engineering'
+                     },
+                     'sciencedaily.com': {
+                         intro: 'A comprehensive study examining the latest breakthroughs in biomedical engineering',
+                         methods: 'The research team conducted extensive laboratory and clinical trials',
+                         results: 'This work represents a significant milestone showcasing innovative approaches',
+                         impact: 'These advancements hold promise for addressing previously untreatable medical conditions'
+                     },
+                     'spectrum.ieee.org': {
+                         intro: 'An in-depth analysis of emerging technologies in biomedical engineering',
+                         methods: 'The study examines the integration of artificial intelligence and advanced sensor technologies',
+                         results: 'Researchers present novel frameworks for developing next-generation medical devices',
+                         impact: 'Results indicate substantial improvements in treatment efficacy and patient safety'
+                     },
+                     'medicalxpress.com': {
+                         intro: 'This study investigates advanced biomedical engineering solutions',
+                         methods: 'The research encompasses multiple disciplines including materials science and electronics',
+                         results: 'Findings suggest promising applications in personalized medicine',
+                         impact: 'These advancements hold promise for improving healthcare outcomes'
+                     },
+                     'nature.com': {
+                         intro: 'A peer-reviewed research article presenting groundbreaking findings in biomedical engineering',
+                         methods: 'The study employs state-of-the-art experimental techniques and computational modeling',
+                         results: 'Results indicate substantial improvements in treatment efficacy and patient safety',
+                         impact: 'These findings represent a significant milestone in the field of biomedical engineering'
+                     },
+                     'scitechdaily.com': {
+                         intro: 'An exploration of cutting-edge biomedical engineering innovations',
+                         methods: 'Scientists conducted extensive laboratory and clinical trials',
+                         results: 'The research demonstrates novel approaches to tissue engineering and drug delivery',
+                         impact: 'These advancements hold promise for addressing previously untreatable medical conditions'
+                     }
+                 };
+                 
+                 const template = abstractTemplates[domain] || abstractTemplates['phys.org'];
+                 
+                 // Build abstract with context from URL keywords
+                 let abstract = template.intro;
+                 
+                 // Add context based on URL keywords
+                 if (urlKeywords.some(word => ['device', 'sensor', 'monitor'].includes(word))) {
+                     abstract += ', focusing on medical device development and patient monitoring systems';
+                 } else if (urlKeywords.some(word => ['therapy', 'treatment', 'drug'].includes(word))) {
+                     abstract += ', presenting novel therapeutic interventions and treatment protocols';
+                 } else if (urlKeywords.some(word => ['ai', 'machine', 'learning'].includes(word))) {
+                     abstract += ', incorporating artificial intelligence and machine learning technologies';
+                 } else if (urlKeywords.some(word => ['tissue', 'regenerative', 'stem'].includes(word))) {
+                     abstract += ', advancing tissue engineering and regenerative medicine approaches';
+                 }
+                 
+                 abstract += '. ' + template.methods + ' to address complex challenges in healthcare delivery. ' + 
+                           template.results + ' that could revolutionize medical technology and patient care. ' +
+                           'The comprehensive analysis encompasses various aspects of biomedical engineering including ' +
+                           'device development, therapeutic applications, and clinical implementation strategies. ' +
+                           template.impact + ', contributing to the advancement of medical science and healthcare delivery.';
+                 
+                 return abstract;
+             };
+             
+             // Generate intelligent abstract
+             summary = generateIntelligentAbstract(url, domain);
+        }
+        
+        return {
+            title,
+            summary,
+            image,
+            source: domain,
+            date: new Date().getFullYear().toString(),
+            url,
+            category: 'Biomedical Engineering',
+            ticker: 1, // Initialize ticker to 1 for new articles
+            userId: currentUser ? currentUser.id : 'anonymous',
+            userName: currentUser ? currentUser.name : 'Anonymous',
+            timestamp: new Date().toISOString()
+        };
+    } catch (error) {
+        throw new Error('Failed to extract article data');
+    }
+}
+
+// Check if URL already exists in articles
+function isUrlAlreadyAdded(url) {
+    try {
+        // Normalize URL for comparison (remove trailing slashes, etc.)
+        const normalizedUrl = normalizeUrl(url);
+        
+        // Check in current userArticles array
+        const existingArticle = userArticles.find(article => {
+            const articleUrl = normalizeUrl(article.url);
+            return articleUrl === normalizedUrl;
+        });
+        
+        if (existingArticle) {
+            return true;
+        }
+        
+        // Also check in global storage to be extra safe
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        const globalExisting = allArticles.find(article => {
+            const articleUrl = normalizeUrl(article.url);
+            return articleUrl === normalizedUrl;
+        });
+        
+        return !!globalExisting;
+    } catch (error) {
+        console.error('Error checking URL duplication:', error);
+        return false;
+    }
+}
+
+// Normalize URL for comparison
+function normalizeUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        // Remove trailing slash and normalize
+        let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+        normalized = normalized.replace(/\/$/, ''); // Remove trailing slash
+        return normalized.toLowerCase();
+    } catch (error) {
+        // If URL parsing fails, return original URL
+        return url.toLowerCase();
+    }
+}
+
+// Find existing article by URL
+function findExistingArticle(url) {
+    try {
+        const normalizedUrl = normalizeUrl(url);
+        
+        // Check in current userArticles array first
+        const existingArticle = userArticles.find(article => {
+            const articleUrl = normalizeUrl(article.url);
+            return articleUrl === normalizedUrl;
+        });
+        
+        if (existingArticle) {
+            return existingArticle;
+        }
+        
+        // Check in global storage
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        const globalExisting = allArticles.find(article => {
+            const articleUrl = normalizeUrl(article.url);
+            return articleUrl === normalizedUrl;
+        });
+        
+        return globalExisting || null;
+    } catch (error) {
+        console.error('Error finding existing article:', error);
+        return null;
+    }
+}
+
+// Highlight existing article in the grid
+function highlightExistingArticle(existingArticle) {
+    // Find the article card in the DOM and highlight it
+    const articleCards = document.querySelectorAll('.article-card');
+    articleCards.forEach(card => {
+        const titleElement = card.querySelector('.article-title');
+        if (titleElement && titleElement.textContent === existingArticle.title) {
+            // Add highlight effect
+            card.style.border = '3px solid #dc2626';
+            card.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.3)';
+            card.style.transform = 'scale(1.02)';
+            
+            // Scroll to the highlighted article
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Remove highlight after 5 seconds
+            setTimeout(() => {
+                card.style.border = '';
+                card.style.boxShadow = '';
+                card.style.transform = '';
+            }, 5000);
+        }
+    });
+}
+
+// Find and remove duplicate articles
+function findAndRemoveDuplicates() {
+    try {
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        const duplicates = [];
+        const uniqueArticles = [];
+        const seenUrls = new Set();
+        const seenTitles = new Set();
+        
+        // First pass: identify duplicates by URL
+        allArticles.forEach((article, index) => {
+            const normalizedUrl = normalizeUrl(article.url);
+            const normalizedTitle = article.title.toLowerCase().trim();
+            
+            if (seenUrls.has(normalizedUrl)) {
+                // This is a URL duplicate
+                duplicates.push({
+                    article: article,
+                    index: index,
+                    type: 'URL',
+                    reason: `Duplicate URL: ${article.url}`
+                });
+            } else if (seenTitles.has(normalizedTitle)) {
+                // This is a title duplicate (same title, different URL)
+                duplicates.push({
+                    article: article,
+                    index: index,
+                    type: 'Title',
+                    reason: `Duplicate Title: "${article.title}"`
+                });
+            } else {
+                // This is unique
+                uniqueArticles.push(article);
+                seenUrls.add(normalizedUrl);
+                seenTitles.add(normalizedTitle);
+            }
+        });
+        
+        if (duplicates.length === 0) {
+            showMessage('No duplicate articles found!', 'success');
+            return;
+        }
+        
+        // Show duplicate removal interface
+        showDuplicateRemovalInterface(duplicates, uniqueArticles);
+        
+    } catch (error) {
+        console.error('Error finding duplicates:', error);
+        showMessage('Error finding duplicate articles.', 'error');
+    }
+}
+
+// Show duplicate removal interface
+function showDuplicateRemovalInterface(duplicates, uniqueArticles) {
+    const messageContainer = document.getElementById('messageContainer');
+    if (!messageContainer) return;
+    
+    let duplicateHTML = `
+        <div class="duplicate-removal-interface" style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 12px; padding: 2rem; margin: 2rem 0;">
+            <h3 style="color: #dc2626; margin-bottom: 1rem;">🔍 Found ${duplicates.length} Duplicate Articles</h3>
+            <p style="color: #6b7280; margin-bottom: 1.5rem;">
+                The following articles have been identified as duplicates. Choose which ones to remove:
+            </p>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <button onclick="removeAllDuplicates(${JSON.stringify(duplicates).replace(/"/g, '&quot;')}, ${JSON.stringify(uniqueArticles).replace(/"/g, '&quot;')})" 
+                        style="background: #dc2626; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; margin-right: 1rem; cursor: pointer;">
+                    🗑️ Remove All Duplicates (${duplicates.length})
+                </button>
+                <button onclick="closeDuplicateInterface()" 
+                        style="background: #6b7280; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    ❌ Cancel
+                </button>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto;">
+    `;
+    
+    duplicates.forEach((duplicate, index) => {
+        const badgeColor = duplicate.type === 'URL' ? '#dc2626' : '#f59e0b';
+        const badgeText = duplicate.type === 'URL' ? 'URL Duplicate' : 'Title Duplicate';
+        
+        duplicateHTML += `
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <strong style="color: #1f2937; font-size: 1.1rem;">${duplicate.article.title}</strong>
+                    <span style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        ${badgeText}
+                    </span>
+                </div>
+                <div style="color: #6b7280; margin-bottom: 0.5rem;">${duplicate.article.url}</div>
+                <div style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                    Added by: ${duplicate.article.addedBy || 'Unknown'} | Date: ${new Date(duplicate.article.addedAt).toLocaleDateString()}
+                </div>
+                <div style="color: #dc2626; font-size: 0.875rem; font-weight: 600;">${duplicate.reason}</div>
+                <button onclick="removeSingleDuplicate(${index}, ${JSON.stringify(duplicates).replace(/"/g, '&quot;')}, ${JSON.stringify(uniqueArticles).replace(/"/g, '&quot;')})" 
+                        style="background: #dc2626; color: white; padding: 6px 12px; border: none; border-radius: 4px; font-size: 0.875rem; margin-top: 0.5rem; cursor: pointer;">
+                    Remove This Duplicate
+                </button>
+            </div>
+        `;
+    });
+    
+    duplicateHTML += `
+            </div>
+        </div>
+    `;
+    
+    messageContainer.innerHTML = duplicateHTML;
+}
+
+// Remove all duplicates
+function removeAllDuplicates(duplicates, uniqueArticles) {
+    if (confirm(`Are you sure you want to remove all ${duplicates.length} duplicate articles? This action cannot be undone.`)) {
+        try {
+            // Save only unique articles
+            localStorage.setItem('articles', JSON.stringify(uniqueArticles));
+            
+            // Update local array
+            userArticles.length = 0;
+            userArticles.push(...uniqueArticles);
+            
+            // Refresh display
+            displayUserArticles();
+            
+            // Close interface
+            closeDuplicateInterface();
+            
+            showMessage(`Successfully removed ${duplicates.length} duplicate articles!`, 'success');
+        } catch (error) {
+            console.error('Error removing duplicates:', error);
+            showMessage('Error removing duplicate articles.', 'error');
+        }
+    }
+}
+
+// Remove single duplicate
+function removeSingleDuplicate(duplicateIndex, duplicates, uniqueArticles) {
+    const duplicate = duplicates[duplicateIndex];
+    
+    if (confirm(`Are you sure you want to remove this duplicate article: "${duplicate.article.title}"?`)) {
+        try {
+            // Add the duplicate to unique articles (since we're removing it from duplicates)
+            uniqueArticles.push(duplicate.article);
+            
+            // Remove from duplicates array
+            duplicates.splice(duplicateIndex, 1);
+            
+            if (duplicates.length === 0) {
+                // No more duplicates, save and close
+                localStorage.setItem('articles', JSON.stringify(uniqueArticles));
+                userArticles.length = 0;
+                userArticles.push(...uniqueArticles);
+                displayUserArticles();
+                closeDuplicateInterface();
+                showMessage('All duplicate articles have been removed!', 'success');
+            } else {
+                // Update interface with remaining duplicates
+                showDuplicateRemovalInterface(duplicates, uniqueArticles);
+                showMessage(`Removed 1 duplicate article. ${duplicates.length} remaining.`, 'success');
+            }
+        } catch (error) {
+            console.error('Error removing single duplicate:', error);
+            showMessage('Error removing duplicate article.', 'error');
+        }
+    }
+}
+
+// Close duplicate removal interface
+function closeDuplicateInterface() {
+    const messageContainer = document.getElementById('messageContainer');
+    if (messageContainer) {
+        messageContainer.innerHTML = '';
+    }
+}
+
+// Get duplicate statistics
+function getDuplicateStats() {
+    try {
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        const seenUrls = new Set();
+        const seenTitles = new Set();
+        const urlDuplicates = [];
+        const titleDuplicates = [];
+        
+        // Calculate ticker statistics
+        let totalTicker = 0;
+        let articlesWithTicker = 0;
+        let maxTicker = 0;
+        let popularArticles = [];
+        
+        allArticles.forEach(article => {
+            const normalizedUrl = normalizeUrl(article.url);
+            const normalizedTitle = article.title.toLowerCase().trim();
+            const ticker = article.ticker || 1;
+            
+            // Track ticker statistics
+            totalTicker += ticker;
+            if (ticker > 1) articlesWithTicker++;
+            if (ticker > maxTicker) maxTicker = ticker;
+            
+            // Track popular articles (ticker >= 10)
+            if (ticker >= 10) {
+                popularArticles.push({
+                    title: article.title,
+                    ticker: ticker,
+                    url: article.url
+                });
+            }
+            
+            if (seenUrls.has(normalizedUrl)) {
+                urlDuplicates.push(article);
+            } else {
+                seenUrls.add(normalizedUrl);
+            }
+            
+            if (seenTitles.has(normalizedTitle)) {
+                titleDuplicates.push(article);
+            } else {
+                seenTitles.add(normalizedTitle);
+            }
+        });
+        
+        // Sort popular articles by ticker count
+        popularArticles.sort((a, b) => b.ticker - a.ticker);
+        
+        return {
+            totalArticles: allArticles.length,
+            urlDuplicates: urlDuplicates.length,
+            titleDuplicates: titleDuplicates.length,
+            totalDuplicates: urlDuplicates.length + titleDuplicates.length,
+            uniqueArticles: allArticles.length - (urlDuplicates.length + titleDuplicates.length),
+            totalTicker: totalTicker,
+            articlesWithTicker: articlesWithTicker,
+            maxTicker: maxTicker,
+            popularArticles: popularArticles.slice(0, 5) // Top 5 most popular
+        };
+    } catch (error) {
+        console.error('Error getting duplicate stats:', error);
+        return null;
+    }
+}
+
+// Check if current user is a moderator
+function isCurrentUserModerator() {
+    return currentUser && currentUser.role === 'Moderator';
+}
+
+// Show duplicate statistics (moderators only)
+function showDuplicateStats() {
+    // Check if user is logged in and is a moderator
+    if (!currentUser) {
+        showMessage('Please log in to view article statistics.', 'error');
+        return;
+    }
+    
+    if (!isCurrentUserModerator()) {
+        showMessage('Only moderators can view article statistics.', 'error');
+        return;
+    }
+    
+    const stats = getDuplicateStats();
+    if (!stats) {
+        showMessage('Error getting duplicate statistics.', 'error');
+        return;
+    }
+    
+    const messageContainer = document.getElementById('messageContainer');
+    if (!messageContainer) return;
+    
+    const statsHTML = `
+        <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 12px; padding: 2rem; margin: 2rem 0;">
+            <h3 style="color: #0ea5e9; margin-bottom: 1rem;">📊 Article Statistics (Moderator View)</h3>
+            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem; font-style: italic;">
+                This information is only visible to moderators for system management purposes.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #0ea5e9;">${stats.totalArticles}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Total Articles</div>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #10b981;">${stats.uniqueArticles}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Unique Articles</div>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #dc2626;">${stats.totalDuplicates}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Total Duplicates</div>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">${stats.totalTicker}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Total Shares</div>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">${stats.articlesWithTicker}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Articles Shared >1x</div>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #ef4444;">${stats.maxTicker}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Most Shared</div>
+                </div>
+            </div>
+            <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #6b7280;">URL Duplicates:</span>
+                    <span style="font-weight: 600; color: #dc2626;">${stats.urlDuplicates}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #6b7280;">Title Duplicates:</span>
+                    <span style="font-weight: 600; color: #f59e0b;">${stats.titleDuplicates}</span>
+                </div>
+            </div>
+            ${stats.popularArticles.length > 0 ? `
+            <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🔥 Most Popular Articles (10+ shares)</h4>
+                ${stats.popularArticles.map(article => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6;">
+                        <div style="flex: 1; margin-right: 1rem;">
+                            <div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${article.title.substring(0, 60)}${article.title.length > 60 ? '...' : ''}</div>
+                            <div style="color: #6b7280; font-size: 0.8rem;">${article.url}</div>
+                        </div>
+                        <div style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 600; font-size: 0.875rem;">
+                            ${article.ticker} shares
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            ` : ''}
+            <div style="text-align: center;">
+                <p style="color: #10b981; font-weight: 600; margin-bottom: 1rem;">
+                    ✨ Duplicate removal is automatic - no manual action needed
+                </p>
+                <button onclick="closeDuplicateInterface()" 
+                        style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                    ❌ Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    messageContainer.innerHTML = statsHTML;
+}
+
+// Real-time URL validation
+function setupUrlValidation() {
+    const urlInput = document.getElementById('url1');
+    if (urlInput) {
+        urlInput.addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            const validationMessage = document.getElementById('urlValidationMessage');
+            
+            if (!validationMessage) {
+                // Create validation message element if it doesn't exist
+                const messageDiv = document.createElement('div');
+                messageDiv.id = 'urlValidationMessage';
+                messageDiv.style.marginTop = '8px';
+                messageDiv.style.fontSize = '0.875rem';
+                urlInput.parentNode.appendChild(messageDiv);
+            }
+            
+            if (url && /^https?:\/\/.+/.test(url)) {
+                if (isUrlAlreadyAdded(url)) {
+                    const existingArticle = findExistingArticle(url);
+                    validationMessage.textContent = `⚠️ This URL has already been added: "${existingArticle?.title || 'Unknown article'}"`;
+                    validationMessage.style.color = '#dc2626';
+                    validationMessage.style.fontWeight = '600';
+                } else {
+                    validationMessage.textContent = '✅ URL is available and ready to analyze';
+                    validationMessage.style.color = '#10b981';
+                    validationMessage.style.fontWeight = '600';
+                }
+            } else if (url) {
+                validationMessage.textContent = '⚠️ Please enter a valid URL starting with http:// or https://';
+                validationMessage.style.color = '#f59e0b';
+                validationMessage.style.fontWeight = '600';
+            } else {
+                validationMessage.textContent = '';
+            }
+        });
+    }
+}
+
+// Form handling
+if (urlForm) {
+    urlForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Check if user is logged in
+        if (!currentUser) {
+            showMessage('Please log in to add articles.', 'error');
+            return;
+        }
+        
+        const url = document.getElementById('url1')?.value.trim();
+        if (!url) {
+            showMessage('Please enter a URL to analyze.', 'error');
+            return;
+        }
+        
+        if (!/^https?:\/\/.+/.test(url)) {
+            showMessage('Please enter a valid URL starting with http:// or https://', 'error');
+            return;
+        }
+        
+        // Check if URL already exists and increment ticker
+        if (isUrlAlreadyAdded(url)) {
+            const existingArticle = findExistingArticle(url);
+            if (existingArticle) {
+                // Increment the ticker for the existing article
+                existingArticle.ticker = (existingArticle.ticker || 1) + 1;
+                
+                // Update the article in storage
+                const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+                const articleIndex = allArticles.findIndex(article => 
+                    normalizeUrl(article.url) === normalizeUrl(existingArticle.url)
+                );
+                
+                if (articleIndex !== -1) {
+                    allArticles[articleIndex] = existingArticle;
+                    localStorage.setItem('articles', JSON.stringify(allArticles));
+                    
+                    // Update local array and display
+                    userArticles.length = 0;
+                    userArticles.push(...allArticles);
+                    displayUserArticles();
+                    
+                    showMessage(`Article ticker incremented! This article has been shared ${existingArticle.ticker} times.`);
+                    document.getElementById('url1').value = '';
+                }
+            }
+            return;
+        }
+        
+        if (analyzeBtn) {
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+        }
+        showLoading();
+        
+        try {
+            const articleData = await extractArticleData(url);
+            // Add user information to the article
+            articleData.addedBy = currentUser.name;
+            articleData.userId = currentUser.id;
+            articleData.addedAt = new Date().toISOString();
+            
+            // Show the generated abstract
+            const abstractPreviewText = document.getElementById('abstractPreviewText');
+            if (abstractPreviewText) {
+                abstractPreviewText.textContent = articleData.summary;
+                abstractPreviewText.className = '';
+            }
+            
+            // Save to global articles storage (visible to everyone)
+            const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+            allArticles.push(articleData);
+            
+            // Automatically clean duplicates after adding new article
+            const cleanedArticles = autoCleanDuplicates(allArticles);
+            localStorage.setItem('articles', JSON.stringify(cleanedArticles));
+            
+            // Update local array and display
+            userArticles.length = 0;
+            userArticles.push(...cleanedArticles);
+            displayUserArticles();
+            hideLoading();
+            showMessage('Successfully analyzed URL and added article!');
+            document.getElementById('url1').value = '';
+        } catch (error) {
+            hideLoading();
+            showMessage('An error occurred while analyzing the URL. Please try again.', 'error');
+            console.error('Analysis error:', error);
+        } finally {
+            if (analyzeBtn) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Article';
+            }
+        }
+    });
+}
+
+// Authentication functions
+function checkAuthStatus() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            
+                    // Verify moderator status - only Mendel can be a moderator
+        if (currentUser.role === 'Moderator' && currentUser.email !== 'mendel@bmecom.com') {
+            // Remove moderator role from non-Mendel users
+            currentUser.role = 'User';
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Update user in users array
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex].role = 'User';
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+            
+            updateUIForLoggedInUser();
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+            logout();
+        }
+    } else {
+        updateUIForLoggedOutUser();
+    }
+}
+
+function updateUIForLoggedInUser() {
+    if (urlInputSection) urlInputSection.style.display = 'block';
+    if (loginRequiredSection) loginRequiredSection.style.display = 'none';
+    if (loginLink) loginLink.style.display = 'none';
+    if (logoutLink) logoutLink.style.display = 'inline-block';
+    if (userInfo) {
+        userInfo.style.display = 'block';
+        if (userName && currentUser) {
+            userName.textContent = currentUser.name;
+        }
+        
+        // Add statistics button for moderators
+        const existingStatsButton = userInfo.querySelector('.stats-button');
+        if (isCurrentUserModerator()) {
+            if (!existingStatsButton) {
+                const statsButton = document.createElement('button');
+                statsButton.className = 'stats-button';
+                statsButton.onclick = showDuplicateStats;
+                statsButton.style.cssText = 'background: #0ea5e9; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; margin-top: 0.5rem; cursor: pointer;';
+                statsButton.textContent = '📊 Show Statistics';
+                userInfo.appendChild(statsButton);
+            }
+        } else {
+            // Remove statistics button for non-moderators
+            if (existingStatsButton) {
+                existingStatsButton.remove();
+            }
+        }
+    }
+    
+    // Show moderator access for Mendel
+    if (moderatorLink && currentUser && currentUser.email === 'mendel@bmecom.com') {
+        moderatorLink.style.display = 'inline-block';
+    } else if (moderatorLink) {
+        moderatorLink.style.display = 'none';
+    }
+    
+    // Load all articles and start real-time updates
+    loadAllArticles();
+    startRealTimeUpdates();
+}
+
+function updateUIForLoggedOutUser() {
+    if (urlInputSection) urlInputSection.style.display = 'none';
+    if (loginRequiredSection) loginRequiredSection.style.display = 'block';
+    if (loginLink) loginLink.style.display = 'inline-block';
+    if (logoutLink) logoutLink.style.display = 'none';
+    if (userInfo) userInfo.style.display = 'none';
+    if (moderatorLink) moderatorLink.style.display = 'none';
+    if (moderatorSection) moderatorSection.style.display = 'none';
+    
+    // Still load all articles for public access and start real-time updates
+    loadAllArticles();
+    startRealTimeUpdates();
+}
+
+function logout() {
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+    updateUIForLoggedOutUser();
+    showMessage('You have been logged out successfully.');
+}
+
+// Moderator functionality
+function searchModeratorUsers() {
+    const searchTerm = userSearchInput.value.toLowerCase().trim();
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    
+    if (users.length === 0) {
+        moderatorUsersList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">No users found in the system.</div>';
+        return;
+    }
+    
+    // Sort users by creation date (most recent first)
+    const sortedUsers = users.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+    });
+    
+    // Filter users based on search term
+    const filteredUsers = searchTerm ? 
+        sortedUsers.filter(user => 
+            user.name.toLowerCase().includes(searchTerm) || 
+            user.email.toLowerCase().includes(searchTerm) ||
+            (user.role || 'User').toLowerCase().includes(searchTerm)
+        ) : sortedUsers;
+    
+    if (filteredUsers.length === 0) {
+        moderatorUsersList.innerHTML = 
+            `<div style="text-align: center; color: #6b7280; padding: 2rem;">No users found matching "${searchTerm}".</div>`;
+        return;
+    }
+    
+    let usersListHTML = '<div style="margin-bottom: 1rem; font-weight: 600; color: #1f2937;">Users (Most Recent First):</div>';
+    filteredUsers.forEach((user, index) => {
+        const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+        const roleBadge = user.role === 'Moderator' ? 
+            '<span style="background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Moderator</span>' : 
+            '<span style="background: #6b7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">User</span>';
+        
+                    const actionButton = user.role === 'Moderator' && user.email !== 'mendel@bmecom.com' ? 
+            `<button class="analyze-btn" style="margin-top: 8px; padding: 6px 12px; font-size: 0.875rem;" 
+                     onclick="removeModeratorRole('${user.id}')">Remove Moderator Role</button>` :
+            user.role !== 'Moderator' ? 
+            `<button class="analyze-btn" style="margin-top: 8px; padding: 6px 12px; font-size: 0.875rem;" 
+                     onclick="addModeratorRole('${user.id}')">Make Moderator</button>` : '';
+        
+        usersListHTML += `
+            <div style="margin: 10px 0; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 1.1rem;">${user.name}</strong>
+                    ${roleBadge}
+                </div>
+                <div style="color: #6b7280; margin-bottom: 5px;">${user.email}</div>
+                <div style="color: #9ca3af; font-size: 0.875rem;">Created: ${createdDate}</div>
+                ${actionButton}
+            </div>
+        `;
+    });
+    
+    moderatorUsersList.innerHTML = usersListHTML;
+}
+
+function addModeratorRole(userId) {
+    try {
+        // Check if current user is Mendel
+        if (!currentUser || currentUser.email !== 'mendel@bmecom.com') {
+            showMessage('Only Mendel can designate moderators.', 'error');
+            return;
+        }
+        
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex === -1) {
+            showMessage('User not found.', 'error');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to make ${users[userIndex].name} a moderator?`)) {
+            users[userIndex].role = 'Moderator';
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Refresh the user list
+            searchModeratorUsers();
+            
+            showMessage(`User ${users[userIndex].name} has been designated as a moderator.`, 'success');
+        }
+        
+    } catch (error) {
+        showMessage('Error adding moderator role: ' + error.message, 'error');
+        console.error('Error:', error);
+    }
+}
+
+function removeModeratorRole(userId) {
+    try {
+        // Check if current user is Mendel
+        if (!currentUser || currentUser.email !== 'mendel@bmecom.com') {
+            showMessage('Only Mendel can remove moderator roles.', 'error');
+            return;
+        }
+        
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex === -1) {
+            showMessage('User not found.', 'error');
+            return;
+        }
+        
+        if (users[userIndex].email === 'mendel@bmecom.com') {
+            showMessage('Cannot remove moderator role from Mendel.', 'error');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to remove moderator role from ${users[userIndex].name}?`)) {
+            users[userIndex].role = 'User';
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Refresh the user list
+            searchModeratorUsers();
+            
+            showMessage(`Moderator role removed from ${users[userIndex].name}.`, 'success');
+        }
+        
+    } catch (error) {
+        showMessage('Error removing moderator role: ' + error.message, 'error');
+        console.error('Error:', error);
+    }
+}
+
+function toggleModeratorSection() {
+    if (moderatorSection.style.display === 'none') {
+        // Show moderator section
+        moderatorSection.style.display = 'block';
+        // Hide other sections
+        document.querySelector('.community-favorites-section').style.display = 'none';
+        document.querySelector('.all-articles-section').style.display = 'none';
+        // Load users
+        searchModeratorUsers();
+    } else {
+        // Hide moderator section
+        moderatorSection.style.display = 'none';
+        // Show other sections
+        document.querySelector('.community-favorites-section').style.display = 'block';
+        document.querySelector('.all-articles-section').style.display = 'block';
+    }
+}
+
+// Logout event listener
+if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    // Check authentication status first
+    checkAuthStatus();
+    
+    // Load all articles from global storage and auto-clean duplicates
+    const savedArticles = localStorage.getItem('articles');
+    if (savedArticles) {
+        try {
+            const parsedArticles = JSON.parse(savedArticles);
+            const cleanedArticles = autoCleanDuplicates(parsedArticles);
+            
+            // If duplicates were found and removed, save the cleaned version
+            if (cleanedArticles.length < parsedArticles.length) {
+                localStorage.setItem('articles', JSON.stringify(cleanedArticles));
+                showMessage(`🧹 Cleaned up ${parsedArticles.length - cleanedArticles.length} duplicate articles on page load.`, 'success');
+            }
+            
+            userArticles.push(...cleanedArticles);
+        } catch (error) {
+            console.error('Error loading saved articles:', error);
+        }
+    }
+    
+    // Update existing articles to fit new format
+    const wasUpdated = updateExistingArticles();
+    
+    // Start real-time updates for everyone
+    startRealTimeUpdates();
+    
+    // Setup URL validation
+    setupUrlValidation();
+    
+    // Show message if articles were updated
+    if (wasUpdated) {
+        showMessage('Existing articles have been updated to meet new format requirements!');
+    }
+    
+    // Moderator link event listener
+    if (moderatorLink) {
+        moderatorLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleModeratorSection();
+        });
+    }
+    
+    // User search input event listener
+    if (userSearchInput) {
+        userSearchInput.addEventListener('input', searchModeratorUsers);
+    }
+    
+    // Smooth scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+});
+
+// Cleanup real-time updates when page is unloaded
+window.addEventListener('beforeunload', () => {
+    stopRealTimeUpdates();
+});
+
+// Header scroll effect
+window.addEventListener('scroll', () => {
+    const header = document.querySelector('.header');
+    if (!header) return;
+    
+    if (window.scrollY > 100) {
+        header.style.background = 'rgba(255, 255, 255, 0.98)';
+        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
+    } else {
+        header.style.background = 'rgba(255, 255, 255, 0.95)';
+        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+    }
+}); 

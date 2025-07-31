@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMECom - Biomedical Engineering Articles</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .articles-container {
+            padding: 120px 0 80px;
+            background: #e0f2fe;
+        }
+        
+        .url-input-section {
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 3rem;
+        }
+        
+        .url-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .url-group {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .url-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .analyze-btn {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .analyze-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .analyze-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .community-favorites-section {
+            margin-bottom: 4rem;
+        }
+        
+        .community-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .all-articles-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .community-favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .all-articles-section {
+            margin-top: 3rem;
+        }
+        
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        
+        .article-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .article-rank {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .article-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1.4;
+            flex: 1;
+            margin: 0;
+        }
+        
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+        }
+        
+        .delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        
+        .delete-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .article-summary {
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        
+        .article-abstract {
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .article-abstract h4 {
+            color: #1f2937;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .article-abstract p {
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            margin: 0 0 1rem 0;
+        }
+        
+        .read-abstract-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            background: transparent;
+            color: #2563eb;
+            text-decoration: none;
+            border: 1px solid #2563eb;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .read-abstract-btn:hover {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .article-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+        
+        .article-source {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        
+        .article-image {
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 200px;
+            background: #f3f4f6;
+        }
+        
+        .article-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .article-image:hover img {
+            transform: scale(1.05);
+        }
+        
+        .article-title a {
+            color: #1f2937;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .article-title a:hover {
+            color: #2563eb;
+        }
+        
+        .article-actions {
+            margin-top: 1.5rem;
+        }
+        
+        .read-more-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .read-more-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        
+        .community-favorite {
+            border: 2px solid #fbbf24;
+            background: linear-gradient(135deg, #ffffff 0%, #fef3c7 100%);
+        }
+        
+        .community-favorite .article-rank {
+            background: #f59e0b;
+        }
+        
+        .article-category {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            margin-left: 0.5rem;
+        }
+        
+        .article-votes {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #dc2626;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #e5e7eb;
+        }
+        
+        .empty-state h3 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .empty-state p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        .progress-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .progress-step {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .abstract-preview {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .abstract-preview h4 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .abstract-preview p {
+            color: #4b5563;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .abstract-generating {
+            color: #2563eb;
+            font-style: italic;
+        }
+        
+        /* Article Ticker Styles */
+        .article-ticker {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            margin: 0.75rem 0;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .moderator-ticker {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            color: #0c4a6e;
+        }
+        
+        .public-ticker {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .ticker-icon {
+            font-size: 1rem;
+        }
+        
+        .ticker-text {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <h2>BMECom</h2>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="articles.html" class="nav-link">Articles</a></li>
+                    <li><a href="index.html#about" class="nav-link">About</a></li>
+                    <li><a href="index.html#services" class="nav-link">Services</a></li>
+                    <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+                    <li><a href="login.html" class="nav-link" id="loginLink">Login</a></li>
+                    <li><a href="#" class="nav-link" id="logoutLink" style="display: none;">Logout</a></li>
+                    <li><a href="#" class="nav-link" id="moderatorLink" style="display: none;">Moderator Access</a></li>
+                </ul>
+                <div class="nav-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="articles-container">
+            <div class="container">
+                <h1 class="section-title">Biomedical Engineering Articles</h1>
+                <p style="text-align: center; color: #6b7280; margin-bottom: 1rem; font-size: 1.1rem;">
+                    Real-time biomedical engineering articles from our community
+                </p>
+                <div id="userInfo" style="text-align: center; margin-bottom: 2rem; display: none;">
+                    <p style="color: #2563eb; font-weight: 600; font-size: 1rem;">
+                        Welcome, <span id="userName"></span>! You can add and manage articles.
+                    </p>
+                    <p style="color: #10b981; font-size: 0.875rem; margin-top: 0.5rem;">
+                        ✨ Duplicate articles are automatically removed to keep the collection clean
+                    </p>
+                </div>
+                <div id="publicInfo" style="text-align: center; margin-bottom: 2rem;">
+                    <p style="color: #10b981; font-weight: 600; font-size: 1rem;">
+                        🌐 Public Access - All articles are visible to everyone
+                    </p>
+                    <p style="color: #6b7280; font-size: 0.9rem; margin-top: 0.5rem;">
+                        Articles update automatically every minute • Last updated: <span id="lastUpdateTime">Loading...</span>
+                    </p>
+                    <p style="color: #10b981; font-size: 0.875rem; margin-top: 0.5rem;">
+                        ✨ Duplicate articles are automatically removed to keep the collection clean
+                    </p>
+                </div>
+
+                <!-- URL Input Section -->
+                <div class="url-input-section" id="urlInputSection" style="display: none;">
+                    <h3 style="margin-bottom: 2rem; color: #1f2937;">Enter Article URL to Analyze</h3>
+                    <form class="url-form" id="urlForm">
+                        <div class="url-group">
+                            <label for="url1">Article URL</label>
+                            <input type="url" id="url1" class="url-input" placeholder="https://example.com/article" required>
+                        </div>
+                        <button type="submit" class="analyze-btn" id="analyzeBtn">
+                            Analyze Article
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Login Required Section -->
+                <div class="login-required-section" id="loginRequiredSection">
+                    <h3 style="margin-bottom: 2rem; color: #1f2937;">Add New Articles</h3>
+                    <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                        Login to add new biomedical engineering articles to the community collection.
+                    </p>
+                    <div style="text-align: center;">
+                        <a href="login.html" class="analyze-btn" style="text-decoration: none; display: inline-block;">
+                            Login or Sign Up to Add Articles
+                        </a>
+                    </div>
+                </div>
+
+                <div id="messageContainer"></div>
+                <div id="loadingContainer" class="loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Analyzing articles and extracting content...</p>
+                </div>
+                
+                <!-- Abstract Preview Section -->
+                <div id="abstractPreviewContainer" class="abstract-preview" style="display: none;">
+                    <h4>📝 Generated Abstract Preview</h4>
+                    <p id="abstractPreviewText" class="abstract-generating">
+                        Generating intelligent abstract from article content...
+                    </p>
+                </div>
+
+                <!-- Community's Favorite Section -->
+                <div class="community-favorites-section">
+                    <h2 class="community-title">🏆 Community's Favorite Articles</h2>
+                    <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                        The most popular articles voted by our biomedical engineering community
+                    </p>
+                    <div class="community-favorites-grid" id="communityFavoritesGrid">
+                        <!-- Community favorites will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- All Articles Section -->
+                <div class="all-articles-section">
+                    <h2 class="all-articles-title">📚 All Biomedical Engineering Articles</h2>
+                    <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                        Community-contributed articles - visible to everyone
+                    </p>
+                    <div class="articles-grid" id="articlesGrid">
+                        <!-- Articles will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Moderator Access Section -->
+                <div class="moderator-section" id="moderatorSection" style="display: none;">
+                    <h2 class="all-articles-title">🛡️ Moderator Access</h2>
+                    <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                        Manage users and system settings
+                    </p>
+                    
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <p style="color: #10b981; font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem;">
+                            ✨ Automatic Duplicate Management
+                        </p>
+                        <p style="color: #6b7280; font-size: 0.875rem;">
+                            The system automatically detects and removes duplicate articles to maintain a clean collection
+                        </p>
+                        <button onclick="showDuplicateStats()" 
+                                style="background: #0ea5e9; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; margin: 1rem 0.5rem; cursor: pointer;">
+                            📊 Show Article Statistics
+                        </button>
+                    </div>
+                    
+                    <div class="url-input-section">
+                        <div style="margin-bottom: 1rem;">
+                            <input type="text" id="userSearchInput" placeholder="Search users by name or email..." 
+                                   style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                        </div>
+                        <div id="moderatorUsersList"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>BMECom</h3>
+                    <p>Creating amazing digital experiences since 2024.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="articles.html">Articles</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <div class="social-links">
+                        <a href="#" class="social-link">Twitter</a>
+                        <a href="#" class="social-link">LinkedIn</a>
+                        <a href="#" class="social-link">GitHub</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 BMECom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="articles.js"></script>
+</body>
+</html> 

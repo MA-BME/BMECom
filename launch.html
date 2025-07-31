@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMECom - Launch Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .nav-item {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: #1e293b;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .nav-item:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
+        }
+        
+        .nav-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-desc {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .server-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .credentials {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 BMECom</h1>
+        <p class="subtitle">Biomedical Engineering Community</p>
+        
+        <div class="nav-grid">
+            <a href="index.html" class="nav-item">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-title">Home</div>
+                <div class="nav-desc">Main website</div>
+            </a>
+            
+            <a href="articles.html" class="nav-item">
+                <div class="nav-icon">📰</div>
+                <div class="nav-title">Articles</div>
+                <div class="nav-desc">Biomedical engineering articles</div>
+            </a>
+            
+            <a href="login.html" class="nav-item">
+                <div class="nav-icon">🔐</div>
+                <div class="nav-title">Login</div>
+                <div class="nav-desc">User authentication</div>
+            </a>
+            
+            <a href="fix-login.html" class="nav-item">
+                <div class="nav-icon">🔧</div>
+                <div class="nav-title">Fix Login</div>
+                <div class="nav-desc">Reset user accounts</div>
+            </a>
+        </div>
+        
+        <div class="credentials">
+            <strong>🔑 Mendel's Login Credentials:</strong><br>
+            Email: <code>mendel@bmecom.com</code><br>
+            Password: <code>123</code>
+        </div>
+        
+        <div class="server-info">
+            <strong>🌐 Server Options:</strong><br>
+            • <strong>Direct Access:</strong> Click any link above to open pages directly<br>
+            • <strong>Local Server:</strong> Run <code>start-server.bat</code> for http://localhost:8000
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <a href="start-server.bat" class="btn">🚀 Start Server</a>
+            <a href="index.html" class="btn btn-secondary">🏠 Go to Home</a>
+        </div>
+    </div>
+</body>
+</html> 

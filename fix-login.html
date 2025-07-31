@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Mendel's Login - BMECom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            background: #dc2626;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 1rem 0;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background: #b91c1c;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Mendel's Login</h1>
+        
+        <div id="status"></div>
+        
+        <div class="info">
+            <strong>This will:</strong><br>
+            • Clear ALL existing users<br>
+            • Create Mendel's account with simple credentials<br>
+            • Email: mendel@bmecom.com<br>
+            • Password: 123<br>
+            • Role: Moderator
+        </div>
+        
+        <button class="btn" onclick="fixMendelLogin()">Fix Mendel's Login</button>
+        
+        <div class="info">
+            <strong>After clicking the button:</strong><br>
+            1. Go to <a href="articles.html">articles.html</a><br>
+            2. Click "Login"<br>
+            3. Use Mendel's credentials above
+        </div>
+    </div>
+
+    <script>
+        function fixMendelLogin() {
+            try {
+                // Clear ALL existing users and current user session
+                localStorage.removeItem('users');
+                localStorage.removeItem('currentUser');
+                
+                // Create Mendel's account with correct email
+                const mendelAccount = {
+                    id: 'moderator_' + Date.now(),
+                    name: 'Mendel Aizikovitch',
+                    email: 'mendel@bmecom.com',
+                    password: '123',
+                    role: 'Moderator',
+                    createdAt: new Date().toISOString()
+                };
+                
+                // Save Mendel as the only user
+                localStorage.setItem('users', JSON.stringify([mendelAccount]));
+                
+                showStatus('✅ All users deleted and Mendel\'s account created!<br><br>• Deleted: ALL existing users<br>• Created: mendel@bmecom.com (Moderator)<br><br>You can now log in with:<br>Email: mendel@bmecom.com<br>Password: 123', 'success');
+                
+            } catch (error) {
+                showStatus('❌ Error fixing login: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html> 
