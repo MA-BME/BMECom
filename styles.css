@@ -510,3 +510,93 @@ body {
 html {
     scroll-padding-top: 70px;
 } 
+
+/* Like/Dislike Button Styles */
+.like-dislike-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    justify-content: center;
+}
+
+.like-btn, .dislike-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.like-btn:hover {
+    border-color: #ef4444;
+    background: #fef2f2;
+    transform: translateY(-1px);
+}
+
+.dislike-btn:hover {
+    border-color: #6b7280;
+    background: #f9fafb;
+    transform: translateY(-1px);
+}
+
+.like-btn.liked {
+    border-color: #ef4444;
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.dislike-btn.disliked {
+    border-color: #6b7280;
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.like-icon, .dislike-icon {
+    font-size: 1rem;
+}
+
+.like-count, .dislike-count {
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.like-btn.liked .like-count {
+    color: #ef4444;
+}
+
+.dislike-btn.disliked .dislike-count {
+    color: #6b7280;
+}
+
+/* Article actions layout */
+.article-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.read-more-btn {
+    align-self: center;
+    text-decoration: none;
+    color: #2563eb;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: 2px solid #2563eb;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.read-more-btn:hover {
+    background: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+} 

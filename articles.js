@@ -8,7 +8,9 @@ let updateInterval = null;
 const UPDATE_INTERVAL_MS = 60000; // 1 minute
 let lastUpdateTime = new Date();
 
-
+// Like/Dislike tracking
+let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+let userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
 
 // DOM elements
 const articlesGrid = document.getElementById('articlesGrid');
@@ -160,25 +162,25 @@ function autoCleanDuplicates(articles) {
             
             // Check for URL duplicates first
             if (seenUrls.has(normalizedUrl)) {
-                // Merge ticker counts
+                // Keep the highest ticker count, don't merge
                 const existingIndex = seenUrls.get(normalizedUrl);
                 const existingArticle = uniqueArticles[existingIndex];
-                const newTicker = (article.ticker || 1) + (existingArticle.ticker || 1);
-                existingArticle.ticker = newTicker;
+                const maxTicker = Math.max((article.ticker || 1), (existingArticle.ticker || 1));
+                existingArticle.ticker = maxTicker;
                 
                 removedCount++;
-                console.log(`Auto-clean: Merged duplicate URL "${article.title}" - Total ticker: ${newTicker}`);
+                console.log(`Auto-clean: Removed duplicate URL "${article.title}" - Keeping ticker: ${maxTicker}`);
             }
             // Check for title duplicates (different URLs)
             else if (seenTitles.has(normalizedTitle)) {
-                // Merge ticker counts
+                // Keep the highest ticker count, don't merge
                 const existingIndex = seenTitles.get(normalizedTitle);
                 const existingArticle = uniqueArticles[existingIndex];
-                const newTicker = (article.ticker || 1) + (existingArticle.ticker || 1);
-                existingArticle.ticker = newTicker;
+                const maxTicker = Math.max((article.ticker || 1), (existingArticle.ticker || 1));
+                existingArticle.ticker = maxTicker;
                 
                 removedCount++;
-                console.log(`Auto-clean: Merged duplicate title "${article.title}" - Total ticker: ${newTicker}`);
+                console.log(`Auto-clean: Removed duplicate title "${article.title}" - Keeping ticker: ${maxTicker}`);
             }
             else {
                 // This is unique, keep it
@@ -232,6 +234,9 @@ function loadAllArticles() {
             userArticles.push(...cleanedArticles); // Add cleaned articles
         }
         
+        // Update like/dislike counts for all articles
+        updateArticleLikeCounts();
+        
         // Always display articles regardless of login status
         displayUserArticles();
         displayCommunityFavorites();
@@ -262,29 +267,49 @@ function displayUserArticles() {
     
     articlesGrid.innerHTML = '';
     
-    // Filter articles to only show those shared by multiple users (ticker > 1)
-    const sharedArticles = userArticles.filter(article => (article.ticker || 1) > 1);
+    // Show all articles in the Community Shared Articles section
+    const allArticles = userArticles;
     
-    if (sharedArticles.length === 0) {
+    if (allArticles.length === 0) {
         articlesGrid.innerHTML = `
             <div class="empty-state">
-                <h3>No shared articles yet</h3>
-                <p>Articles will appear here once they are shared by multiple users in the community</p>
+                <h3>No articles yet</h3>
+                <p>Be the first to share an interesting article with the community!</p>
                 <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 1rem;">
-                    💡 <strong>Community Validation:</strong> Articles are only visible when shared by multiple users to ensure quality and relevance.
+                    💡 <strong>Share Articles:</strong> Submit articles and they will appear immediately for everyone to see and like/dislike.
                 </p>
             </div>
         `;
         return;
     }
     
-    sharedArticles.slice().reverse().forEach((article, index) => {
-        const articleCard = createArticleCard(article, userArticles.length - 1 - index);
+    // Get sorting preference
+    const sortSelect = document.getElementById('sortSelect');
+    const sortBy = sortSelect ? sortSelect.value : 'recent';
+    
+    // Sort articles based on selection
+    let sortedArticles = [...allArticles];
+    if (sortBy === 'recent') {
+        // Most recently added (reverse chronological order)
+        sortedArticles.sort((a, b) => new Date(b.dateAdded || b.date) - new Date(a.dateAdded || a.date));
+    } else if (sortBy === 'shared') {
+        // Most shared (highest ticker count first)
+        sortedArticles.sort((a, b) => (b.ticker || 1) - (a.ticker || 1));
+    } else if (sortBy === 'mostLiked') {
+        // Most liked (highest like count first)
+        sortedArticles.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortBy === 'leastLiked') {
+        // Least liked (lowest like count first)
+        sortedArticles.sort((a, b) => (a.likes || 0) - (b.likes || 0));
+    }
+    
+    sortedArticles.forEach((article, index) => {
+        const articleCard = createArticleCard(article, index);
         articlesGrid.appendChild(articleCard);
     });
 }
 
-// Display pending articles for moderators (articles with ticker = 1)
+// Display single-user articles for moderators (articles with ticker = 1)
 function displayPendingArticles() {
     const pendingSection = document.getElementById('pendingArticlesSection');
     if (!pendingSection) return;
@@ -292,7 +317,7 @@ function displayPendingArticles() {
     const pendingArticlesContainer = document.getElementById('pendingArticlesGrid');
     if (!pendingArticlesContainer) return;
     
-    // Only show pending articles to moderators
+    // Only show single-user articles to moderators
     if (!isCurrentUserModerator()) {
         pendingSection.style.display = 'none';
         return;
@@ -335,7 +360,7 @@ function createPendingArticleCard(article, index) {
     
     card.innerHTML = `
         <div style="background: #f59e0b; color: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600;">
-            ⏳ Pending Community Validation
+            ⏳ Single-User Article
         </div>
         ${categoryDisplay}
         ${imageDisplay}
@@ -348,10 +373,6 @@ function createPendingArticleCard(article, index) {
         <div class="article-meta">
             <span class="article-source">${article.source}</span>
             <span>${article.date}</span>
-        </div>
-        <div class="article-ticker moderator-ticker">
-            <span class="ticker-icon">👤</span>
-            <span class="ticker-text">Shared by: ${article.addedBy || 'Unknown User'}</span>
         </div>
         <div class="article-actions">
             <a href="article-detail.html?id=${index}" class="read-more-btn">
@@ -367,23 +388,23 @@ function displayCommunityFavorites() {
     
     communityFavoritesGrid.innerHTML = '';
     
-    // Filter community favorites to only show those shared by multiple users (ticker > 1)
-    const sharedFavorites = communityFavorites.filter(article => (article.ticker || 1) > 1);
+    // Filter community favorites to only show those shared by 10 or more users (ticker >= 10)
+    const favoriteArticles = userArticles.filter(article => (article.ticker || 1) >= 10);
     
-    if (sharedFavorites.length === 0) {
+    if (favoriteArticles.length === 0) {
         communityFavoritesGrid.innerHTML = `
             <div class="empty-state">
                 <h3>No community favorites yet</h3>
-                <p>Community favorites will appear here once articles are shared by multiple users and voted on</p>
+                <p>Community favorites will appear here once articles are shared by 10 or more different users</p>
                 <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 1rem;">
-                    💡 <strong>Quality Control:</strong> Only articles validated by multiple community members can become favorites.
+                    💡 <strong>Community Favorites:</strong> Articles shared by 10+ users become community favorites.
                 </p>
             </div>
         `;
         return;
     }
     
-    sharedFavorites.forEach((article, index) => {
+    favoriteArticles.forEach((article, index) => {
         const articleCard = createArticleCard(article, index, true);
         communityFavoritesGrid.appendChild(articleCard);
     });
@@ -414,6 +435,26 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
             </svg>
         </button>` : '';
     
+    // Like/Dislike buttons
+    const isLiked = isArticleLikedByUser(article.url);
+    const isDisliked = isArticleDislikedByUser(article.url);
+    const likeCount = article.likes || 0;
+    const dislikeCount = article.dislikes || 0;
+    
+    const likeButton = `
+        <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle(${index})" title="${isLiked ? 'Remove like' : 'Like article'}">
+            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+            <span class="like-count">${likeCount}</span>
+        </button>
+    `;
+    
+    const dislikeButton = `
+        <button class="dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeArticle(${index})" title="${isDisliked ? 'Remove dislike' : 'Dislike article'}">
+            <span class="dislike-icon">${isDisliked ? '💔' : '🖤'}</span>
+            <span class="dislike-count">${dislikeCount}</span>
+        </button>
+    `;
+    
     card.innerHTML = `
         ${categoryDisplay}
         ${imageDisplay}
@@ -430,6 +471,10 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
         </div>
         ${getTickerDisplay(article)}
         <div class="article-actions">
+            <div class="like-dislike-buttons">
+                ${likeButton}
+                ${dislikeButton}
+            </div>
             <a href="article-detail.html?id=${index}" class="read-more-btn">
                 Read Full Summary →
             </a>
@@ -442,23 +487,23 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
 function getTickerDisplay(article) {
     const ticker = article.ticker || 1;
     
-    // Show community validation badge for articles shared by multiple users
+    // Show community favorite badge for articles shared by 10 or more users
+    if (ticker >= 10) {
+        return `<div class="article-ticker public-ticker">
+            <span class="ticker-icon">🏆</span>
+            <span class="ticker-text">Community Favorite (${ticker} users shared)</span>
+        </div>`;
+    }
+    
+    // Show popular badge for articles shared by multiple users (2-9 users)
     if (ticker > 1) {
         return `<div class="article-ticker public-ticker">
-            <span class="ticker-icon">✅</span>
-            <span class="ticker-text">Community Validated (${ticker} users shared)</span>
+            <span class="ticker-icon">📈</span>
+            <span class="ticker-text">Popular (${ticker} users shared)</span>
         </div>`;
     }
     
-    // Show pending status for articles shared by only one user (moderators only)
-    if (isCurrentUserModerator() && ticker === 1) {
-        return `<div class="article-ticker moderator-ticker">
-            <span class="ticker-icon">⏳</span>
-            <span class="ticker-text">Pending Community Validation (1 user shared)</span>
-        </div>`;
-    }
-    
-    // No ticker display for regular users viewing single-user articles
+    // No ticker display for single-user articles
     return '';
 }
 function deleteArticle(index) {
@@ -486,6 +531,7 @@ function deleteArticle(index) {
         
         // Refresh display
         displayUserArticles();
+        displayCommunityFavorites();
         
         showMessage('Article deleted successfully!');
     }
@@ -1129,6 +1175,7 @@ function removeAllDuplicates(duplicates, uniqueArticles) {
             
             // Refresh display
             displayUserArticles();
+            displayCommunityFavorites();
             
             // Close interface
             closeDuplicateInterface();
@@ -1159,6 +1206,7 @@ function removeSingleDuplicate(duplicateIndex, duplicates, uniqueArticles) {
                 userArticles.length = 0;
                 userArticles.push(...uniqueArticles);
                 displayUserArticles();
+                displayCommunityFavorites();
                 closeDuplicateInterface();
                 showMessage('All duplicate articles have been removed!', 'success');
             } else {
@@ -1211,6 +1259,55 @@ function getDuplicateStats() {
     }
 }
 
+// Reset ticker stats function
+function resetTickerStats() {
+    // Check if current user is a moderator
+    if (!isCurrentUserModerator()) {
+        showMessage('Only moderators can reset ticker stats.', 'error');
+        return;
+    }
+    
+    // Confirm the action with the user
+    if (!confirm('Are you sure you want to reset all ticker stats? This will set all article ticker counts back to 1. This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        
+        if (allArticles.length === 0) {
+            showMessage('No articles found to reset.', 'info');
+            return;
+        }
+        
+        // Reset all ticker counts to 1
+        const resetArticles = allArticles.map(article => ({
+            ...article,
+            ticker: 1
+        }));
+        
+        // Save the reset articles back to localStorage
+        localStorage.setItem('articles', JSON.stringify(resetArticles));
+        
+        // Update the local array
+        userArticles.length = 0;
+        userArticles.push(...resetArticles);
+        
+        // Refresh the display
+        displayUserArticles();
+        displayCommunityFavorites();
+        displayPendingArticles();
+        
+        showMessage(`Successfully reset ticker stats for ${allArticles.length} articles. All articles now have ticker count of 1.`, 'success');
+        
+        console.log(`Reset ticker stats: ${allArticles.length} articles reset to ticker = 1`);
+        
+    } catch (error) {
+        console.error('Error resetting ticker stats:', error);
+        showMessage('Error resetting ticker stats. Please try again.', 'error');
+    }
+}
+
 // Check if current user is a moderator
 function isCurrentUserModerator() {
     return currentUser && currentUser.role === 'Moderator';
@@ -1260,7 +1357,7 @@ function showDuplicateStats() {
             </div>
             <div style="text-align: center;">
                 <p style="color: #10b981; font-weight: 600; margin-bottom: 1rem;">
-                    ✨ Only community-validated articles (shared by multiple users) are counted as "Articles Shared"
+                    ✨ Articles shared by multiple users are counted as "Articles Shared"
                 </p>
                 <button onclick="closeDuplicateInterface()" 
                         style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
@@ -1405,6 +1502,7 @@ if (urlForm) {
             userArticles.length = 0;
             userArticles.push(...cleanedArticles);
             displayUserArticles();
+            displayCommunityFavorites();
             hideLoading();
             showMessage('Successfully analyzed URL and added article!');
             document.getElementById('url1').value = '';
@@ -1725,6 +1823,14 @@ document.addEventListener('DOMContentLoaded', () => {
         userSearchInput.addEventListener('input', searchModeratorUsers);
     }
     
+    // Sort select event listener
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            displayUserArticles();
+        });
+    }
+    
     // Smooth scrolling
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
@@ -1755,3 +1861,124 @@ window.addEventListener('scroll', () => {
         header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
     }
 }); 
+
+// Like/Dislike functions
+function likeArticle(articleIndex) {
+    if (!currentUser) {
+        showMessage('Please log in to like articles.', 'error');
+        return;
+    }
+    
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url; // Use URL as unique identifier
+    
+    // Remove from dislikes if previously disliked
+    if (userDislikes[articleId] && userDislikes[articleId].includes(currentUser.id)) {
+        userDislikes[articleId] = userDislikes[articleId].filter(id => id !== currentUser.id);
+        if (userDislikes[articleId].length === 0) {
+            delete userDislikes[articleId];
+        }
+        localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+    }
+    
+    // Toggle like
+    if (!userLikes[articleId]) {
+        userLikes[articleId] = [];
+    }
+    
+    const userIndex = userLikes[articleId].indexOf(currentUser.id);
+    if (userIndex === -1) {
+        // Add like
+        userLikes[articleId].push(currentUser.id);
+        showMessage('Article liked!', 'success');
+    } else {
+        // Remove like
+        userLikes[articleId].splice(userIndex, 1);
+        if (userLikes[articleId].length === 0) {
+            delete userLikes[articleId];
+        }
+        showMessage('Like removed.', 'info');
+    }
+    
+    localStorage.setItem('userLikes', JSON.stringify(userLikes));
+    
+    // Update article like/dislike counts
+    updateArticleLikeCounts();
+    
+    // Refresh display to show updated counts
+    displayUserArticles();
+    displayCommunityFavorites();
+}
+
+function dislikeArticle(articleIndex) {
+    if (!currentUser) {
+        showMessage('Please log in to dislike articles.', 'error');
+        return;
+    }
+    
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url; // Use URL as unique identifier
+    
+    // Remove from likes if previously liked
+    if (userLikes[articleId] && userLikes[articleId].includes(currentUser.id)) {
+        userLikes[articleId] = userLikes[articleId].filter(id => id !== currentUser.id);
+        if (userLikes[articleId].length === 0) {
+            delete userLikes[articleId];
+        }
+        localStorage.setItem('userLikes', JSON.stringify(userLikes));
+    }
+    
+    // Toggle dislike
+    if (!userDislikes[articleId]) {
+        userDislikes[articleId] = [];
+    }
+    
+    const userIndex = userDislikes[articleId].indexOf(currentUser.id);
+    if (userIndex === -1) {
+        // Add dislike
+        userDislikes[articleId].push(currentUser.id);
+        showMessage('Article disliked.', 'info');
+    } else {
+        // Remove dislike
+        userDislikes[articleId].splice(userIndex, 1);
+        if (userDislikes[articleId].length === 0) {
+            delete userDislikes[articleId];
+        }
+        showMessage('Dislike removed.', 'info');
+    }
+    
+    localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+    
+    // Update article like/dislike counts
+    updateArticleLikeCounts();
+    
+    // Refresh display to show updated counts
+    displayUserArticles();
+    displayCommunityFavorites();
+}
+
+function updateArticleLikeCounts() {
+    // Update all articles with like/dislike counts
+    userArticles.forEach(article => {
+        const articleId = article.url;
+        article.likes = userLikes[articleId] ? userLikes[articleId].length : 0;
+        article.dislikes = userDislikes[articleId] ? userDislikes[articleId].length : 0;
+    });
+    
+    // Save updated articles to localStorage
+    localStorage.setItem('articles', JSON.stringify(userArticles));
+}
+
+function isArticleLikedByUser(articleUrl) {
+    if (!currentUser) return false;
+    return userLikes[articleUrl] && userLikes[articleUrl].includes(currentUser.id);
+}
+
+function isArticleDislikedByUser(articleUrl) {
+    if (!currentUser) return false;
+    return userDislikes[articleUrl] && userDislikes[articleUrl].includes(currentUser.id);
+}
