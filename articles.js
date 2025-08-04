@@ -12,6 +12,18 @@ let lastUpdateTime = new Date();
 let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
 let userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
 
+// Comments tracking
+let articleComments = JSON.parse(localStorage.getItem('articleComments')) || {};
+
+// Curse word filter
+const curseWords = [
+    'fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap', 'piss', 'dick', 'cock', 'pussy', 'cunt',
+    'fucking', 'shitting', 'bitching', 'asshole', 'damnit', 'hellish', 'crappy', 'pissing', 'dickhead', 'cocky',
+    'fucker', 'shitter', 'bitchy', 'asshat', 'damned', 'hellish', 'crapper', 'pisser', 'dickish', 'cockish',
+    'motherfucker', 'bullshit', 'horseshit', 'dumbass', 'jackass', 'smartass', 'badass', 'hardass', 'fatass',
+    'shitty', 'fucky', 'bitchy', 'asshole', 'damned', 'hellish', 'crappy', 'pissy', 'dicky', 'cocky'
+];
+
 // DOM elements
 const articlesGrid = document.getElementById('articlesGrid');
 const communityFavoritesGrid = document.getElementById('communityFavoritesGrid');
@@ -455,6 +467,9 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
         </button>
     `;
     
+    // Get comment count
+    const commentCount = articleComments[article.url] ? articleComments[article.url].length : 0;
+    
     card.innerHTML = `
         ${categoryDisplay}
         ${imageDisplay}
@@ -478,6 +493,34 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
             <a href="article-detail.html?id=${index}" class="read-more-btn">
                 Read Full Summary →
             </a>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="comments-section" id="comments-section-${index}" style="display: none;">
+            <div class="comments-header">
+                <h4>💬 Comments (${commentCount})</h4>
+                <button onclick="showCommentsSection(${index})" class="toggle-comments-btn">Hide Comments</button>
+            </div>
+            
+            <!-- Add Comment Form -->
+            <div class="add-comment-form">
+                <textarea id="comment-text-${index}" placeholder="Write a comment..." class="comment-textarea"></textarea>
+                <button onclick="addComment(${index}, document.getElementById('comment-text-${index}').value)" class="add-comment-btn">
+                    Add Comment
+                </button>
+            </div>
+            
+            <!-- Comments Container -->
+            <div id="comments-${index}" class="comments-container">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Show Comments Button -->
+        <div class="show-comments-btn-container">
+            <button onclick="showCommentsSection(${index})" class="show-comments-btn">
+                💬 Show Comments (${commentCount})
+            </button>
         </div>
     `;
     return card;
@@ -1984,4 +2027,338 @@ function isArticleLikedByUser(articleUrl) {
 function isArticleDislikedByUser(articleUrl) {
     if (!currentUser) return false;
     return userDislikes[articleUrl] && userDislikes[articleUrl].includes(currentUser.id);
+}
+
+// Comment Functions
+function containsCurseWords(text) {
+    const lowerText = text.toLowerCase();
+    return curseWords.some(word => lowerText.includes(word));
+}
+
+function addComment(articleIndex, commentText, parentCommentId = null) {
+    if (!currentUser) {
+        showMessage('Please log in to add comments.', 'error');
+        return;
+    }
+    
+    if (!commentText.trim()) {
+        showMessage('Please enter a comment.', 'error');
+        return;
+    }
+    
+    if (containsCurseWords(commentText)) {
+        showMessage('Your comment contains inappropriate language and cannot be posted.', 'error');
+        return;
+    }
+    
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url;
+    
+    if (!articleComments[articleId]) {
+        articleComments[articleId] = [];
+    }
+    
+    const newComment = {
+        id: Date.now() + Math.random(),
+        text: commentText.trim(),
+        author: currentUser.name,
+        authorId: currentUser.id,
+        timestamp: new Date().toISOString(),
+        parentId: parentCommentId,
+        replies: [],
+        likes: 0,
+        dislikes: 0
+    };
+    
+    if (parentCommentId) {
+        // This is a reply
+        const parentComment = findCommentById(articleComments[articleId], parentCommentId);
+        if (parentComment) {
+            parentComment.replies.push(newComment);
+        }
+    } else {
+        // This is a top-level comment
+        articleComments[articleId].push(newComment);
+    }
+    
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    showMessage('Comment added successfully!', 'success');
+    
+    // Refresh the comments display
+    displayComments(articleIndex);
+}
+
+function findCommentById(comments, commentId) {
+    for (let comment of comments) {
+        if (comment.id === commentId) {
+            return comment;
+        }
+        if (comment.replies && comment.replies.length > 0) {
+            const found = findCommentById(comment.replies, commentId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+function deleteComment(articleIndex, commentId) {
+    if (!currentUser) return;
+    
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url;
+    if (!articleComments[articleId]) return;
+    
+    const comment = findCommentById(articleComments[articleId], commentId);
+    if (!comment) return;
+    
+    // Only allow deletion if user is the author or a moderator
+    if (comment.authorId !== currentUser.id && !isCurrentUserModerator()) {
+        showMessage('You can only delete your own comments.', 'error');
+        return;
+    }
+    
+    // Remove comment from the array
+    removeCommentFromArray(articleComments[articleId], commentId);
+    
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    showMessage('Comment deleted successfully.', 'success');
+    
+    // Refresh the comments display
+    displayComments(articleIndex);
+}
+
+function removeCommentFromArray(comments, commentId) {
+    for (let i = 0; i < comments.length; i++) {
+        if (comments[i].id === commentId) {
+            comments.splice(i, 1);
+            return true;
+        }
+        if (comments[i].replies && comments[i].replies.length > 0) {
+            if (removeCommentFromArray(comments[i].replies, commentId)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function likeComment(articleIndex, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to like comments.', 'error');
+        return;
+    }
+    
+    const comment = findCommentById(articleComments[userArticles[articleIndex].url], commentId);
+    if (!comment) return;
+    
+    if (!comment.userLikes) comment.userLikes = [];
+    if (!comment.userDislikes) comment.userDislikes = [];
+    
+    const userIndex = comment.userLikes.indexOf(currentUser.id);
+    if (userIndex === -1) {
+        // Add like
+        comment.userLikes.push(currentUser.id);
+        comment.likes++;
+        
+        // Remove dislike if exists
+        const dislikeIndex = comment.userDislikes.indexOf(currentUser.id);
+        if (dislikeIndex !== -1) {
+            comment.userDislikes.splice(dislikeIndex, 1);
+            comment.dislikes--;
+        }
+    } else {
+        // Remove like
+        comment.userLikes.splice(userIndex, 1);
+        comment.likes--;
+    }
+    
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    displayComments(articleIndex);
+}
+
+function dislikeComment(articleIndex, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to dislike comments.', 'error');
+        return;
+    }
+    
+    const comment = findCommentById(articleComments[userArticles[articleIndex].url], commentId);
+    if (!comment) return;
+    
+    if (!comment.userLikes) comment.userLikes = [];
+    if (!comment.userDislikes) comment.userDislikes = [];
+    
+    const userIndex = comment.userDislikes.indexOf(currentUser.id);
+    if (userIndex === -1) {
+        // Add dislike
+        comment.userDislikes.push(currentUser.id);
+        comment.dislikes++;
+        
+        // Remove like if exists
+        const likeIndex = comment.userLikes.indexOf(currentUser.id);
+        if (likeIndex !== -1) {
+            comment.userLikes.splice(likeIndex, 1);
+            comment.likes--;
+        }
+    } else {
+        // Remove dislike
+        comment.userDislikes.splice(userIndex, 1);
+        comment.dislikes--;
+    }
+    
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    displayComments(articleIndex);
+}
+
+function displayComments(articleIndex) {
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url;
+    const commentsContainer = document.getElementById(`comments-${articleIndex}`);
+    if (!commentsContainer) return;
+    
+    const comments = articleComments[articleId] || [];
+    
+    if (comments.length === 0) {
+        commentsContainer.innerHTML = `
+            <div class="no-comments">
+                <p>No comments yet. Be the first to comment!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let commentsHTML = '';
+    
+    comments.forEach(comment => {
+        commentsHTML += createCommentHTML(comment, articleIndex, 0);
+    });
+    
+    commentsContainer.innerHTML = commentsHTML;
+}
+
+function createCommentHTML(comment, articleIndex, depth = 0) {
+    const isAuthor = currentUser && comment.authorId === currentUser.id;
+    const isModerator = isCurrentUserModerator();
+    const canDelete = isAuthor || isModerator;
+    const isLiked = currentUser && comment.userLikes && comment.userLikes.includes(currentUser.id);
+    const isDisliked = currentUser && comment.userDislikes && comment.userDislikes.includes(currentUser.id);
+    
+    const timeAgo = getTimeAgo(new Date(comment.timestamp));
+    const indentStyle = depth > 0 ? `margin-left: ${depth * 20}px;` : '';
+    
+    let commentHTML = `
+        <div class="comment" style="${indentStyle}">
+            <div class="comment-header">
+                <span class="comment-author">${comment.author}</span>
+                <span class="comment-time">${timeAgo}</span>
+                ${canDelete ? `<button onclick="deleteComment(${articleIndex}, ${comment.id})" class="delete-comment-btn">🗑️</button>` : ''}
+            </div>
+            <div class="comment-text">${escapeHtml(comment.text)}</div>
+            <div class="comment-actions">
+                <button onclick="likeComment(${articleIndex}, ${comment.id})" class="comment-like-btn ${isLiked ? 'liked' : ''}">
+                    👍 <span class="comment-like-count">${comment.likes || 0}</span>
+                </button>
+                <button onclick="dislikeComment(${articleIndex}, ${comment.id})" class="comment-dislike-btn ${isDisliked ? 'disliked' : ''}">
+                    👎 <span class="comment-dislike-count">${comment.dislikes || 0}</span>
+                </button>
+                <button onclick="showReplyForm(${articleIndex}, ${comment.id})" class="reply-btn">💬 Reply</button>
+            </div>
+            <div id="reply-form-${comment.id}" class="reply-form" style="display: none;">
+                <textarea placeholder="Write your reply..." class="reply-textarea"></textarea>
+                <div class="reply-actions">
+                    <button onclick="submitReply(${articleIndex}, ${comment.id})" class="submit-reply-btn">Submit Reply</button>
+                    <button onclick="hideReplyForm(${comment.id})" class="cancel-reply-btn">Cancel</button>
+                </div>
+            </div>
+    `;
+    
+    // Add replies
+    if (comment.replies && comment.replies.length > 0) {
+        commentHTML += '<div class="comment-replies">';
+        comment.replies.forEach(reply => {
+            commentHTML += createCommentHTML(reply, articleIndex, depth + 1);
+        });
+        commentHTML += '</div>';
+    }
+    
+    commentHTML += '</div>';
+    return commentHTML;
+}
+
+function showReplyForm(articleIndex, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to reply to comments.', 'error');
+        return;
+    }
+    
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (replyForm) {
+        replyForm.style.display = 'block';
+        replyForm.querySelector('.reply-textarea').focus();
+    }
+}
+
+function hideReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (replyForm) {
+        replyForm.style.display = 'none';
+        replyForm.querySelector('.reply-textarea').value = '';
+    }
+}
+
+function submitReply(articleIndex, commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (!replyForm) return;
+    
+    const textarea = replyForm.querySelector('.reply-textarea');
+    const replyText = textarea.value.trim();
+    
+    if (!replyText) {
+        showMessage('Please enter a reply.', 'error');
+        return;
+    }
+    
+    addComment(articleIndex, replyText, commentId);
+    hideReplyForm(commentId);
+}
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showCommentsSection(articleIndex) {
+    const article = userArticles[articleIndex];
+    if (!article) return;
+    
+    const articleId = article.url;
+    const commentsSection = document.getElementById(`comments-section-${articleIndex}`);
+    if (!commentsSection) return;
+    
+    const isVisible = commentsSection.style.display !== 'none';
+    
+    if (isVisible) {
+        commentsSection.style.display = 'none';
+    } else {
+        commentsSection.style.display = 'block';
+        displayComments(articleIndex);
+    }
 }
