@@ -443,14 +443,14 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
     
     const likeButton = `
         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle(${index})" title="${isLiked ? 'Remove like' : 'Like article'}">
-            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+            <span class="like-icon">${isLiked ? '👍' : '👍'}</span>
             <span class="like-count">${likeCount}</span>
         </button>
     `;
     
     const dislikeButton = `
         <button class="dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeArticle(${index})" title="${isDisliked ? 'Remove dislike' : 'Dislike article'}">
-            <span class="dislike-icon">${isDisliked ? '💔' : '🖤'}</span>
+            <span class="dislike-icon">${isDisliked ? '👎' : '👎'}</span>
             <span class="dislike-count">${dislikeCount}</span>
         </button>
     `;

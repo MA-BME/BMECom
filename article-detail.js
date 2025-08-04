@@ -172,14 +172,14 @@ function displayArticleDetail(article) {
     
     const likeButton = `
         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle('${article.url}')" title="${isLiked ? 'Remove like' : 'Like article'}">
-            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+            <span class="like-icon">${isLiked ? '👍' : '👍'}</span>
             <span class="like-count">${likeCount}</span>
         </button>
     `;
     
     const dislikeButton = `
         <button class="dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeArticle('${article.url}')" title="${isDisliked ? 'Remove dislike' : 'Dislike article'}">
-            <span class="dislike-icon">${isDisliked ? '💔' : '🖤'}</span>
+            <span class="dislike-icon">${isDisliked ? '👎' : '👎'}</span>
             <span class="dislike-count">${dislikeCount}</span>
         </button>
     `;

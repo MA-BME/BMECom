@@ -685,8 +685,8 @@ html {
 }
 
 .like-btn:hover {
-    border-color: #ef4444;
-    background: #fef2f2;
+    border-color: #10b981;
+    background: #ecfdf5;
     transform: translateY(-1px);
 }
 
@@ -697,15 +697,15 @@ html {
 }
 
 .like-btn.liked {
-    border-color: #ef4444;
-    background: #fef2f2;
-    color: #ef4444;
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #10b981;
 }
 
 .dislike-btn.disliked {
-    border-color: #6b7280;
-    background: #f3f4f6;
-    color: #6b7280;
+    border-color: #ef4444;
+    background: #fef2f2;
+    color: #ef4444;
 }
 
 .like-icon, .dislike-icon {
@@ -719,7 +719,7 @@ html {
 }
 
 .like-btn.liked .like-count {
-    color: #ef4444;
+    color: #10b981;
 }
 
 .dislike-btn.disliked .dislike-count {
