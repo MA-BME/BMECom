@@ -3305,3 +3305,78 @@ function checkAIServicesConfiguration() {
             document.getElementById('googleApiKey').value = '';
         }
     }
+
+    // Function to update existing articles with AI-enhanced content generation
+    async function updateExistingArticlesWithAI() {
+        try {
+            showLoading();
+            showMessage('Updating existing articles with AI-enhanced content generation...', 'info');
+            
+            const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+            let updatedCount = 0;
+            const totalArticles = allArticles.length;
+            
+            // Check if any AI services are configured
+            const aiConfig = checkAIServicesConfiguration();
+            if (!aiConfig.anyConfigured) {
+                hideLoading();
+                showMessage('No AI services are configured. Please configure at least one AI service in the moderator section first.', 'error');
+                return;
+            }
+            
+            showMessage(`Found ${totalArticles} articles. Updating with AI-enhanced content...`, 'info');
+            
+            for (let i = 0; i < allArticles.length; i++) {
+                const article = allArticles[i];
+                
+                try {
+                    // Update progress
+                    updateProgress(i + 1, totalArticles, `Updating article ${i + 1} of ${totalArticles}: ${article.title.substring(0, 50)}...`);
+                    
+                    // Re-extract data from the original URL using AI-enhanced logic
+                    const updatedData = await extractArticleData(article.url);
+                    
+                    // Update article with new AI-generated data while preserving user data
+                    const updatedArticle = {
+                        ...article,
+                        title: updatedData.title,
+                        summary: updatedData.summary,
+                        image: updatedData.image,
+                        source: updatedData.source,
+                        date: updatedData.date,
+                        category: updatedData.category,
+                        // Preserve user-specific data
+                        ticker: article.ticker || 1,
+                        likes: article.likes || 0,
+                        dislikes: article.dislikes || 0,
+                        dateAdded: article.dateAdded || article.timestamp || article.date || new Date().toISOString()
+                    };
+                    
+                    // Update the article in the array
+                    allArticles[i] = updatedArticle;
+                    updatedCount++;
+                    
+                    // Add a small delay to avoid overwhelming AI services
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                } catch (error) {
+                    console.error(`Error updating article ${i + 1}:`, error);
+                    // Continue with next article even if one fails
+                    continue;
+                }
+            }
+            
+            // Save updated articles
+            localStorage.setItem('articles', JSON.stringify(allArticles));
+            
+            // Refresh display
+            loadAllArticles();
+            hideLoading();
+            showMessage(`Successfully updated ${updatedCount} out of ${totalArticles} articles with AI-enhanced content!`, 'success');
+            
+        } catch (error) {
+            hideLoading();
+            showMessage('Error updating existing articles with AI: ' + error.message, 'error');
+            console.error('Error in updateExistingArticlesWithAI:', error);
+        }
+    }
