@@ -2467,20 +2467,18 @@ function createMostLikedCommentPreview(articleUrl, articleIndex) {
     const commentText = escapeHtml(mostLikedComment.text);
     const truncatedText = commentText.length > 150 ? commentText.substring(0, 150) + '...' : commentText;
     
-    return `
-        <div class="most-liked-comment">
-            <div class="most-liked-header">
-                <span class="most-liked-label">🏆 Most Liked Comment</span>
-                <span class="most-liked-likes">👍 ${mostLikedComment.likes || 0}</span>
+            return `
+            <div class="most-liked-comment">
+                <div class="most-liked-header">
+                    <span class="most-liked-label">🏆 Most Liked Comment</span>
+                </div>
+                <div class="most-liked-author">by ${mostLikedComment.author}</div>
+                <div class="most-liked-text">${truncatedText}</div>
+                <div class="most-liked-meta">
+                    <span class="most-liked-time">${timeAgo}</span>
+                </div>
             </div>
-            <div class="most-liked-author">by ${mostLikedComment.author}</div>
-            <div class="most-liked-text">${truncatedText}</div>
-            <div class="most-liked-meta">
-                <span class="most-liked-time">${timeAgo}</span>
-                <button onclick="showCommentsSection(${articleIndex})" class="view-all-comments-btn">View All Comments</button>
-            </div>
-        </div>
-    `;
+        `;
 }
 
 function showCommentsSection(articleIndex) {
