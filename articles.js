@@ -526,7 +526,7 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
                 ${dislikeButton}
             </div>
             <a href="article-detail.html?id=${index}" class="read-more-btn">
-                Read Full Summary →
+                Read Full Abstract →
             </a>
         </div>
         
