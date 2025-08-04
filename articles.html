@@ -523,25 +523,25 @@
             <div class="container">
                 <h1 class="section-title">Biomedical Engineering Articles</h1>
                 <p style="text-align: center; color: #6b7280; margin-bottom: 1rem; font-size: 1.1rem;">
-                    Real-time biomedical engineering articles from our community
+                    Community-validated biomedical engineering articles - only visible when shared by multiple users
                 </p>
                 <div id="userInfo" style="text-align: center; margin-bottom: 2rem; display: none;">
                     <p style="color: #2563eb; font-weight: 600; font-size: 1rem;">
                         Welcome, <span id="userName"></span>! You can add and manage articles.
                     </p>
                     <p style="color: #10b981; font-size: 0.875rem; margin-top: 0.5rem;">
-                        ✨ Duplicate articles are automatically removed to keep the collection clean
+                        ✨ Articles are only shared when multiple users post the same content - ensuring quality and community validation
                     </p>
                 </div>
                 <div id="publicInfo" style="text-align: center; margin-bottom: 2rem;">
                     <p style="color: #10b981; font-weight: 600; font-size: 1rem;">
-                        🌐 Public Access - All articles are visible to everyone
+                        🌐 Community Validation System - Quality Control Active
                     </p>
                     <p style="color: #6b7280; font-size: 0.9rem; margin-top: 0.5rem;">
                         Articles update automatically every minute • Last updated: <span id="lastUpdateTime">Loading...</span>
                     </p>
                     <p style="color: #10b981; font-size: 0.875rem; margin-top: 0.5rem;">
-                        ✨ Duplicate articles are automatically removed to keep the collection clean
+                        ✨ Only articles shared by multiple users are visible - ensuring quality and relevance
                     </p>
                 </div>
 
@@ -590,7 +590,7 @@
                 <div class="community-favorites-section">
                     <h2 class="community-title">🏆 Community's Favorite Articles</h2>
                     <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
-                        The most popular articles voted by our biomedical engineering community
+                        The most popular community-validated articles voted by our biomedical engineering community
                     </p>
                     <div class="community-favorites-grid" id="communityFavoritesGrid">
                         <!-- Community favorites will be populated by JavaScript -->
@@ -599,12 +599,23 @@
 
                 <!-- All Articles Section -->
                 <div class="all-articles-section">
-                    <h2 class="all-articles-title">📚 All Biomedical Engineering Articles</h2>
+                    <h2 class="all-articles-title">📚 Community-Validated Articles</h2>
                     <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
-                        Community-contributed articles - visible to everyone
+                        Articles shared by multiple users - ensuring quality through community validation
                     </p>
                     <div class="articles-grid" id="articlesGrid">
                         <!-- Articles will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Pending Articles Section (Moderators Only) -->
+                <div class="pending-articles-section" id="pendingArticlesSection" style="display: none;">
+                    <h2 class="all-articles-title">⏳ Pending Community Validation</h2>
+                    <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                        Articles waiting for additional users to share them (moderator view only)
+                    </p>
+                    <div class="articles-grid" id="pendingArticlesGrid">
+                        <!-- Pending articles will be populated by JavaScript -->
                     </div>
                 </div>
                 

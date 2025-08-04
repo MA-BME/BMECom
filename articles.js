@@ -235,6 +235,7 @@ function loadAllArticles() {
         // Always display articles regardless of login status
         displayUserArticles();
         displayCommunityFavorites();
+        displayPendingArticles(); // Display pending articles for moderators
         
         // Show update indicator
         showUpdateIndicator();
@@ -260,37 +261,129 @@ function displayUserArticles() {
     if (!articlesGrid) return;
     
     articlesGrid.innerHTML = '';
-    if (userArticles.length === 0) {
+    
+    // Filter articles to only show those shared by multiple users (ticker > 1)
+    const sharedArticles = userArticles.filter(article => (article.ticker || 1) > 1);
+    
+    if (sharedArticles.length === 0) {
         articlesGrid.innerHTML = `
             <div class="empty-state">
-                <h3>No articles yet</h3>
-                <p>Articles will appear here once users add biomedical engineering content</p>
+                <h3>No shared articles yet</h3>
+                <p>Articles will appear here once they are shared by multiple users in the community</p>
+                <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 1rem;">
+                    💡 <strong>Community Validation:</strong> Articles are only visible when shared by multiple users to ensure quality and relevance.
+                </p>
             </div>
         `;
         return;
     }
     
-    userArticles.slice().reverse().forEach((article, index) => {
+    sharedArticles.slice().reverse().forEach((article, index) => {
         const articleCard = createArticleCard(article, userArticles.length - 1 - index);
         articlesGrid.appendChild(articleCard);
     });
+}
+
+// Display pending articles for moderators (articles with ticker = 1)
+function displayPendingArticles() {
+    const pendingSection = document.getElementById('pendingArticlesSection');
+    if (!pendingSection) return;
+    
+    const pendingArticlesContainer = document.getElementById('pendingArticlesGrid');
+    if (!pendingArticlesContainer) return;
+    
+    // Only show pending articles to moderators
+    if (!isCurrentUserModerator()) {
+        pendingSection.style.display = 'none';
+        return;
+    }
+    
+    // Filter articles to only show those shared by single users (ticker = 1)
+    const pendingArticles = userArticles.filter(article => (article.ticker || 1) === 1);
+    
+    if (pendingArticles.length === 0) {
+        pendingSection.style.display = 'none';
+        return;
+    }
+    
+    pendingSection.style.display = 'block';
+    pendingArticlesContainer.innerHTML = '';
+    
+    pendingArticles.slice().reverse().forEach((article, index) => {
+        const articleCard = createPendingArticleCard(article, userArticles.length - 1 - index);
+        pendingArticlesContainer.appendChild(articleCard);
+    });
+}
+
+// Create card for pending articles (moderator view)
+function createPendingArticleCard(article, index) {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    card.style.border = '2px dashed #f59e0b';
+    card.style.background = 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)';
+    
+    const categoryDisplay = article.category ? 
+        `<div class="article-category">${article.category}</div>` : '';
+    
+    const imageDisplay = article.image ? 
+        `<div class="article-image">
+            <img src="${article.image}" alt="${article.title}" loading="lazy" onerror="this.style.display='none'">
+        </div>` : '';
+    
+    const summaryPreview = article.summary ? 
+        `<p class="article-summary">${article.summary.substring(0, 200)}${article.summary.length > 200 ? '...' : ''}</p>` : '';
+    
+    card.innerHTML = `
+        <div style="background: #f59e0b; color: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600;">
+            ⏳ Pending Community Validation
+        </div>
+        ${categoryDisplay}
+        ${imageDisplay}
+        <div class="article-header">
+            <h3 class="article-title">
+                <a href="article-detail.html?id=${index}">${article.title}</a>
+            </h3>
+        </div>
+        ${summaryPreview}
+        <div class="article-meta">
+            <span class="article-source">${article.source}</span>
+            <span>${article.date}</span>
+        </div>
+        <div class="article-ticker moderator-ticker">
+            <span class="ticker-icon">👤</span>
+            <span class="ticker-text">Shared by: ${article.addedBy || 'Unknown User'}</span>
+        </div>
+        <div class="article-actions">
+            <a href="article-detail.html?id=${index}" class="read-more-btn">
+                Read Full Summary →
+            </a>
+        </div>
+    `;
+    return card;
 }
 
 function displayCommunityFavorites() {
     if (!communityFavoritesGrid) return;
     
     communityFavoritesGrid.innerHTML = '';
-    if (communityFavorites.length === 0) {
+    
+    // Filter community favorites to only show those shared by multiple users (ticker > 1)
+    const sharedFavorites = communityFavorites.filter(article => (article.ticker || 1) > 1);
+    
+    if (sharedFavorites.length === 0) {
         communityFavoritesGrid.innerHTML = `
             <div class="empty-state">
                 <h3>No community favorites yet</h3>
-                <p>Community favorites will appear here once articles are voted on</p>
+                <p>Community favorites will appear here once articles are shared by multiple users and voted on</p>
+                <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 1rem;">
+                    💡 <strong>Quality Control:</strong> Only articles validated by multiple community members can become favorites.
+                </p>
             </div>
         `;
         return;
     }
     
-    communityFavorites.forEach((article, index) => {
+    sharedFavorites.forEach((article, index) => {
         const articleCard = createArticleCard(article, index, true);
         communityFavoritesGrid.appendChild(articleCard);
     });
@@ -349,23 +442,23 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
 function getTickerDisplay(article) {
     const ticker = article.ticker || 1;
     
-    // Show to moderators if ticker >= 2
-    if (isCurrentUserModerator() && ticker >= 2) {
-        return `<div class="article-ticker moderator-ticker">
-            <span class="ticker-icon">📊</span>
-            <span class="ticker-text">${ticker} people shared this article</span>
-        </div>`;
-    }
-    
-    // Show to everyone if ticker >= 20
-    if (ticker >= 20) {
+    // Show community validation badge for articles shared by multiple users
+    if (ticker > 1) {
         return `<div class="article-ticker public-ticker">
-            <span class="ticker-icon">🔥</span>
-            <span class="ticker-text">${ticker} people shared this article</span>
+            <span class="ticker-icon">✅</span>
+            <span class="ticker-text">Community Validated (${ticker} users shared)</span>
         </div>`;
     }
     
-    // No ticker display for low counts or non-moderators
+    // Show pending status for articles shared by only one user (moderators only)
+    if (isCurrentUserModerator() && ticker === 1) {
+        return `<div class="article-ticker moderator-ticker">
+            <span class="ticker-icon">⏳</span>
+            <span class="ticker-text">Pending Community Validation (1 user shared)</span>
+        </div>`;
+    }
+    
+    // No ticker display for regular users viewing single-user articles
     return '';
 }
 function deleteArticle(index) {
@@ -1625,6 +1718,7 @@ function toggleModeratorSection() {
         // Hide other sections
         document.querySelector('.community-favorites-section').style.display = 'none';
         document.querySelector('.all-articles-section').style.display = 'none';
+        document.querySelector('.pending-articles-section').style.display = 'none'; // Hide pending articles by default
         // Load users
         searchModeratorUsers();
     } else {
@@ -1633,6 +1727,7 @@ function toggleModeratorSection() {
         // Show other sections
         document.querySelector('.community-favorites-section').style.display = 'block';
         document.querySelector('.all-articles-section').style.display = 'block';
+        document.querySelector('.pending-articles-section').style.display = 'block'; // Show pending articles
     }
 }
 
