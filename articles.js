@@ -462,7 +462,8 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
     
     const imageDisplay = article.image ? 
         `<div class="article-image">
-            <img src="${article.image}" alt="${article.title}" loading="lazy" onerror="this.style.display='none'">
+            <img src="${article.image}" alt="${article.title}" loading="lazy" 
+                 onerror="this.onerror=null; this.src='https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology,research&t=' + Date.now(); this.style.display='block';">
         </div>` : '';
     
     const summaryPreview = article.summary ? 
@@ -834,25 +835,73 @@ async function extractArticleData(url) {
         
         // Function to generate an artificial image URL based on domain and content
         const generateArtificialImage = (domain, title) => {
-            // Use a placeholder image service with domain-specific colors
-            const domainColors = {
-                'phys.org': '4f46e5', // Indigo
-                'sciencedaily.com': '059669', // Emerald
-                'spectrum.ieee.org': 'dc2626', // Red
-                'medicalxpress.com': '7c3aed', // Purple
-                'nature.com': '1f2937', // Gray
-                'scitechdaily.com': '0891b2', // Blue
-                'science.org': '059669', // Emerald
-                'cell.com': 'dc2626', // Red
-                'thelancet.com': 'dc2626', // Red
-                'nejm.org': '1f2937' // Gray
+            // Extract key biomedical terms from title for better AI image generation
+            const biomedicalTerms = [
+                'biomedical', 'engineering', 'medical', 'health', 'technology', 'device', 'implant',
+                'sensor', 'diagnostic', 'therapeutic', 'treatment', 'drug', 'medicine', 'surgery',
+                'prosthetic', 'artificial', 'organ', 'tissue', 'cell', 'gene', 'dna', 'protein',
+                'neural', 'brain', 'cardiac', 'heart', 'vascular', 'bone', 'muscle', 'skin',
+                'cancer', 'disease', 'infection', 'vaccine', 'antibody', 'immune', 'system',
+                'microscope', 'imaging', 'scan', 'mri', 'ct', 'x-ray', 'ultrasound', 'ecg',
+                'lab', 'research', 'clinical', 'trial', 'patient', 'doctor', 'nurse', 'hospital',
+                'robot', 'automation', 'digital', 'smart', 'wireless', 'battery', 'power',
+                'algorithm', 'machine', 'learning', 'ai', 'artificial intelligence', 'data',
+                'analysis', 'monitoring', 'tracking', 'detection', 'prevention', 'cure'
+            ];
+            
+            // Find relevant terms in the title
+            const titleLower = title.toLowerCase();
+            const foundTerms = biomedicalTerms.filter(term => titleLower.includes(term));
+            
+            // Create a meaningful prompt for AI image generation
+            let imagePrompt = 'biomedical engineering technology';
+            if (foundTerms.length > 0) {
+                // Use the first 2-3 most relevant terms
+                const relevantTerms = foundTerms.slice(0, 3).join(' ');
+                imagePrompt = `biomedical engineering ${relevantTerms}`;
+            }
+            
+            // Add domain-specific context and visual style
+            const domainContext = {
+                'phys.org': 'scientific research laboratory',
+                'sciencedaily.com': 'medical breakthrough technology',
+                'spectrum.ieee.org': 'technology innovation engineering',
+                'medicalxpress.com': 'medical science healthcare',
+                'nature.com': 'scientific discovery research',
+                'scitechdaily.com': 'scientific advancement technology',
+                'science.org': 'research breakthrough laboratory',
+                'cell.com': 'biological research microscope',
+                'thelancet.com': 'medical research clinical',
+                'nejm.org': 'clinical medicine healthcare'
             };
             
-            const color = domainColors[domain] || '4f46e5';
-            const encodedTitle = encodeURIComponent(title.substring(0, 50));
+            const context = domainContext[domain] || 'scientific research technology';
+            imagePrompt = `${imagePrompt} ${context}`;
             
-            // Use a placeholder image service
-            return `https://via.placeholder.com/800x400/${color}/ffffff?text=${encodedTitle}`;
+            // Add visual style modifiers for better AI image generation
+            const styleModifiers = [
+                'modern', 'futuristic', 'professional', 'clean', 'high quality',
+                'detailed', 'scientific', 'medical', 'technological'
+            ];
+            
+            // Randomly select 2-3 style modifiers
+            const selectedStyles = styleModifiers
+                .sort(() => 0.5 - Math.random())
+                .slice(0, Math.floor(Math.random() * 2) + 2);
+            
+            imagePrompt = `${imagePrompt} ${selectedStyles.join(' ')}`;
+            
+            // Encode the prompt for URL
+            const encodedPrompt = encodeURIComponent(imagePrompt);
+            
+            // Primary: Use Unsplash for high-quality AI-like images
+            const primaryUrl = `https://source.unsplash.com/800x400/?${encodedPrompt}&medical,technology,biomedical`;
+            
+            // Fallback: Use a more specific biomedical image service
+            const fallbackUrl = `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology,research`;
+            
+            // Return the primary URL with fallback logic handled in the calling code
+            return primaryUrl;
         };
         
         // Progress tracking
@@ -1051,6 +1100,12 @@ async function extractArticleData(url) {
                 // If no image found, generate an artificial one
                 if (!image) {
                     image = generateArtificialImage(domain, title);
+                    console.log('Generated AI image for article:', title);
+                }
+                
+                // Add a timestamp to prevent caching issues with AI-generated images
+                if (image && image.includes('unsplash.com')) {
+                    image += `&t=${Date.now()}`;
                 }
                 
                 // Step 6: Extracting article summary and abstract
