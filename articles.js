@@ -595,8 +595,11 @@ function deleteArticle(index) {
         return;
     }
     
+    // Get the global articles array
+    const articles = JSON.parse(localStorage.getItem('articles')) || [];
+    
     // The index parameter should be the actual array index
-    const article = userArticles[index];
+    const article = articles[index];
     
     if (!article) {
         showMessage('Article not found.', 'error');
@@ -610,15 +613,14 @@ function deleteArticle(index) {
     }
     
     if (confirm('Are you sure you want to delete this article?')) {
-        // Remove from local array
-        userArticles.splice(index, 1);
+        // Remove from global array using the correct index
+        articles.splice(index, 1);
         
         // Update global localStorage
-        localStorage.setItem('articles', JSON.stringify(userArticles));
+        localStorage.setItem('articles', JSON.stringify(articles));
         
         // Refresh display
-        displayUserArticles();
-        displayCommunityFavorites();
+        loadAllArticles();
         
         showMessage('Article deleted successfully!');
     }
@@ -3010,19 +3012,20 @@ function showCommentsSection(articleIndex) {
     }
 }
 
-// Advanced AI Integration Functions
-const AI_SERVICES = {
-    OPENAI: 'openai',
-    ANTHROPIC: 'anthropic',
-    GOOGLE: 'google',
-    UNSPLASH: 'unsplash',
-    DALL_E: 'dalle',
-    COHERE: 'cohere',
-    HUGGINGFACE: 'huggingface',
-    PERPLEXITY: 'perplexity',
-    CLAUDE_INSTANT: 'claude_instant',
-    GPT_35: 'gpt_35'
-};
+    // Advanced AI Integration Functions
+    const AI_SERVICES = {
+        OPENAI: 'openai',
+        ANTHROPIC: 'anthropic',
+        GOOGLE: 'google',
+        UNSPLASH: 'unsplash',
+        DALL_E: 'dalle',
+        COHERE: 'cohere',
+        HUGGINGFACE: 'huggingface',
+        PERPLEXITY: 'perplexity',
+        CURSOR_AI: 'cursor_ai',
+        CLAUDE_INSTANT: 'claude_instant',
+        GPT_35: 'gpt_35'
+    };
 
 // Function to call OpenAI API for enhanced content generation
 async function callOpenAIAPI(prompt, type = 'text') {
@@ -3236,62 +3239,108 @@ async function callHuggingFaceAPI(prompt, type = 'text') {
     }
 }
 
-// Function to call Perplexity API for enhanced content generation
-async function callPerplexityAPI(prompt, type = 'text') {
-    try {
-        const apiKey = localStorage.getItem('perplexity_api_key');
-        if (!apiKey) {
-            console.log('Perplexity API key not configured, using fallback methods');
+    // Function to call Perplexity API for enhanced content generation
+    async function callPerplexityAPI(prompt, type = 'text') {
+        try {
+            const apiKey = localStorage.getItem('perplexity_api_key');
+            if (!apiKey) {
+                console.log('Perplexity API key not configured, using fallback methods');
+                return null;
+            }
+
+            const response = await fetch('https://api.perplexity.ai/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'mixtral-8x7b-instruct',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert biomedical engineering content analyst.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: type === 'title' ? 100 : 500,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Perplexity API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content.trim();
+        } catch (error) {
+            console.error('Perplexity API call failed:', error);
             return null;
         }
-
-        const response = await fetch('https://api.perplexity.ai/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'mixtral-8x7b-instruct',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are an expert biomedical engineering content analyst.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: type === 'title' ? 100 : 500,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Perplexity API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0].message.content.trim();
-    } catch (error) {
-        console.error('Perplexity API call failed:', error);
-        return null;
     }
-}
 
-// Enhanced multi-AI title generation using multiple AI services
-async function generateMultiAITitle(articleContent, domain, url) {
-    const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. Content: ${articleContent.substring(0, 1000)}... Domain: ${domain}`;
-    
-    // Try multiple AI services in parallel for better results
-    const services = [
-        { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'title') },
-        { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'title') },
-        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'title') },
-        { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'title') },
-        { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'title') }
-    ];
+    // Function to call Cursor AI API for enhanced content generation
+    async function callCursorAIAPI(prompt, type = 'text') {
+        try {
+            const apiKey = localStorage.getItem('cursor_ai_api_key');
+            if (!apiKey) {
+                console.log('Cursor AI API key not configured, using fallback methods');
+                return null;
+            }
+
+            // Cursor AI uses a similar interface to OpenAI
+            const response = await fetch('https://api.cursor.sh/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3.5-sonnet',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert biomedical engineering content analyst. Generate concise, accurate, and engaging content based on the provided information.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: type === 'title' ? 100 : 500,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Cursor AI API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content.trim();
+        } catch (error) {
+            console.error('Cursor AI API call failed:', error);
+            return null;
+        }
+    }
+
+    // Enhanced multi-AI title generation using multiple AI services
+    async function generateMultiAITitle(articleContent, domain, url) {
+        const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. Content: ${articleContent.substring(0, 1000)}... Domain: ${domain}`;
+        
+        // Try multiple AI services in parallel for better results
+        const services = [
+            { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'title') },
+            { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'title') },
+            { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'title') },
+            { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'title') },
+            { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'title') },
+            { name: AI_SERVICES.CURSOR_AI, func: () => callCursorAIAPI(prompt, 'title') }
+        ];
 
     // Run all services in parallel
     const results = await Promise.allSettled(services.map(service => service.func()));
@@ -3312,17 +3361,18 @@ async function generateMultiAITitle(articleContent, domain, url) {
     return generateCustomTitle(doc, domain);
 }
 
-// Enhanced multi-AI abstract generation using multiple AI services
-async function generateMultiAIAbstract(articleContent, domain, url) {
-    const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance. Content: ${articleContent.substring(0, 2000)}... Domain: ${domain}`;
-    
-    const services = [
-        { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'abstract') },
-        { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'abstract') },
-        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'abstract') },
-        { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'abstract') },
-        { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'abstract') }
-    ];
+    // Enhanced multi-AI abstract generation using multiple AI services
+    async function generateMultiAIAbstract(articleContent, domain, url) {
+        const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance. Content: ${articleContent.substring(0, 2000)}... Domain: ${domain}`;
+        
+        const services = [
+            { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'abstract') },
+            { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'abstract') },
+            { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'abstract') },
+            { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'abstract') },
+            { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'abstract') },
+            { name: AI_SERVICES.CURSOR_AI, func: () => callCursorAIAPI(prompt, 'abstract') }
+        ];
 
     // Run all services in parallel
     const results = await Promise.allSettled(services.map(service => service.func()));
@@ -3370,25 +3420,27 @@ async function generateMultiAIImage(domain, title, articleContent) {
     return generateArtificialImage(domain, title);
 }
 
-// Function to check if AI services are configured
-function checkAIServicesConfiguration() {
-    const openaiKey = localStorage.getItem('openai_api_key');
-    const anthropicKey = localStorage.getItem('anthropic_api_key');
-    const googleKey = localStorage.getItem('google_api_key');
-    const cohereKey = localStorage.getItem('cohere_api_key');
-    const huggingfaceKey = localStorage.getItem('huggingface_api_key');
-    const perplexityKey = localStorage.getItem('perplexity_api_key');
-    
-    return {
-        openai: !!openaiKey,
-        anthropic: !!anthropicKey,
-        google: !!googleKey,
-        cohere: !!cohereKey,
-        huggingface: !!huggingfaceKey,
-        perplexity: !!perplexityKey,
-        anyConfigured: !!(openaiKey || anthropicKey || googleKey || cohereKey || huggingfaceKey || perplexityKey)
-    };
-}
+    // Function to check if AI services are configured
+    function checkAIServicesConfiguration() {
+        const openaiKey = localStorage.getItem('openai_api_key');
+        const anthropicKey = localStorage.getItem('anthropic_api_key');
+        const googleKey = localStorage.getItem('google_api_key');
+        const cohereKey = localStorage.getItem('cohere_api_key');
+        const huggingfaceKey = localStorage.getItem('huggingface_api_key');
+        const perplexityKey = localStorage.getItem('perplexity_api_key');
+        const cursorAIKey = localStorage.getItem('cursor_ai_api_key');
+        
+        return {
+            openai: !!openaiKey,
+            anthropic: !!anthropicKey,
+            google: !!googleKey,
+            cohere: !!cohereKey,
+            huggingface: !!huggingfaceKey,
+            perplexity: !!perplexityKey,
+            cursor_ai: !!cursorAIKey,
+            anyConfigured: !!(openaiKey || anthropicKey || googleKey || cohereKey || huggingfaceKey || perplexityKey || cursorAIKey)
+        };
+    }
 
 // Function to set AI service API keys
 function configureAIServices(service, apiKey) {
@@ -3401,72 +3453,80 @@ function configureAIServices(service, apiKey) {
     }
 }
 
-// Function to check AI services status and display it
-function checkAIServicesStatus() {
-    const config = checkAIServicesConfiguration();
-    let statusMessage = '🤖 Multi-AI Services Status:\n\n';
-    
-    if (config.openai) {
-        statusMessage += '✅ OpenAI (GPT-4 + DALL-E): Configured\n';
-    } else {
-        statusMessage += '❌ OpenAI (GPT-4 + DALL-E): Not configured\n';
-    }
-    
-    if (config.anthropic) {
-        statusMessage += '✅ Anthropic (Claude): Configured\n';
-    } else {
-        statusMessage += '❌ Anthropic (Claude): Not configured\n';
-    }
-    
-    if (config.google) {
-        statusMessage += '✅ Google (Gemini): Configured\n';
-    } else {
-        statusMessage += '❌ Google (Gemini): Not configured\n';
-    }
-
-    if (config.cohere) {
-        statusMessage += '✅ Cohere (Command): Configured\n';
-    } else {
-        statusMessage += '❌ Cohere (Command): Not configured\n';
-    }
-
-    if (config.huggingface) {
-        statusMessage += '✅ Hugging Face: Configured\n';
-    } else {
-        statusMessage += '❌ Hugging Face: Not configured\n';
-    }
-
-    if (config.perplexity) {
-        statusMessage += '✅ Perplexity (Mixtral): Configured\n';
-    } else {
-        statusMessage += '❌ Perplexity (Mixtral): Not configured\n';
-    }
-    
-    statusMessage += '\n💡 Tip: Configure multiple AI services for enhanced content generation and redundancy.';
-    
-    alert(statusMessage);
-}
-
-// Function to clear all AI service configurations
-function clearAllAIServices() {
-    if (confirm('Are you sure you want to clear all AI service configurations? This will remove all API keys.')) {
-        localStorage.removeItem('openai_api_key');
-        localStorage.removeItem('anthropic_api_key');
-        localStorage.removeItem('google_api_key');
-        localStorage.removeItem('cohere_api_key');
-        localStorage.removeItem('huggingface_api_key');
-        localStorage.removeItem('perplexity_api_key');
-        showMessage('All AI service configurations cleared successfully!', 'success');
+    // Function to check AI services status and display it
+    function checkAIServicesStatus() {
+        const config = checkAIServicesConfiguration();
+        let statusMessage = '🤖 Multi-AI Services Status:\n\n';
         
-        // Clear the input fields
-        document.getElementById('openaiApiKey').value = '';
-        document.getElementById('anthropicApiKey').value = '';
-        document.getElementById('googleApiKey').value = '';
-        document.getElementById('cohereApiKey').value = '';
-        document.getElementById('huggingfaceApiKey').value = '';
-        document.getElementById('perplexityApiKey').value = '';
+        if (config.openai) {
+            statusMessage += '✅ OpenAI (GPT-4 + DALL-E): Configured\n';
+        } else {
+            statusMessage += '❌ OpenAI (GPT-4 + DALL-E): Not configured\n';
+        }
+        
+        if (config.anthropic) {
+            statusMessage += '✅ Anthropic (Claude): Configured\n';
+        } else {
+            statusMessage += '❌ Anthropic (Claude): Not configured\n';
+        }
+        
+        if (config.google) {
+            statusMessage += '✅ Google (Gemini): Configured\n';
+        } else {
+            statusMessage += '❌ Google (Gemini): Not configured\n';
+        }
+
+        if (config.cohere) {
+            statusMessage += '✅ Cohere (Command): Configured\n';
+        } else {
+            statusMessage += '❌ Cohere (Command): Not configured\n';
+        }
+
+        if (config.huggingface) {
+            statusMessage += '✅ Hugging Face: Configured\n';
+        } else {
+            statusMessage += '❌ Hugging Face: Not configured\n';
+        }
+
+        if (config.perplexity) {
+            statusMessage += '✅ Perplexity (Mixtral): Configured\n';
+        } else {
+            statusMessage += '❌ Perplexity (Mixtral): Not configured\n';
+        }
+
+        if (config.cursor_ai) {
+            statusMessage += '✅ Cursor AI: Configured\n';
+        } else {
+            statusMessage += '❌ Cursor AI: Not configured\n';
+        }
+        
+        statusMessage += '\n💡 Tip: Configure multiple AI services for enhanced content generation and redundancy.';
+        
+        alert(statusMessage);
     }
-}
+
+    // Function to clear all AI service configurations
+    function clearAllAIServices() {
+        if (confirm('Are you sure you want to clear all AI service configurations? This will remove all API keys.')) {
+            localStorage.removeItem('openai_api_key');
+            localStorage.removeItem('anthropic_api_key');
+            localStorage.removeItem('google_api_key');
+            localStorage.removeItem('cohere_api_key');
+            localStorage.removeItem('huggingface_api_key');
+            localStorage.removeItem('perplexity_api_key');
+            localStorage.removeItem('cursor_ai_api_key');
+            showMessage('All AI service configurations cleared successfully!', 'success');
+            
+            // Clear the input fields
+            document.getElementById('openaiApiKey').value = '';
+            document.getElementById('anthropicApiKey').value = '';
+            document.getElementById('googleApiKey').value = '';
+            document.getElementById('cohereApiKey').value = '';
+            document.getElementById('huggingfaceApiKey').value = '';
+            document.getElementById('perplexityApiKey').value = '';
+            document.getElementById('cursorAiApiKey').value = '';
+        }
+    }
 
     // Function to update existing articles with multi-AI enhanced content generation
     async function updateExistingArticlesWithAI() {
@@ -3584,6 +3644,7 @@ function clearAllAIServices() {
             if (aiConfig.cohere) analysisResults.aiServicesUsed.push('Cohere');
             if (aiConfig.huggingface) analysisResults.aiServicesUsed.push('Hugging Face');
             if (aiConfig.perplexity) analysisResults.aiServicesUsed.push('Perplexity');
+            if (aiConfig.cursor_ai) analysisResults.aiServicesUsed.push('Cursor AI');
 
             for (let i = 0; i < allArticles.length; i++) {
                 const article = allArticles[i];
@@ -3622,6 +3683,12 @@ function clearAllAIServices() {
                     if (aiConfig.perplexity) {
                         analysisPromises.push(
                             callPerplexityAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+                    
+                    if (aiConfig.cursor_ai) {
+                        analysisPromises.push(
+                            callCursorAIAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
                         );
                     }
 

@@ -759,6 +759,20 @@
                                      Configure Perplexity
                                  </button>
                              </div>
+                             
+                             <!-- Cursor AI Configuration -->
+                             <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 2px solid #e5e7eb;">
+                                 <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🚀 Cursor AI</h4>
+                                 <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                                     Generate titles and abstracts using Cursor AI
+                                 </p>
+                                 <input type="password" id="cursorAiApiKey" placeholder="Enter Cursor AI API Key..." 
+                                        style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                                 <button onclick="configureAIServices('cursor_ai', document.getElementById('cursorAiApiKey').value)" 
+                                         style="background: #06b6d4; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.875rem; cursor: pointer; width: 100%;">
+                                     Configure Cursor AI
+                                 </button>
+                             </div>
                         </div>
                         
                         <div style="text-align: center;">
@@ -816,6 +830,6 @@
         </div>
     </footer>
 
-    <script src="articles.js?v=1.21"></script>
+    <script src="articles.js?v=1.22"></script>
 </body>
 </html> 
