@@ -1087,3 +1087,123 @@ html {
         width: 100%;
     }
 } 
+
+/* Most Liked Comment Preview Styles */
+.most-liked-comment {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.most-liked-comment::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+}
+
+.most-liked-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.most-liked-label {
+    font-weight: 700;
+    color: #92400e;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.most-liked-likes {
+    background: #f59e0b;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.most-liked-author {
+    font-weight: 600;
+    color: #92400e;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+}
+
+.most-liked-text {
+    color: #78350f;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    font-size: 0.875rem;
+}
+
+.most-liked-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+
+.most-liked-time {
+    color: #92400e;
+    font-style: italic;
+}
+
+.view-all-comments-btn {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-all-comments-btn:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.view-all-comments-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive styles for most liked comment */
+@media (max-width: 768px) {
+    .most-liked-comment {
+        padding: 12px;
+        margin: 12px 0;
+    }
+    
+    .most-liked-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .most-liked-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .view-all-comments-btn {
+        width: 100%;
+        text-align: center;
+    }
+} 

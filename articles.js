@@ -445,6 +445,9 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
             </div>
         </div>
         
+        <!-- Most Liked Comment Preview -->
+        ${createMostLikedCommentPreview(article.url, index)}
+        
         <!-- Show Comments Button -->
         <div class="show-comments-btn-container">
             <button onclick="showCommentsSection(${index})" class="show-comments-btn">
@@ -2327,6 +2330,73 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Function to find the most liked comment for an article
+function getMostLikedComment(articleUrl) {
+    const comments = articleComments[articleUrl] || [];
+    if (comments.length === 0) return null;
+    
+    let mostLikedComment = null;
+    let maxLikes = -1;
+    let mostRecentTimestamp = 0;
+    
+    // Recursive function to check all comments and replies
+    function checkComments(commentList) {
+        commentList.forEach(comment => {
+            const likes = comment.likes || 0;
+            const timestamp = new Date(comment.timestamp).getTime();
+            
+            if (likes > maxLikes) {
+                // New highest like count
+                mostLikedComment = comment;
+                maxLikes = likes;
+                mostRecentTimestamp = timestamp;
+            } else if (likes === maxLikes && likes > 0) {
+                // Tie in likes, check timestamp (most recent wins)
+                if (timestamp > mostRecentTimestamp) {
+                    mostLikedComment = comment;
+                    mostRecentTimestamp = timestamp;
+                }
+            }
+            
+            // Check replies recursively
+            if (comment.replies && comment.replies.length > 0) {
+                checkComments(comment.replies);
+            }
+        });
+    }
+    
+    checkComments(comments);
+    return mostLikedComment;
+}
+
+// Function to create HTML for the most liked comment preview
+function createMostLikedCommentPreview(articleUrl, articleIndex) {
+    const mostLikedComment = getMostLikedComment(articleUrl);
+    
+    if (!mostLikedComment) {
+        return '';
+    }
+    
+    const timeAgo = getTimeAgo(new Date(mostLikedComment.timestamp));
+    const commentText = escapeHtml(mostLikedComment.text);
+    const truncatedText = commentText.length > 150 ? commentText.substring(0, 150) + '...' : commentText;
+    
+    return `
+        <div class="most-liked-comment">
+            <div class="most-liked-header">
+                <span class="most-liked-label">🏆 Most Liked Comment</span>
+                <span class="most-liked-likes">👍 ${mostLikedComment.likes || 0}</span>
+            </div>
+            <div class="most-liked-author">by ${mostLikedComment.author}</div>
+            <div class="most-liked-text">${truncatedText}</div>
+            <div class="most-liked-meta">
+                <span class="most-liked-time">${timeAgo}</span>
+                <button onclick="showCommentsSection(${articleIndex})" class="view-all-comments-btn">View All Comments</button>
+            </div>
+        </div>
+    `;
 }
 
 function showCommentsSection(articleIndex) {
