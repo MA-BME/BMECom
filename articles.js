@@ -1181,69 +1181,32 @@ function closeDuplicateInterface() {
     }
 }
 
-// Get duplicate statistics
+// Get article statistics (simplified)
 function getDuplicateStats() {
     try {
         const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
-        const seenUrls = new Set();
-        const seenTitles = new Set();
-        const urlDuplicates = [];
-        const titleDuplicates = [];
         
-        // Calculate ticker statistics
-        let totalTicker = 0;
-        let articlesWithTicker = 0;
+        // Calculate simplified statistics
+        let articlesShared = 0;
         let maxTicker = 0;
-        let popularArticles = [];
         
         allArticles.forEach(article => {
-            const normalizedUrl = normalizeUrl(article.url);
-            const normalizedTitle = article.title.toLowerCase().trim();
             const ticker = article.ticker || 1;
             
-            // Track ticker statistics
-            totalTicker += ticker;
-            if (ticker > 1) articlesWithTicker++;
+            // Count articles shared by multiple users (ticker > 1)
+            if (ticker > 1) articlesShared++;
+            
+            // Track most shared article
             if (ticker > maxTicker) maxTicker = ticker;
-            
-            // Track popular articles (ticker >= 10)
-            if (ticker >= 10) {
-                popularArticles.push({
-                    title: article.title,
-                    ticker: ticker,
-                    url: article.url
-                });
-            }
-            
-            if (seenUrls.has(normalizedUrl)) {
-                urlDuplicates.push(article);
-            } else {
-                seenUrls.add(normalizedUrl);
-            }
-            
-            if (seenTitles.has(normalizedTitle)) {
-                titleDuplicates.push(article);
-            } else {
-                seenTitles.add(normalizedTitle);
-            }
         });
-        
-        // Sort popular articles by ticker count
-        popularArticles.sort((a, b) => b.ticker - a.ticker);
         
         return {
             totalArticles: allArticles.length,
-            urlDuplicates: urlDuplicates.length,
-            titleDuplicates: titleDuplicates.length,
-            totalDuplicates: urlDuplicates.length + titleDuplicates.length,
-            uniqueArticles: allArticles.length - (urlDuplicates.length + titleDuplicates.length),
-            totalTicker: totalTicker,
-            articlesWithTicker: articlesWithTicker,
-            maxTicker: maxTicker,
-            popularArticles: popularArticles.slice(0, 5) // Top 5 most popular
+            articlesShared: articlesShared,
+            maxTicker: maxTicker
         };
     } catch (error) {
-        console.error('Error getting duplicate stats:', error);
+        console.error('Error getting article stats:', error);
         return null;
     }
 }
@@ -1253,7 +1216,7 @@ function isCurrentUserModerator() {
     return currentUser && currentUser.role === 'Moderator';
 }
 
-// Show duplicate statistics (moderators only)
+// Show article statistics (moderators only)
 function showDuplicateStats() {
     // Check if user is logged in and is a moderator
     if (!currentUser) {
@@ -1268,7 +1231,7 @@ function showDuplicateStats() {
     
     const stats = getDuplicateStats();
     if (!stats) {
-        showMessage('Error getting duplicate statistics.', 'error');
+        showMessage('Error getting article statistics.', 'error');
         return;
     }
     
@@ -1279,7 +1242,7 @@ function showDuplicateStats() {
         <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 12px; padding: 2rem; margin: 2rem 0;">
             <h3 style="color: #0ea5e9; margin-bottom: 1rem;">📊 Article Statistics (Moderator View)</h3>
             <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem; font-style: italic;">
-                This information is only visible to moderators for system management purposes.
+                Simplified statistics showing only the essential metrics.
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                 <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
@@ -1287,55 +1250,17 @@ function showDuplicateStats() {
                     <div style="color: #6b7280; font-size: 0.875rem;">Total Articles</div>
                 </div>
                 <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: 700; color: #10b981;">${stats.uniqueArticles}</div>
-                    <div style="color: #6b7280; font-size: 0.875rem;">Unique Articles</div>
-                </div>
-                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: 700; color: #dc2626;">${stats.totalDuplicates}</div>
-                    <div style="color: #6b7280; font-size: 0.875rem;">Total Duplicates</div>
-                </div>
-                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">${stats.totalTicker}</div>
-                    <div style="color: #6b7280; font-size: 0.875rem;">Total Shares</div>
-                </div>
-                <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">${stats.articlesWithTicker}</div>
-                    <div style="color: #6b7280; font-size: 0.875rem;">Articles Shared >1x</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #10b981;">${stats.articlesShared}</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Articles Shared</div>
                 </div>
                 <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
                     <div style="font-size: 2rem; font-weight: 700; color: #ef4444;">${stats.maxTicker}</div>
-                    <div style="color: #6b7280; font-size: 0.875rem;">Most Shared</div>
+                    <div style="color: #6b7280; font-size: 0.875rem;">Most Shared Article</div>
                 </div>
             </div>
-            <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #6b7280;">URL Duplicates:</span>
-                    <span style="font-weight: 600; color: #dc2626;">${stats.urlDuplicates}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #6b7280;">Title Duplicates:</span>
-                    <span style="font-weight: 600; color: #f59e0b;">${stats.titleDuplicates}</span>
-                </div>
-            </div>
-            ${stats.popularArticles.length > 0 ? `
-            <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🔥 Most Popular Articles (10+ shares)</h4>
-                ${stats.popularArticles.map(article => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6;">
-                        <div style="flex: 1; margin-right: 1rem;">
-                            <div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${article.title.substring(0, 60)}${article.title.length > 60 ? '...' : ''}</div>
-                            <div style="color: #6b7280; font-size: 0.8rem;">${article.url}</div>
-                        </div>
-                        <div style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 600; font-size: 0.875rem;">
-                            ${article.ticker} shares
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
             <div style="text-align: center;">
                 <p style="color: #10b981; font-weight: 600; margin-bottom: 1rem;">
-                    ✨ Duplicate removal is automatic - no manual action needed
+                    ✨ Only community-validated articles (shared by multiple users) are counted as "Articles Shared"
                 </p>
                 <button onclick="closeDuplicateInterface()" 
                         style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
@@ -1409,30 +1334,40 @@ if (urlForm) {
             return;
         }
         
-        // Check if URL already exists and increment ticker
+        // Check if URL already exists
         if (isUrlAlreadyAdded(url)) {
             const existingArticle = findExistingArticle(url);
             if (existingArticle) {
-                // Increment the ticker for the existing article
-                existingArticle.ticker = (existingArticle.ticker || 1) + 1;
-                
-                // Update the article in storage
-                const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
-                const articleIndex = allArticles.findIndex(article => 
-                    normalizeUrl(article.url) === normalizeUrl(existingArticle.url)
-                );
-                
-                if (articleIndex !== -1) {
-                    allArticles[articleIndex] = existingArticle;
-                    localStorage.setItem('articles', JSON.stringify(allArticles));
-                    
-                    // Update local array and display
-                    userArticles.length = 0;
-                    userArticles.push(...allArticles);
-                    displayUserArticles();
-                    
-                    showMessage(`Article ticker incremented! This article has been shared ${existingArticle.ticker} times.`);
+                // Check if the current user is the same as the user who originally added the article
+                if (existingArticle.userId === currentUser.id) {
+                    // Same user trying to add the same article - reject as duplicate
+                    showMessage('You have already shared this article. Duplicate submissions are not allowed.', 'error');
                     document.getElementById('url1').value = '';
+                    return;
+                } else {
+                    // Different user adding the same article - increment ticker
+                    existingArticle.ticker = (existingArticle.ticker || 1) + 1;
+                    
+                    // Update the article in storage
+                    const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+                    const articleIndex = allArticles.findIndex(article => 
+                        normalizeUrl(article.url) === normalizeUrl(existingArticle.url)
+                    );
+                    
+                    if (articleIndex !== -1) {
+                        allArticles[articleIndex] = existingArticle;
+                        localStorage.setItem('articles', JSON.stringify(allArticles));
+                        
+                        // Update local array and display
+                        userArticles.length = 0;
+                        userArticles.push(...allArticles);
+                        displayUserArticles();
+                        displayCommunityFavorites();
+                        displayPendingArticles();
+                        
+                        showMessage(`Article ticker incremented! This article has been shared ${existingArticle.ticker} times by multiple users.`);
+                        document.getElementById('url1').value = '';
+                    }
                 }
             }
             return;
