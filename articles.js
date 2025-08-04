@@ -686,7 +686,7 @@ async function extractArticleData(url) {
         };
         
         // Progress tracking
-        const totalSteps = 6;
+        const totalSteps = 7;
         let currentStep = 0;
         
         try {
@@ -727,8 +727,90 @@ async function extractArticleData(url) {
                     title = generateDefaultTitle(url, domain);
                 }
                 
-                // Step 4: Extracting article image
+                // Step 4: Validating and improving title based on content
                 currentStep = 4;
+                updateProgress(currentStep, totalSteps, 'Validating title against content...');
+                
+                // Function to check if title matches article content and generate new title if needed
+                const validateAndImproveTitle = (currentTitle, articleContent) => {
+                    if (!articleContent) return currentTitle;
+                    
+                    // Get text content for analysis
+                    let textContent = articleContent.textContent || articleContent.innerText;
+                    textContent = textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+                    
+                    // Extract key terms from the current title
+                    const titleWords = currentTitle.toLowerCase()
+                        .replace(/[^a-z0-9\s]/g, ' ')
+                        .split(' ')
+                        .filter(word => word.length > 3);
+                    
+                    // Check if title words appear in the content
+                    const titleWordMatches = titleWords.filter(word => 
+                        textContent.includes(word)
+                    ).length;
+                    
+                    // If less than 50% of title words match content, generate new title
+                    const matchPercentage = titleWords.length > 0 ? titleWordMatches / titleWords.length : 0;
+                    
+                    if (matchPercentage < 0.5) {
+                        // Generate new title based on content
+                        const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
+                        
+                        if (sentences.length > 0) {
+                            // Find the most informative sentence (longest with key terms)
+                            let bestSentence = sentences[0];
+                            let bestScore = 0;
+                            
+                            const keyTerms = ['research', 'study', 'scientists', 'discovery', 'breakthrough', 
+                                            'technology', 'medical', 'biomedical', 'engineering', 'device', 
+                                            'treatment', 'therapy', 'patient', 'clinical', 'trial'];
+                            
+                            sentences.forEach(sentence => {
+                                const sentenceLower = sentence.toLowerCase();
+                                const keyTermMatches = keyTerms.filter(term => sentenceLower.includes(term)).length;
+                                const score = keyTermMatches * 10 + sentence.length;
+                                
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestSentence = sentence;
+                                }
+                            });
+                            
+                            // Create title from the best sentence
+                            const words = bestSentence.split(' ').filter(word => word.length > 2);
+                            if (words.length > 5) {
+                                // Take first 8-12 words and capitalize properly
+                                const titleWords = words.slice(0, Math.min(12, words.length));
+                                const newTitle = titleWords.map(word => 
+                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                ).join(' ');
+                                
+                                // Ensure it's not too long
+                                if (newTitle.length <= 100) {
+                                    return newTitle + ' - ' + domain;
+                                }
+                            }
+                        }
+                        
+                        // Fallback: generate domain-specific title
+                        return generateDefaultTitle(url, domain);
+                    }
+                    
+                    return currentTitle;
+                };
+                
+                // Validate and improve the title
+                title = validateAndImproveTitle(title, doc.querySelector('article') || 
+                                              doc.querySelector('.article-content') || 
+                                              doc.querySelector('.post-content') || 
+                                              doc.querySelector('.entry-content') || 
+                                              doc.querySelector('.content') || 
+                                              doc.querySelector('main') || 
+                                              doc.querySelector('body'));
+                
+                // Step 5: Extracting article image
+                currentStep = 5;
                 updateProgress(currentStep, totalSteps, 'Extracting article image...');
                 
                 // Extract image
@@ -758,8 +840,8 @@ async function extractArticleData(url) {
                     image = generateArtificialImage(domain, title);
                 }
                 
-                // Step 5: Extracting article summary and abstract
-                currentStep = 5;
+                // Step 6: Extracting article summary and abstract
+                currentStep = 6;
                 updateProgress(currentStep, totalSteps, 'Extracting article summary and abstract...');
                 
                 // First try to get existing meta descriptions
@@ -771,8 +853,8 @@ async function extractArticleData(url) {
                     summary = summaryElement.getAttribute('content') || summary;
                 }
                 
-                // Step 6: Generating comprehensive abstract
-                currentStep = 6;
+                // Step 7: Generating comprehensive abstract
+                currentStep = 7;
                 updateProgress(currentStep, totalSteps, 'Generating comprehensive abstract...');
                 
                 // Look for abstract-specific content first
