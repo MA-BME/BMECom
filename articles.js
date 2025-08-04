@@ -614,6 +614,74 @@ function updateExistingArticles() {
     return updated;
 }
 
+// Enhanced function to update existing articles by re-scraping URLs with comprehensive text extraction
+async function updateExistingArticlesWithNewLogic() {
+    try {
+        showLoading();
+        showMessage('Updating existing articles with enhanced content extraction...', 'info');
+        
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        let updatedCount = 0;
+        const totalArticles = allArticles.length;
+        
+        for (let i = 0; i < allArticles.length; i++) {
+            const article = allArticles[i];
+            
+            try {
+                // Update progress
+                updateProgress(i + 1, totalArticles, `Updating article ${i + 1} of ${totalArticles}`);
+                
+                // Re-extract data from the original URL using enhanced logic
+                const updatedData = await extractArticleData(article.url);
+                
+                // Update article with new data while preserving user data
+                article.title = updatedData.title;
+                article.summary = updatedData.summary;
+                article.image = updatedData.image;
+                
+                // Preserve existing user data
+                const originalTicker = article.ticker;
+                const originalLikes = article.likes;
+                const originalDislikes = article.dislikes;
+                const originalTimestamp = article.timestamp;
+                const originalUserId = article.userId;
+                const originalUserName = article.userName;
+                
+                // Restore preserved data
+                article.ticker = originalTicker;
+                article.likes = originalLikes;
+                article.dislikes = originalDislikes;
+                article.timestamp = originalTimestamp;
+                article.userId = originalUserId;
+                article.userName = originalUserName;
+                
+                updatedCount++;
+                
+                // Small delay to avoid overwhelming the server
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+            } catch (error) {
+                console.error(`Failed to update article ${i + 1}:`, error);
+                // Continue with next article even if one fails
+            }
+        }
+        
+        // Save updated articles
+        localStorage.setItem('articles', JSON.stringify(allArticles));
+        
+        // Refresh display
+        loadAllArticles();
+        
+        hideLoading();
+        showMessage(`Successfully updated ${updatedCount} out of ${totalArticles} articles with enhanced content extraction`, 'success');
+        
+    } catch (error) {
+        hideLoading();
+        showMessage('Error updating existing articles: ' + error.message, 'error');
+        console.error('Error in updateExistingArticlesWithNewLogic:', error);
+    }
+}
+
 // Article data extraction
 async function extractArticleData(url) {
     try {
@@ -715,24 +783,59 @@ async function extractArticleData(url) {
                 currentStep = 3;
                 updateProgress(currentStep, totalSteps, 'Generating custom title from article content...');
                 
-                // Function to generate a custom title based on article content
-                const generateCustomTitle = (articleContent, domain) => {
-                    if (!articleContent) {
+                // Enhanced function to generate title from ALL available text content
+                const generateCustomTitle = (doc, domain) => {
+                    // Collect ALL text content from the entire page
+                    let allTextContent = '';
+                    
+                    // Get text from all possible content areas
+                    const contentSelectors = [
+                        'article', '.article-content', '.post-content', '.entry-content', 
+                        '.content', 'main', '.main-content', '.post-body', '.article-body',
+                        '.story-content', '.article-text', '.post-text', '.entry-text',
+                        'body', '.body-content', '.page-content', '.site-content'
+                    ];
+                    
+                    contentSelectors.forEach(selector => {
+                        const elements = doc.querySelectorAll(selector);
+                        elements.forEach(element => {
+                            const text = element.textContent || element.innerText;
+                            if (text && text.trim().length > 50) {
+                                allTextContent += ' ' + text.trim();
+                            }
+                        });
+                    });
+                    
+                    // If no content found, try getting text from all paragraphs
+                    if (!allTextContent.trim()) {
+                        const paragraphs = doc.querySelectorAll('p');
+                        paragraphs.forEach(p => {
+                            const text = p.textContent || p.innerText;
+                            if (text && text.trim().length > 20) {
+                                allTextContent += ' ' + text.trim();
+                            }
+                        });
+                    }
+                    
+                    // Clean up the text
+                    allTextContent = allTextContent
+                        .replace(/\s+/g, ' ')
+                        .replace(/\n+/g, ' ')
+                        .trim()
+                        .toLowerCase();
+                    
+                    if (!allTextContent || allTextContent.length < 100) {
                         return generateDefaultTitle(url, domain);
                     }
                     
-                    // Get text content for analysis
-                    let textContent = articleContent.textContent || articleContent.innerText;
-                    textContent = textContent.replace(/\s+/g, ' ').trim().toLowerCase();
-                    
                     // Split into sentences and filter meaningful ones
-                    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
+                    const sentences = allTextContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
                     
                     if (sentences.length === 0) {
                         return generateDefaultTitle(url, domain);
                     }
                     
-                    // Define biomedical engineering key terms for scoring
+                    // Enhanced biomedical engineering key terms for better scoring
                     const keyTerms = [
                         'research', 'study', 'scientists', 'discovery', 'breakthrough', 
                         'technology', 'medical', 'biomedical', 'engineering', 'device', 
@@ -743,10 +846,16 @@ async function extractArticleData(url) {
                         'biotechnology', 'nanotechnology', 'robotics', 'artificial intelligence',
                         'machine learning', 'data science', 'genomics', 'proteomics', 'metabolomics',
                         'imaging', 'diagnostic', 'therapeutic', 'preventive', 'rehabilitation',
-                        'prosthetics', 'implants', 'sensors', 'monitoring', 'detection'
+                        'prosthetics', 'implants', 'sensors', 'monitoring', 'detection',
+                        'tissue', 'regenerative', 'stem cell', 'drug delivery', 'biomaterials',
+                        'bioengineering', 'biomechanics', 'biophysics', 'biochemistry',
+                        'molecular', 'cellular', 'genetic', 'protein', 'enzyme', 'receptor',
+                        'pathway', 'mechanism', 'function', 'structure', 'interaction',
+                        'synthesis', 'modification', 'expression', 'regulation', 'signaling',
+                        'metabolism', 'homeostasis', 'adaptation', 'response', 'stimulus'
                     ];
                     
-                    // Find the most informative sentence
+                    // Find the most informative sentence using comprehensive scoring
                     let bestSentence = sentences[0];
                     let bestScore = 0;
                     
@@ -755,8 +864,12 @@ async function extractArticleData(url) {
                         const keyTermMatches = keyTerms.filter(term => sentenceLower.includes(term)).length;
                         const sentenceLength = sentence.length;
                         
-                        // Score based on key terms (weighted heavily) and sentence length
-                        const score = (keyTermMatches * 15) + (sentenceLength * 0.1);
+                        // Enhanced scoring: key terms (weighted heavily), sentence length, and position
+                        const keyTermScore = keyTermMatches * 20; // Increased weight
+                        const lengthScore = sentenceLength * 0.1;
+                        const positionScore = sentences.indexOf(sentence) < 5 ? 10 : 0; // Prefer early sentences
+                        
+                        const score = keyTermScore + lengthScore + positionScore;
                         
                         if (score > bestScore) {
                             bestScore = score;
@@ -804,17 +917,8 @@ async function extractArticleData(url) {
                     return generateDefaultTitle(url, domain);
                 };
                 
-                // Find the main article content
-                const articleContent = doc.querySelector('article') || 
-                                     doc.querySelector('.article-content') || 
-                                     doc.querySelector('.post-content') || 
-                                     doc.querySelector('.entry-content') || 
-                                     doc.querySelector('.content') || 
-                                     doc.querySelector('main') || 
-                                     doc.querySelector('body');
-                
-                // Generate custom title based on content
-                title = generateCustomTitle(articleContent, domain);
+                // Generate comprehensive title from ALL text content
+                title = generateCustomTitle(doc, domain);
                 
                 // Step 5: Extracting article image
                 currentStep = 5;
@@ -881,98 +985,150 @@ async function extractArticleData(url) {
                     }
                 }
                 
-                // Extract main article content for comprehensive summary
-                const mainContent = doc.querySelector('article') ||
-                                     doc.querySelector('.article-content') ||
-                                     doc.querySelector('.post-content') ||
-                                     doc.querySelector('.entry-content') ||
-                                     doc.querySelector('.content') ||
-                                     doc.querySelector('main') ||
-                                     doc.querySelector('body');
-                
-                if (mainContent) {
-                    // Get all text content
-                    let textContent = mainContent.textContent || mainContent.innerText;
+                // Enhanced function to generate comprehensive abstract from ALL text content
+                const generateComprehensiveAbstract = (doc, domain) => {
+                    // Collect ALL text content from the entire page (same as title generation)
+                    let allTextContent = '';
+                    
+                    // Get text from all possible content areas
+                    const contentSelectors = [
+                        'article', '.article-content', '.post-content', '.entry-content', 
+                        '.content', 'main', '.main-content', '.post-body', '.article-body',
+                        '.story-content', '.article-text', '.post-text', '.entry-text',
+                        'body', '.body-content', '.page-content', '.site-content'
+                    ];
+                    
+                    contentSelectors.forEach(selector => {
+                        const elements = doc.querySelectorAll(selector);
+                        elements.forEach(element => {
+                            const text = element.textContent || element.innerText;
+                            if (text && text.trim().length > 50) {
+                                allTextContent += ' ' + text.trim();
+                            }
+                        });
+                    });
+                    
+                    // If no content found, try getting text from all paragraphs
+                    if (!allTextContent.trim()) {
+                        const paragraphs = doc.querySelectorAll('p');
+                        paragraphs.forEach(p => {
+                            const text = p.textContent || p.innerText;
+                            if (text && text.trim().length > 20) {
+                                allTextContent += ' ' + text.trim();
+                            }
+                        });
+                    }
                     
                     // Clean up the text
-                    textContent = textContent
-                        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                        .replace(/\n+/g, ' ') // Replace newlines with spaces
+                    allTextContent = allTextContent
+                        .replace(/\s+/g, ' ')
+                        .replace(/\n+/g, ' ')
+                        .trim();
                     
                     // Check if we have meaningful content
-                    if (!textContent || textContent.trim().length < 100) {
+                    if (!allTextContent || allTextContent.length < 100) {
                         throw new Error('can not read URL');
                     }
                     
-                    textContent = textContent.trim();
-                    
                     // Remove common unwanted elements
-                    textContent = textContent
+                    allTextContent = allTextContent
                         .replace(/Advertisement/g, '')
                         .replace(/Subscribe/g, '')
                         .replace(/Sign up/g, '')
                         .replace(/Cookie Policy/g, '')
                         .replace(/Privacy Policy/g, '')
-                        .replace(/Terms of Service/g, '');
+                        .replace(/Terms of Service/g, '')
+                        .replace(/Contact Us/g, '')
+                        .replace(/About Us/g, '')
+                        .replace(/Follow Us/g, '')
+                        .replace(/Share this/g, '')
+                        .replace(/Related Articles/g, '')
+                        .replace(/Recommended/g, '')
+                        .replace(/Sponsored/g, '')
+                        .replace(/Advertise/g, '');
                     
                     // Split into sentences for better abstract formation
-                    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
+                    const sentences = allTextContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
                     
                     if (sentences.length > 0) {
-                        // Take first 3-5 meaningful sentences for abstract
-                        const meaningfulSentences = sentences.slice(0, 5).filter(s => 
+                        // Take first 5-8 meaningful sentences for comprehensive abstract
+                        const meaningfulSentences = sentences.slice(0, 8).filter(s => 
                             s.length > 30 && 
                             !s.includes('click') && 
                             !s.includes('subscribe') && 
-                            !s.includes('advertisement')
+                            !s.includes('advertisement') &&
+                            !s.includes('cookie') &&
+                            !s.includes('privacy') &&
+                            !s.includes('terms') &&
+                            !s.includes('contact') &&
+                            !s.includes('follow') &&
+                            !s.includes('share') &&
+                            !s.includes('related') &&
+                            !s.includes('recommended') &&
+                            !s.includes('sponsored')
                         );
                         
                         if (meaningfulSentences.length > 0) {
-                            summary = meaningfulSentences.join('. ') + '.';
+                            let abstract = meaningfulSentences.join('. ') + '.';
                             
-                            // Ensure minimum 200 words
-                            const words = summary.split(' ');
-                            if (words.length < 200) {
+                            // Ensure minimum 300 words for comprehensive abstract
+                            const words = abstract.split(' ');
+                            if (words.length < 300) {
                                 // Add more sentences if needed
-                                const additionalSentences = sentences.slice(5, 10).filter(s => 
+                                const additionalSentences = sentences.slice(8, 15).filter(s => 
                                     s.length > 30 && 
                                     !s.includes('click') && 
-                                    !s.includes('subscribe')
+                                    !s.includes('subscribe') &&
+                                    !s.includes('advertisement') &&
+                                    !s.includes('cookie') &&
+                                    !s.includes('privacy') &&
+                                    !s.includes('terms') &&
+                                    !s.includes('contact') &&
+                                    !s.includes('follow') &&
+                                    !s.includes('share') &&
+                                    !s.includes('related') &&
+                                    !s.includes('recommended') &&
+                                    !s.includes('sponsored')
                                 );
                                 
                                 if (additionalSentences.length > 0) {
-                                    summary += ' ' + additionalSentences.join('. ') + '.';
+                                    abstract += ' ' + additionalSentences.join('. ') + '.';
                                 }
                             }
+                            
+                            return abstract;
                         } else {
                             // Fallback to word-based approach
-                            const words = textContent.split(' ').filter(word => word.length > 2);
-                            summary = words.slice(0, 300).join(' ');
+                            const words = allTextContent.split(' ').filter(word => word.length > 2);
+                            return words.slice(0, 400).join(' ');
                         }
                     } else {
                         // Fallback to word-based approach
-                        const words = textContent.split(' ').filter(word => word.length > 2);
-                        summary = words.slice(0, 300).join(' ');
+                        const words = allTextContent.split(' ').filter(word => word.length > 2);
+                        return words.slice(0, 400).join(' ');
                     }
-                    
-                    // Ensure we have a proper abstract length (200-500 words)
-                    const wordCount = summary.split(' ').length;
-                    if (wordCount < 200) {
-                        // Extend the abstract with more content
-                        const remainingWords = textContent.split(' ').slice(300, 500);
-                        if (remainingWords.length > 0) {
-                            summary += ' ' + remainingWords.join(' ');
-                        }
-                    } else if (wordCount > 500) {
-                        // Truncate to 500 words at sentence boundary
-                        const words = summary.split(' ');
-                        const truncated = words.slice(0, 500).join(' ');
-                        const lastPeriod = truncated.lastIndexOf('.');
-                        if (lastPeriod > 400) {
-                            summary = truncated.substring(0, lastPeriod + 1);
-                        } else {
-                            summary = truncated + '.';
-                        }
+                };
+                
+                // Generate comprehensive abstract from ALL text content
+                summary = generateComprehensiveAbstract(doc, domain);
+                
+                // Ensure we have a proper abstract length (300-600 words)
+                const wordCount = summary.split(' ').length;
+                if (wordCount < 300) {
+                    // Extend the abstract with more content if needed
+                    const additionalContent = generateComprehensiveAbstract(doc, domain);
+                    if (additionalContent && additionalContent.length > summary.length) {
+                        summary = additionalContent;
+                    }
+                } else if (wordCount > 600) {
+                    // Truncate to 600 words at sentence boundary
+                    const words = summary.split(' ');
+                    const truncated = words.slice(0, 600).join(' ');
+                    const lastPeriod = truncated.lastIndexOf('.');
+                    if (lastPeriod > 500) {
+                        summary = truncated.substring(0, lastPeriod + 1);
+                    } else {
+                        summary = truncated + '.';
                     }
                 }
             }
