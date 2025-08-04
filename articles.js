@@ -306,7 +306,11 @@ function displayUserArticles() {
     let sortedArticles = [...allArticles];
     if (sortBy === 'recent') {
         // Most recently added (reverse chronological order)
-        sortedArticles.sort((a, b) => new Date(b.dateAdded || b.date) - new Date(a.dateAdded || a.date));
+        sortedArticles.sort((a, b) => {
+            const dateA = new Date(b.dateAdded || b.timestamp || b.date || 0);
+            const dateB = new Date(a.dateAdded || a.timestamp || a.date || 0);
+            return dateA - dateB;
+        });
     } else if (sortBy === 'shared') {
         // Most shared (highest ticker count first)
         sortedArticles.sort((a, b) => (b.ticker || 1) - (a.ticker || 1));
@@ -1425,7 +1429,7 @@ async function extractArticleData(url) {
             ticker: 1, // Initialize ticker to 1 for new articles
             userId: currentUser ? currentUser.id : 'anonymous',
             userName: currentUser ? currentUser.name : 'Anonymous',
-            timestamp: new Date().toISOString()
+            dateAdded: new Date().toISOString() // Use dateAdded for consistency
         };
     } catch (error) {
         throw new Error('Failed to extract article data');
@@ -1958,7 +1962,7 @@ if (urlForm) {
             // Add user information to the article
             articleData.addedBy = currentUser.name;
             articleData.userId = currentUser.id;
-            articleData.addedAt = new Date().toISOString();
+            articleData.dateAdded = new Date().toISOString(); // Use dateAdded for consistency
             
             // Show the generated abstract
             const abstractPreviewText = document.getElementById('abstractPreviewText');
