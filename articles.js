@@ -3275,7 +3275,11 @@ async function callHuggingFaceAPI(prompt, type = 'text') {
 
     // Enhanced multi-AI title generation using multiple AI services
     async function generateMultiAITitle(articleContent, domain, url) {
-        const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. Content: ${articleContent.substring(0, 1000)}... Domain: ${domain}`;
+        const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. 
+
+Article URL: ${url}
+Domain: ${domain}
+Content: ${articleContent.substring(0, 1000)}...`;
         
         // Try multiple AI services in parallel for better results
         const services = [
@@ -3308,7 +3312,11 @@ async function callHuggingFaceAPI(prompt, type = 'text') {
 
     // Enhanced multi-AI abstract generation using multiple AI services
     async function generateMultiAIAbstract(articleContent, domain, url) {
-        const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance. Content: ${articleContent.substring(0, 2000)}... Domain: ${domain}`;
+        const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance.
+
+Article URL: ${url}
+Domain: ${domain}
+Content: ${articleContent.substring(0, 2000)}...`;
         
         const services = [
             { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'abstract') },
@@ -3340,7 +3348,11 @@ async function callHuggingFaceAPI(prompt, type = 'text') {
 
 // Enhanced multi-AI image generation using multiple AI services
 async function generateMultiAIImage(domain, title, articleContent) {
-    const imagePrompt = `Create a professional, scientific image representing biomedical engineering research. Focus on: ${title}. Style: modern, clean, scientific, high-quality, professional. Include elements like: laboratory equipment, medical devices, technology, research symbols. Avoid: text, logos, human faces.`;
+    const imagePrompt = `Create a professional, scientific image representing biomedical engineering research. Focus on: ${title}. Style: modern, clean, scientific, high-quality, professional. Include elements like: laboratory equipment, medical devices, technology, research symbols. Avoid: text, logos, human faces.
+
+Article Title: ${title}
+Domain: ${domain}
+Content Context: ${articleContent.substring(0, 500)}...`;
     
     const services = [
         { name: AI_SERVICES.DALL_E, func: () => callOpenAIAPI(imagePrompt, 'image') },
@@ -3601,41 +3613,65 @@ function configureAIServices(service, apiKey) {
                     // Analyze with multiple AI services in parallel
                     const analysisPromises = [];
                     
-                    if (aiConfig.openai) {
-                        analysisPromises.push(
-                            callOpenAIAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
-                    
-                    if (aiConfig.anthropic) {
-                        analysisPromises.push(
-                            callClaudeAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
-                    
-                    if (aiConfig.google) {
-                        analysisPromises.push(
-                            callGeminiAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
-                    
-                    if (aiConfig.cohere) {
-                        analysisPromises.push(
-                            callCohereAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
-                    
-                    if (aiConfig.perplexity) {
-                        analysisPromises.push(
-                            callPerplexityAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
-                    
-                    if (aiConfig.cursor_ai) {
-                        analysisPromises.push(
-                            callCursorAIAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
-                        );
-                    }
+                                                    if (aiConfig.openai) {
+                                    analysisPromises.push(
+                                        callOpenAIAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
+                                
+                                if (aiConfig.anthropic) {
+                                    analysisPromises.push(
+                                        callClaudeAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
+                                
+                                if (aiConfig.google) {
+                                    analysisPromises.push(
+                                        callGeminiAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
+                                
+                                if (aiConfig.cohere) {
+                                    analysisPromises.push(
+                                        callCohereAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
+                                
+                                if (aiConfig.perplexity) {
+                                    analysisPromises.push(
+                                        callPerplexityAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
+                                
+                                if (aiConfig.cursor_ai) {
+                                    analysisPromises.push(
+                                        callCursorAIAPI(`Analyze this biomedical engineering article and provide insights:
+
+Article URL: ${article.url}
+Title: ${article.title}
+Abstract: ${article.summary}`, 'analysis')
+                                    );
+                                }
 
                     // Wait for all AI analyses to complete
                     const results = await Promise.allSettled(analysisPromises);
