@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .like-btn { background: #10b981; color: white; border: none; border-radius: 5px; }
+        .dislike-btn { background: #ef4444; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Page</h1>
+    
+    <div class="test-section">
+        <h2>LocalStorage Test</h2>
+        <button onclick="checkLocalStorage()">Check LocalStorage</button>
+        <button onclick="addTestArticle()">Add Test Article</button>
+        <button onclick="clearLocalStorage()">Clear LocalStorage</button>
+        <div id="localStorageOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Like/Dislike Test</h2>
+        <div id="testArticle">
+            <h3>Test Article</h3>
+            <p>This is a test article to check like/dislike functionality.</p>
+            <button class="like-btn" onclick="testLike()">👍 Like</button>
+            <button class="dislike-btn" onclick="testDislike()">👎 Dislike</button>
+            <div id="likeCount">Likes: 0</div>
+            <div id="dislikeCount">Dislikes: 0</div>
+        </div>
+    </div>
+
+    <script>
+        // Like/Dislike tracking
+        let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+        let userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
+        
+        function checkLocalStorage() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+            const userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            document.getElementById('localStorageOutput').innerHTML = `
+                <h3>LocalStorage Contents:</h3>
+                <p><strong>Articles:</strong> ${articles.length} articles</p>
+                <p><strong>User Likes:</strong> ${Object.keys(userLikes).length} articles liked</p>
+                <p><strong>User Dislikes:</strong> ${Object.keys(userDislikes).length} articles disliked</p>
+                <p><strong>Current User:</strong> ${currentUser ? currentUser.name : 'Not logged in'}</p>
+                <pre>${JSON.stringify({articles, userLikes, userDislikes, currentUser}, null, 2)}</pre>
+            `;
+        }
+        
+        function addTestArticle() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const testArticle = {
+                title: "Test Article",
+                url: "https://example.com/test",
+                summary: "This is a test article for testing like/dislike functionality.",
+                source: "Example.com",
+                date: new Date().toLocaleDateString(),
+                dateAdded: new Date().toISOString(),
+                ticker: 1,
+                likes: 0,
+                dislikes: 0
+            };
+            
+            articles.push(testArticle);
+            localStorage.setItem('articles', JSON.stringify(articles));
+            alert('Test article added!');
+            checkLocalStorage();
+        }
+        
+        function clearLocalStorage() {
+            localStorage.clear();
+            alert('LocalStorage cleared!');
+            checkLocalStorage();
+        }
+        
+        function testLike() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                alert('Please log in first!');
+                return;
+            }
+            
+            const articleUrl = "https://example.com/test";
+            
+            // Remove from dislikes if previously disliked
+            if (userDislikes[articleUrl] && userDislikes[articleUrl].includes(currentUser.id)) {
+                userDislikes[articleUrl] = userDislikes[articleUrl].filter(id => id !== currentUser.id);
+                if (userDislikes[articleUrl].length === 0) {
+                    delete userDislikes[articleUrl];
+                }
+                localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+            }
+            
+            // Toggle like
+            if (!userLikes[articleUrl]) {
+                userLikes[articleUrl] = [];
+            }
+            
+            const userIndex = userLikes[articleUrl].indexOf(currentUser.id);
+            if (userIndex === -1) {
+                // Add like
+                userLikes[articleUrl].push(currentUser.id);
+                alert('Article liked!');
+            } else {
+                // Remove like
+                userLikes[articleUrl].splice(userIndex, 1);
+                if (userLikes[articleUrl].length === 0) {
+                    delete userLikes[articleUrl];
+                }
+                alert('Like removed.');
+            }
+            
+            localStorage.setItem('userLikes', JSON.stringify(userLikes));
+            updateCounts();
+        }
+        
+        function testDislike() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                alert('Please log in first!');
+                return;
+            }
+            
+            const articleUrl = "https://example.com/test";
+            
+            // Remove from likes if previously liked
+            if (userLikes[articleUrl] && userLikes[articleUrl].includes(currentUser.id)) {
+                userLikes[articleUrl] = userLikes[articleUrl].filter(id => id !== currentUser.id);
+                if (userLikes[articleUrl].length === 0) {
+                    delete userLikes[articleUrl];
+                }
+                localStorage.setItem('userLikes', JSON.stringify(userLikes));
+            }
+            
+            // Toggle dislike
+            if (!userDislikes[articleUrl]) {
+                userDislikes[articleUrl] = [];
+            }
+            
+            const userIndex = userDislikes[articleUrl].indexOf(currentUser.id);
+            if (userIndex === -1) {
+                // Add dislike
+                userDislikes[articleUrl].push(currentUser.id);
+                alert('Article disliked.');
+            } else {
+                // Remove dislike
+                userDislikes[articleUrl].splice(userIndex, 1);
+                if (userDislikes[articleUrl].length === 0) {
+                    delete userDislikes[articleUrl];
+                }
+                alert('Dislike removed.');
+            }
+            
+            localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+            updateCounts();
+        }
+        
+        function updateCounts() {
+            const articleUrl = "https://example.com/test";
+            const likeCount = userLikes[articleUrl] ? userLikes[articleUrl].length : 0;
+            const dislikeCount = userDislikes[articleUrl] ? userDislikes[articleUrl].length : 0;
+            
+            document.getElementById('likeCount').textContent = `Likes: ${likeCount}`;
+            document.getElementById('dislikeCount').textContent = `Dislikes: ${dislikeCount}`;
+        }
+        
+        // Initialize counts
+        updateCounts();
+    </script>
+</body>
+</html> 
