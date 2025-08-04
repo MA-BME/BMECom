@@ -252,7 +252,6 @@ function loadAllArticles() {
         // Always display articles regardless of login status
         displayUserArticles();
         displayCommunityFavorites();
-        displayPendingArticles(); // Display pending articles for moderators
         
         // Show update indicator
         showUpdateIndicator();
@@ -322,78 +321,7 @@ function displayUserArticles() {
 }
 
 // Display single-user articles for moderators (articles with ticker = 1)
-function displayPendingArticles() {
-    const pendingSection = document.getElementById('pendingArticlesSection');
-    if (!pendingSection) return;
-    
-    const pendingArticlesContainer = document.getElementById('pendingArticlesGrid');
-    if (!pendingArticlesContainer) return;
-    
-    // Only show single-user articles to moderators
-    if (!isCurrentUserModerator()) {
-        pendingSection.style.display = 'none';
-        return;
-    }
-    
-    // Filter articles to only show those shared by single users (ticker = 1)
-    const pendingArticles = userArticles.filter(article => (article.ticker || 1) === 1);
-    
-    if (pendingArticles.length === 0) {
-        pendingSection.style.display = 'none';
-        return;
-    }
-    
-    pendingSection.style.display = 'block';
-    pendingArticlesContainer.innerHTML = '';
-    
-    pendingArticles.slice().reverse().forEach((article, index) => {
-        const articleCard = createPendingArticleCard(article, userArticles.length - 1 - index);
-        pendingArticlesContainer.appendChild(articleCard);
-    });
-}
 
-// Create card for pending articles (moderator view)
-function createPendingArticleCard(article, index) {
-    const card = document.createElement('div');
-    card.className = 'article-card';
-    card.style.border = '2px dashed #f59e0b';
-    card.style.background = 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)';
-    
-    const categoryDisplay = article.category ? 
-        `<div class="article-category">${article.category}</div>` : '';
-    
-    const imageDisplay = article.image ? 
-        `<div class="article-image">
-            <img src="${article.image}" alt="${article.title}" loading="lazy" onerror="this.style.display='none'">
-        </div>` : '';
-    
-    const summaryPreview = article.summary ? 
-        `<p class="article-summary">${article.summary.substring(0, 200)}${article.summary.length > 200 ? '...' : ''}</p>` : '';
-    
-    card.innerHTML = `
-        <div style="background: #f59e0b; color: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600;">
-            ⏳ Single-User Article
-        </div>
-        ${categoryDisplay}
-        ${imageDisplay}
-        <div class="article-header">
-            <h3 class="article-title">
-                <a href="article-detail.html?id=${index}">${article.title}</a>
-            </h3>
-        </div>
-        ${summaryPreview}
-        <div class="article-meta">
-            <span class="article-source">${article.source}</span>
-            <span>${article.date}</span>
-        </div>
-        <div class="article-actions">
-            <a href="article-detail.html?id=${index}" class="read-more-btn">
-                Read Full Summary →
-            </a>
-        </div>
-    `;
-    return card;
-}
 
 function displayCommunityFavorites() {
     if (!communityFavoritesGrid) return;
@@ -557,9 +485,13 @@ function deleteArticle(index) {
         return;
     }
     
-    // Get the actual article (accounting for reverse order display)
-    const actualIndex = userArticles.length - 1 - index;
-    const article = userArticles[actualIndex];
+    // The index parameter should be the actual array index
+    const article = userArticles[index];
+    
+    if (!article) {
+        showMessage('Article not found.', 'error');
+        return;
+    }
     
     // Check if user owns this article or is moderator
     if (article.userId !== currentUser.id && currentUser.role !== 'Moderator') {
@@ -569,7 +501,7 @@ function deleteArticle(index) {
     
     if (confirm('Are you sure you want to delete this article?')) {
         // Remove from local array
-        userArticles.splice(actualIndex, 1);
+        userArticles.splice(index, 1);
         
         // Update global localStorage
         localStorage.setItem('articles', JSON.stringify(userArticles));
@@ -1341,7 +1273,6 @@ function resetTickerStats() {
         // Refresh the display
         displayUserArticles();
         displayCommunityFavorites();
-        displayPendingArticles();
         
         showMessage(`Successfully reset ticker stats for ${allArticles.length} articles. All articles now have ticker count of 1.`, 'success');
         
@@ -1505,7 +1436,6 @@ if (urlForm) {
                         userArticles.push(...allArticles);
                         displayUserArticles();
                         displayCommunityFavorites();
-                        displayPendingArticles();
                         
                         showMessage(`Article ticker incremented! This article has been shared ${existingArticle.ticker} times by multiple users.`);
                         document.getElementById('url1').value = '';
@@ -2359,8 +2289,19 @@ function showCommentsSection(articleIndex) {
     
     if (isVisible) {
         commentsSection.style.display = 'none';
+        // Update the "Show Comments" button text
+        const showCommentsBtn = document.querySelector(`button[onclick="showCommentsSection(${articleIndex})"]`);
+        if (showCommentsBtn && showCommentsBtn.classList.contains('show-comments-btn')) {
+            const commentCount = articleComments[article.url] ? articleComments[article.url].length : 0;
+            showCommentsBtn.textContent = `💬 Show Comments (${commentCount})`;
+        }
     } else {
         commentsSection.style.display = 'block';
         displayComments(articleIndex);
+        // Update the "Show Comments" button text to "Close Comments"
+        const showCommentsBtn = document.querySelector(`button[onclick="showCommentsSection(${articleIndex})"]`);
+        if (showCommentsBtn && showCommentsBtn.classList.contains('show-comments-btn')) {
+            showCommentsBtn.textContent = '💬 Close Comments';
+        }
     }
 }
