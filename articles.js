@@ -1109,26 +1109,65 @@ async function extractArticleData(url) {
                     }
                 };
                 
-                // Generate comprehensive abstract from ALL text content
-                summary = generateComprehensiveAbstract(doc, domain);
+                // Check for existing abstract in meta tags or specific elements first
+                let existingAbstract = null;
                 
-                // Ensure we have a proper abstract length (300-600 words)
-                const wordCount = summary.split(' ').length;
-                if (wordCount < 300) {
-                    // Extend the abstract with more content if needed
-                    const additionalContent = generateComprehensiveAbstract(doc, domain);
-                    if (additionalContent && additionalContent.length > summary.length) {
-                        summary = additionalContent;
+                // Check meta tags for description/abstract
+                const metaDescription = doc.querySelector('meta[name="description"]');
+                const metaAbstract = doc.querySelector('meta[name="abstract"]');
+                const ogDescription = doc.querySelector('meta[property="og:description"]');
+                
+                if (metaDescription && metaDescription.getAttribute('content')) {
+                    existingAbstract = metaDescription.getAttribute('content');
+                } else if (metaAbstract && metaAbstract.getAttribute('content')) {
+                    existingAbstract = metaAbstract.getAttribute('content');
+                } else if (ogDescription && ogDescription.getAttribute('content')) {
+                    existingAbstract = ogDescription.getAttribute('content');
+                }
+                
+                // Check for specific abstract elements
+                if (!existingAbstract) {
+                    const abstractSelectors = [
+                        '.abstract', '.article-abstract', '.post-abstract', '.entry-abstract',
+                        '.summary', '.article-summary', '.post-summary', '.entry-summary',
+                        '[data-abstract]', '[data-summary]', '.content-abstract', '.content-summary'
+                    ];
+                    
+                    for (const selector of abstractSelectors) {
+                        const element = doc.querySelector(selector);
+                        if (element && element.textContent && element.textContent.trim().length > 50) {
+                            existingAbstract = element.textContent.trim();
+                            break;
+                        }
                     }
-                } else if (wordCount > 600) {
-                    // Truncate to 600 words at sentence boundary
-                    const words = summary.split(' ');
-                    const truncated = words.slice(0, 600).join(' ');
-                    const lastPeriod = truncated.lastIndexOf('.');
-                    if (lastPeriod > 500) {
-                        summary = truncated.substring(0, lastPeriod + 1);
-                    } else {
-                        summary = truncated + '.';
+                }
+                
+                // If existing abstract is found and it's substantial, use it
+                if (existingAbstract && existingAbstract.length > 100) {
+                    summary = existingAbstract;
+                    console.log('Using existing abstract from webpage');
+                } else {
+                    // Generate comprehensive abstract from ALL text content
+                    summary = generateComprehensiveAbstract(doc, domain);
+                    
+                    // Ensure we have a proper abstract length (300-600 words)
+                    const wordCount = summary.split(' ').length;
+                    if (wordCount < 300) {
+                        // Extend the abstract with more content if needed
+                        const additionalContent = generateComprehensiveAbstract(doc, domain);
+                        if (additionalContent && additionalContent.length > summary.length) {
+                            summary = additionalContent;
+                        }
+                    } else if (wordCount > 600) {
+                        // Truncate to 600 words at sentence boundary
+                        const words = summary.split(' ');
+                        const truncated = words.slice(0, 600).join(' ');
+                        const lastPeriod = truncated.lastIndexOf('.');
+                        if (lastPeriod > 500) {
+                            summary = truncated.substring(0, lastPeriod + 1);
+                        } else {
+                            summary = truncated + '.';
+                        }
                     }
                 }
             }
