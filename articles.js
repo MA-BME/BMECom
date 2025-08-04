@@ -237,6 +237,26 @@ function loadAllArticles() {
         if (storedArticles) {
             const parsedArticles = JSON.parse(storedArticles);
             
+            // Preserve AI-generated content and prevent regeneration
+            parsedArticles.forEach(article => {
+                // If article was AI-generated, ensure the content stays specific to the article
+                if (article.aiGenerated && article.originalContent) {
+                    // Preserve the AI-generated summary and title
+                    if (!article.summary || article.summary.includes('biomedical engineering research article from')) {
+                        // If summary became generic, restore from original content
+                        article.summary = article.originalContent.substring(0, 500) + '...';
+                    }
+                    
+                    if (!article.title || article.title.includes('Research Article')) {
+                        // If title became generic, restore from original content
+                        const words = article.originalContent.split(' ').slice(0, 8);
+                        article.title = words.map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                        ).join(' ');
+                    }
+                }
+            });
+            
             // Auto-clean duplicates during regular updates
             const cleanedArticles = autoCleanDuplicates(parsedArticles);
             
@@ -1493,6 +1513,9 @@ async function extractArticleData(url) {
             }
         }
         
+        // Get AI configuration for tracking
+        const aiConfig = checkAIServicesConfiguration();
+        
         return {
             title,
             summary,
@@ -1504,7 +1527,10 @@ async function extractArticleData(url) {
             ticker: 1, // Initialize ticker to 1 for new articles
             userId: currentUser ? currentUser.id : 'anonymous',
             userName: currentUser ? currentUser.name : 'Anonymous',
-            dateAdded: new Date().toISOString() // Use dateAdded for consistency
+            dateAdded: new Date().toISOString(), // Use dateAdded for consistency
+            aiGenerated: true, // Mark as AI-generated to preserve content
+            originalContent: allTextContent || null, // Store original content for future reference
+            aiServicesUsed: aiConfig.anyConfigured ? 'multi-ai' : 'fallback' // Track which AI services were used
         };
     } catch (error) {
         throw new Error('Failed to extract article data');
