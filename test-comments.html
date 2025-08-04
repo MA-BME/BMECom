@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .comment-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .add-comment-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-comment-btn:hover {
+            background: #1d4ed8;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comment Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Basic Comment Form</h2>
+        <textarea id="test-comment" class="comment-textarea" placeholder="Write a comment..."></textarea>
+        <button onclick="testAddComment()" class="add-comment-btn">Add Comment</button>
+        <div id="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Check User Authentication</h2>
+        <button onclick="checkAuth()" class="add-comment-btn">Check Current User</button>
+        <div id="auth-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Check Local Storage</h2>
+        <button onclick="checkStorage()" class="add-comment-btn">Check Storage</button>
+        <div id="storage-result"></div>
+    </div>
+
+    <script>
+        // Load the main articles.js to test its functions
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function initTest() {
+            try {
+                await loadScript('articles.js');
+                console.log('Articles.js loaded successfully');
+            } catch (error) {
+                console.error('Failed to load articles.js:', error);
+            }
+        }
+
+        function testAddComment() {
+            const commentText = document.getElementById('test-comment').value;
+            const resultDiv = document.getElementById('test-result');
+            
+            if (!commentText.trim()) {
+                resultDiv.innerHTML = '<div class="error">Please enter a comment.</div>';
+                return;
+            }
+            
+            // Check if currentUser exists
+            if (typeof currentUser === 'undefined' || !currentUser) {
+                resultDiv.innerHTML = '<div class="error">No user logged in. currentUser is: ' + JSON.stringify(currentUser) + '</div>';
+                return;
+            }
+            
+            // Check if addComment function exists
+            if (typeof addComment === 'undefined') {
+                resultDiv.innerHTML = '<div class="error">addComment function not found!</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="success">Comment text: "' + commentText + '"<br>Current user: ' + currentUser.name + '<br>addComment function exists: Yes</div>';
+        }
+
+        function checkAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (currentUser) {
+                resultDiv.innerHTML = '<div class="success">User logged in: ' + currentUser.name + ' (ID: ' + currentUser.id + ')</div>';
+            } else {
+                resultDiv.innerHTML = '<div class="error">No user logged in</div>';
+            }
+        }
+
+        function checkStorage() {
+            const resultDiv = document.getElementById('storage-result');
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const comments = JSON.parse(localStorage.getItem('articleComments')) || {};
+            
+            resultDiv.innerHTML = '<div class="success">Articles in storage: ' + articles.length + '<br>Comments in storage: ' + Object.keys(comments).length + ' articles have comments</div>';
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', initTest);
+    </script>
+</body>
+</html> 

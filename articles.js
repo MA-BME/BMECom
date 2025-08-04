@@ -504,9 +504,10 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
             
             <!-- Add Comment Form -->
             <div class="add-comment-form">
-                <textarea id="comment-text-${index}" placeholder="Write a comment..." class="comment-textarea"></textarea>
-                <button onclick="addComment(${index}, document.getElementById('comment-text-${index}').value)" class="add-comment-btn">
-                    Add Comment
+                ${!currentUser ? '<div style="color: #ef4444; font-size: 0.875rem; margin-bottom: 0.5rem; text-align: center;">⚠️ You must be logged in to write comments</div>' : ''}
+                <textarea id="comment-text-${index}" placeholder="${currentUser ? 'Write a comment...' : 'Please log in to write comments...'}" class="comment-textarea" ${!currentUser ? 'disabled' : ''}></textarea>
+                <button onclick="addComment(${index}, document.getElementById('comment-text-${index}').value)" class="add-comment-btn" ${!currentUser ? 'disabled' : ''}>
+                    ${currentUser ? 'Add Comment' : 'Login Required'}
                 </button>
             </div>
             
@@ -521,6 +522,7 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
             <button onclick="showCommentsSection(${index})" class="show-comments-btn">
                 💬 Show Comments (${commentCount})
             </button>
+            ${!currentUser ? '<div style="color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; text-align: center;">⚠️ You must be logged in to write comments</div>' : ''}
         </div>
     `;
     return card;
@@ -2037,7 +2039,7 @@ function containsCurseWords(text) {
 
 function addComment(articleIndex, commentText, parentCommentId = null) {
     if (!currentUser) {
-        showMessage('Please log in to add comments.', 'error');
+        showMessage('Please log in to add comments. You must be logged in to write comments.', 'error');
         return;
     }
     

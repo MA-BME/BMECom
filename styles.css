@@ -853,6 +853,23 @@ html {
     transform: translateY(-1px);
 }
 
+.add-comment-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.add-comment-btn:disabled:hover {
+    background: #9ca3af;
+    transform: none;
+}
+
+.comment-textarea:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+    color: #9ca3af;
+}
+
 .comments-container {
     max-height: 500px;
     overflow-y: auto;
