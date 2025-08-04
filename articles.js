@@ -47,6 +47,10 @@ const lastUpdateTimeElement = document.getElementById('lastUpdateTime');
 // User authentication state
 let currentUser = null;
 
+// Pagination state
+let currentPage = 1;
+const articlesPerPage = 6;
+
 // Mobile navigation
 const navToggle = document.querySelector('.nav-toggle');
 const navMenu = document.querySelector('.nav-menu');
@@ -314,10 +318,36 @@ function displayUserArticles() {
         sortedArticles.sort((a, b) => (a.likes || 0) - (b.likes || 0));
     }
     
-    sortedArticles.forEach((article, index) => {
-        const articleCard = createArticleCard(article, index);
+    // Calculate pagination
+    const totalPages = Math.ceil(sortedArticles.length / articlesPerPage);
+    
+    // Ensure current page is within valid range
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+    if (currentPage < 1) {
+        currentPage = 1;
+    }
+    
+    // Get articles for current page
+    const startIndex = (currentPage - 1) * articlesPerPage;
+    const endIndex = startIndex + articlesPerPage;
+    const currentPageArticles = sortedArticles.slice(startIndex, endIndex);
+    
+    // Display articles for current page
+    currentPageArticles.forEach((article, index) => {
+        const actualIndex = startIndex + index;
+        const articleCard = createArticleCard(article, actualIndex);
         articlesGrid.appendChild(articleCard);
     });
+    
+    // Add pagination controls if there are multiple pages
+    if (totalPages > 1) {
+        const paginationContainer = document.createElement('div');
+        paginationContainer.className = 'pagination-container';
+        paginationContainer.innerHTML = createPaginationHTML(currentPage, totalPages);
+        articlesGrid.appendChild(paginationContainer);
+    }
 }
 
 // Display single-user articles for moderators (articles with ticker = 1)
@@ -348,6 +378,78 @@ function displayCommunityFavorites() {
         const articleCard = createArticleCard(article, index, true);
         communityFavoritesGrid.appendChild(articleCard);
     });
+}
+
+// Pagination functions
+function createPaginationHTML(currentPage, totalPages) {
+    let paginationHTML = '<div class="pagination">';
+    
+    // Previous button
+    if (currentPage > 1) {
+        paginationHTML += `<button class="pagination-btn" onclick="goToPage(${currentPage - 1})">← Previous</button>`;
+    } else {
+        paginationHTML += `<button class="pagination-btn disabled" disabled>← Previous</button>`;
+    }
+    
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust start page if we're near the end
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // First page and ellipsis
+    if (startPage > 1) {
+        paginationHTML += `<button class="pagination-btn" onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) {
+            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+        }
+    }
+    
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            paginationHTML += `<button class="pagination-btn active">${i}</button>`;
+        } else {
+            paginationHTML += `<button class="pagination-btn" onclick="goToPage(${i})">${i}</button>`;
+        }
+    }
+    
+    // Last page and ellipsis
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+        }
+        paginationHTML += `<button class="pagination-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    // Next button
+    if (currentPage < totalPages) {
+        paginationHTML += `<button class="pagination-btn" onclick="goToPage(${currentPage + 1})">Next →</button>`;
+    } else {
+        paginationHTML += `<button class="pagination-btn disabled" disabled>Next →</button>`;
+    }
+    
+    paginationHTML += '</div>';
+    
+    // Page info
+    paginationHTML += `<div class="pagination-info">Page ${currentPage} of ${totalPages}</div>`;
+    
+    return paginationHTML;
+}
+
+function goToPage(pageNumber) {
+    currentPage = pageNumber;
+    displayUserArticles();
+    
+    // Scroll to top of articles section
+    const articlesSection = document.querySelector('.community-shared-section');
+    if (articlesSection) {
+        articlesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function createArticleCard(article, index, isCommunityFavorite = false) {
@@ -2154,6 +2256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     if (sortSelect) {
         sortSelect.addEventListener('change', () => {
+            currentPage = 1; // Reset to first page when sorting changes
             displayUserArticles();
         });
     }
