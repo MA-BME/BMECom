@@ -1799,6 +1799,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update existing articles to fit new format
     const wasUpdated = updateExistingArticles();
     
+    // Update like/dislike counts for all articles
+    updateArticleLikeCounts();
+    
     // Start real-time updates for everyone
     startRealTimeUpdates();
     
