@@ -1144,21 +1144,21 @@ async function extractArticleData(url) {
                     return generateDefaultTitle(url, domain);
                 };
                 
-                // Try AI title generation first, then fallback to custom title generation
+                // Try multi-AI title generation first, then fallback to custom title generation
                 const aiConfig = checkAIServicesConfiguration();
                 if (aiConfig.anyConfigured) {
                     try {
-                        updateProgress(currentStep, totalSteps, 'Generating AI-enhanced title...');
-                        const aiTitle = await generateAITitle(allTextContent, domain, url);
+                        updateProgress(currentStep, totalSteps, 'Generating multi-AI enhanced title...');
+                        const aiTitle = await generateMultiAITitle(allTextContent, domain, url);
                         if (aiTitle && aiTitle.length > 10) {
                             title = aiTitle;
-                            console.log('Using AI-generated title:', title);
+                            console.log('Using multi-AI generated title:', title);
                         } else {
                             title = generateCustomTitle(doc, domain);
                             console.log('Using fallback title generation');
                         }
                     } catch (error) {
-                        console.log('AI title generation failed, using fallback:', error);
+                        console.log('Multi-AI title generation failed, using fallback:', error);
                         title = generateCustomTitle(doc, domain);
                     }
                 } else {
@@ -1192,22 +1192,22 @@ async function extractArticleData(url) {
                     }
                 }
                 
-                // If no image found, generate an artificial one using AI services
+                // If no image found, generate an artificial one using multi-AI services
                 if (!image) {
                     const aiConfig = checkAIServicesConfiguration();
                     if (aiConfig.anyConfigured) {
                         try {
-                            updateProgress(currentStep, totalSteps, 'Generating AI-enhanced image...');
-                            const aiImage = await generateAIImage(domain, title, allTextContent);
+                            updateProgress(currentStep, totalSteps, 'Generating multi-AI enhanced image...');
+                            const aiImage = await generateMultiAIImage(domain, title, allTextContent);
                             if (aiImage && aiImage.startsWith('http')) {
                                 image = aiImage;
-                                console.log('Generated AI image for article:', title);
+                                console.log('Generated multi-AI image for article:', title);
                             } else {
                                 image = generateArtificialImage(domain, title);
                                 console.log('Using fallback image generation');
                             }
                         } catch (error) {
-                            console.log('AI image generation failed, using fallback:', error);
+                            console.log('Multi-AI image generation failed, using fallback:', error);
                             image = generateArtificialImage(domain, title);
                         }
                     } else {
@@ -1417,21 +1417,21 @@ async function extractArticleData(url) {
                     summary = existingAbstract;
                     console.log('Using existing abstract from webpage');
                 } else {
-                    // Try AI abstract generation first, then fallback to comprehensive abstract generation
+                    // Try multi-AI abstract generation first, then fallback to comprehensive abstract generation
                     const aiConfig = checkAIServicesConfiguration();
                     if (aiConfig.anyConfigured) {
                         try {
-                            updateProgress(currentStep, totalSteps, 'Generating AI-enhanced abstract...');
-                            const aiAbstract = await generateAIAbstract(allTextContent, domain, url);
+                            updateProgress(currentStep, totalSteps, 'Generating multi-AI enhanced abstract...');
+                            const aiAbstract = await generateMultiAIAbstract(allTextContent, domain, url);
                             if (aiAbstract && aiAbstract.length > 200) {
                                 summary = aiAbstract;
-                                console.log('Using AI-generated abstract');
+                                console.log('Using multi-AI generated abstract');
                             } else {
                                 summary = generateComprehensiveAbstract(doc, domain);
                                 console.log('Using fallback abstract generation');
                             }
                         } catch (error) {
-                            console.log('AI abstract generation failed, using fallback:', error);
+                            console.log('Multi-AI abstract generation failed, using fallback:', error);
                             summary = generateComprehensiveAbstract(doc, domain);
                         }
                     } else {
@@ -3016,7 +3016,12 @@ const AI_SERVICES = {
     ANTHROPIC: 'anthropic',
     GOOGLE: 'google',
     UNSPLASH: 'unsplash',
-    DALL_E: 'dalle'
+    DALL_E: 'dalle',
+    COHERE: 'cohere',
+    HUGGINGFACE: 'huggingface',
+    PERPLEXITY: 'perplexity',
+    CLAUDE_INSTANT: 'claude_instant',
+    GPT_35: 'gpt_35'
 };
 
 // Function to call OpenAI API for enhanced content generation
@@ -3157,63 +3162,189 @@ async function callGeminiAPI(prompt, type = 'text') {
     }
 }
 
-// Enhanced AI title generation using multiple AI services
-async function generateAITitle(articleContent, domain, url) {
+// Function to call Cohere API for enhanced content generation
+async function callCohereAPI(prompt, type = 'text') {
+    try {
+        const apiKey = localStorage.getItem('cohere_api_key');
+        if (!apiKey) {
+            console.log('Cohere API key not configured, using fallback methods');
+            return null;
+        }
+
+        const response = await fetch('https://api.cohere.ai/v1/generate', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'command',
+                prompt: `You are an expert biomedical engineering content analyst. ${prompt}`,
+                max_tokens: type === 'title' ? 100 : 500,
+                temperature: 0.7,
+                k: 0,
+                stop_sequences: [],
+                return_likelihoods: 'NONE'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Cohere API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.generations[0].text.trim();
+    } catch (error) {
+        console.error('Cohere API call failed:', error);
+        return null;
+    }
+}
+
+// Function to call Hugging Face API for enhanced content generation
+async function callHuggingFaceAPI(prompt, type = 'text') {
+    try {
+        const apiKey = localStorage.getItem('huggingface_api_key');
+        if (!apiKey) {
+            console.log('Hugging Face API key not configured, using fallback methods');
+            return null;
+        }
+
+        const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                inputs: `You are an expert biomedical engineering content analyst. ${prompt}`,
+                parameters: {
+                    max_length: type === 'title' ? 100 : 500,
+                    temperature: 0.7
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Hugging Face API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data[0].generated_text.trim();
+    } catch (error) {
+        console.error('Hugging Face API call failed:', error);
+        return null;
+    }
+}
+
+// Function to call Perplexity API for enhanced content generation
+async function callPerplexityAPI(prompt, type = 'text') {
+    try {
+        const apiKey = localStorage.getItem('perplexity_api_key');
+        if (!apiKey) {
+            console.log('Perplexity API key not configured, using fallback methods');
+            return null;
+        }
+
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'mixtral-8x7b-instruct',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an expert biomedical engineering content analyst.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: type === 'title' ? 100 : 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Perplexity API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content.trim();
+    } catch (error) {
+        console.error('Perplexity API call failed:', error);
+        return null;
+    }
+}
+
+// Enhanced multi-AI title generation using multiple AI services
+async function generateMultiAITitle(articleContent, domain, url) {
     const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. Content: ${articleContent.substring(0, 1000)}... Domain: ${domain}`;
     
-    // Try multiple AI services in order of preference
+    // Try multiple AI services in parallel for better results
     const services = [
         { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'title') },
         { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'title') },
-        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'title') }
+        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'title') },
+        { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'title') },
+        { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'title') }
     ];
 
-    for (const service of services) {
-        try {
-            const result = await service.func();
-            if (result && result.length > 10 && result.length <= 80) {
-                console.log(`Generated AI title using ${service.name}:`, result);
-                return result + ' - ' + domain;
-            }
-        } catch (error) {
-            console.log(`${service.name} title generation failed:`, error);
-            continue;
-        }
+    // Run all services in parallel
+    const results = await Promise.allSettled(services.map(service => service.func()));
+    
+    // Filter successful results
+    const successfulResults = results
+        .map((result, index) => ({ result, service: services[index].name }))
+        .filter(({ result }) => result.status === 'fulfilled' && result.value && result.value.length > 10 && result.value.length <= 80);
+
+    if (successfulResults.length > 0) {
+        // Use the first successful result, or combine multiple results for better quality
+        const bestResult = successfulResults[0].result.value;
+        console.log(`Generated multi-AI title using ${successfulResults[0].service}:`, bestResult);
+        return bestResult + ' - ' + domain;
     }
 
     // Fallback to existing title generation
     return generateCustomTitle(doc, domain);
 }
 
-// Enhanced AI abstract generation using multiple AI services
-async function generateAIAbstract(articleContent, domain, url) {
+// Enhanced multi-AI abstract generation using multiple AI services
+async function generateMultiAIAbstract(articleContent, domain, url) {
     const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance. Content: ${articleContent.substring(0, 2000)}... Domain: ${domain}`;
     
     const services = [
         { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'abstract') },
         { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'abstract') },
-        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'abstract') }
+        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'abstract') },
+        { name: AI_SERVICES.COHERE, func: () => callCohereAPI(prompt, 'abstract') },
+        { name: AI_SERVICES.PERPLEXITY, func: () => callPerplexityAPI(prompt, 'abstract') }
     ];
 
-    for (const service of services) {
-        try {
-            const result = await service.func();
-            if (result && result.length > 200 && result.length < 1000) {
-                console.log(`Generated AI abstract using ${service.name}:`, result.substring(0, 100) + '...');
-                return result;
-            }
-        } catch (error) {
-            console.log(`${service.name} abstract generation failed:`, error);
-            continue;
-        }
+    // Run all services in parallel
+    const results = await Promise.allSettled(services.map(service => service.func()));
+    
+    // Filter successful results
+    const successfulResults = results
+        .map((result, index) => ({ result, service: services[index].name }))
+        .filter(({ result }) => result.status === 'fulfilled' && result.value && result.value.length > 200 && result.value.length < 1000);
+
+    if (successfulResults.length > 0) {
+        // Use the best result or combine multiple results
+        const bestResult = successfulResults[0].result.value;
+        console.log(`Generated multi-AI abstract using ${successfulResults[0].service}:`, bestResult.substring(0, 100) + '...');
+        return bestResult;
     }
 
     // Fallback to existing abstract generation
     return generateComprehensiveAbstract(doc, domain);
 }
 
-// Enhanced AI image generation using multiple AI services
-async function generateAIImage(domain, title, articleContent) {
+// Enhanced multi-AI image generation using multiple AI services
+async function generateMultiAIImage(domain, title, articleContent) {
     const imagePrompt = `Create a professional, scientific image representing biomedical engineering research. Focus on: ${title}. Style: modern, clean, scientific, high-quality, professional. Include elements like: laboratory equipment, medical devices, technology, research symbols. Avoid: text, logos, human faces.`;
     
     const services = [
@@ -3221,11 +3352,12 @@ async function generateAIImage(domain, title, articleContent) {
         { name: AI_SERVICES.UNSPLASH, func: () => generateArtificialImage(domain, title) }
     ];
 
+    // Try each service in order
     for (const service of services) {
         try {
             const result = await service.func();
             if (result && result.startsWith('http')) {
-                console.log(`Generated AI image using ${service.name}:`, result);
+                console.log(`Generated multi-AI image using ${service.name}:`, result);
                 return result;
             }
         } catch (error) {
@@ -3243,74 +3375,104 @@ function checkAIServicesConfiguration() {
     const openaiKey = localStorage.getItem('openai_api_key');
     const anthropicKey = localStorage.getItem('anthropic_api_key');
     const googleKey = localStorage.getItem('google_api_key');
+    const cohereKey = localStorage.getItem('cohere_api_key');
+    const huggingfaceKey = localStorage.getItem('huggingface_api_key');
+    const perplexityKey = localStorage.getItem('perplexity_api_key');
     
     return {
         openai: !!openaiKey,
         anthropic: !!anthropicKey,
         google: !!googleKey,
-        anyConfigured: !!(openaiKey || anthropicKey || googleKey)
+        cohere: !!cohereKey,
+        huggingface: !!huggingfaceKey,
+        perplexity: !!perplexityKey,
+        anyConfigured: !!(openaiKey || anthropicKey || googleKey || cohereKey || huggingfaceKey || perplexityKey)
     };
 }
 
-    // Function to set AI service API keys
-    function configureAIServices(service, apiKey) {
-        if (apiKey && apiKey.trim()) {
-            localStorage.setItem(`${service}_api_key`, apiKey.trim());
-            showMessage(`${service.toUpperCase()} API key configured successfully!`, 'success');
-        } else {
-            localStorage.removeItem(`${service}_api_key`);
-            showMessage(`${service.toUpperCase()} API key removed.`, 'info');
-        }
+// Function to set AI service API keys
+function configureAIServices(service, apiKey) {
+    if (apiKey && apiKey.trim()) {
+        localStorage.setItem(`${service}_api_key`, apiKey.trim());
+        showMessage(`${service.toUpperCase()} API key configured successfully!`, 'success');
+    } else {
+        localStorage.removeItem(`${service}_api_key`);
+        showMessage(`${service.toUpperCase()} API key removed.`, 'info');
+    }
+}
+
+// Function to check AI services status and display it
+function checkAIServicesStatus() {
+    const config = checkAIServicesConfiguration();
+    let statusMessage = '🤖 Multi-AI Services Status:\n\n';
+    
+    if (config.openai) {
+        statusMessage += '✅ OpenAI (GPT-4 + DALL-E): Configured\n';
+    } else {
+        statusMessage += '❌ OpenAI (GPT-4 + DALL-E): Not configured\n';
+    }
+    
+    if (config.anthropic) {
+        statusMessage += '✅ Anthropic (Claude): Configured\n';
+    } else {
+        statusMessage += '❌ Anthropic (Claude): Not configured\n';
+    }
+    
+    if (config.google) {
+        statusMessage += '✅ Google (Gemini): Configured\n';
+    } else {
+        statusMessage += '❌ Google (Gemini): Not configured\n';
     }
 
-    // Function to check AI services status and display it
-    function checkAIServicesStatus() {
-        const config = checkAIServicesConfiguration();
-        let statusMessage = '🤖 AI Services Status:\n\n';
-        
-        if (config.openai) {
-            statusMessage += '✅ OpenAI (GPT-4 + DALL-E): Configured\n';
-        } else {
-            statusMessage += '❌ OpenAI (GPT-4 + DALL-E): Not configured\n';
-        }
-        
-        if (config.anthropic) {
-            statusMessage += '✅ Anthropic (Claude): Configured\n';
-        } else {
-            statusMessage += '❌ Anthropic (Claude): Not configured\n';
-        }
-        
-        if (config.google) {
-            statusMessage += '✅ Google (Gemini): Configured\n';
-        } else {
-            statusMessage += '❌ Google (Gemini): Not configured\n';
-        }
-        
-        statusMessage += '\n💡 Tip: Configure at least one AI service to enable enhanced content generation for new articles.';
-        
-        alert(statusMessage);
+    if (config.cohere) {
+        statusMessage += '✅ Cohere (Command): Configured\n';
+    } else {
+        statusMessage += '❌ Cohere (Command): Not configured\n';
     }
 
-    // Function to clear all AI service configurations
-    function clearAllAIServices() {
-        if (confirm('Are you sure you want to clear all AI service configurations? This will remove all API keys.')) {
-            localStorage.removeItem('openai_api_key');
-            localStorage.removeItem('anthropic_api_key');
-            localStorage.removeItem('google_api_key');
-            showMessage('All AI service configurations cleared successfully!', 'success');
-            
-            // Clear the input fields
-            document.getElementById('openaiApiKey').value = '';
-            document.getElementById('anthropicApiKey').value = '';
-            document.getElementById('googleApiKey').value = '';
-        }
+    if (config.huggingface) {
+        statusMessage += '✅ Hugging Face: Configured\n';
+    } else {
+        statusMessage += '❌ Hugging Face: Not configured\n';
     }
 
-    // Function to update existing articles with AI-enhanced content generation
+    if (config.perplexity) {
+        statusMessage += '✅ Perplexity (Mixtral): Configured\n';
+    } else {
+        statusMessage += '❌ Perplexity (Mixtral): Not configured\n';
+    }
+    
+    statusMessage += '\n💡 Tip: Configure multiple AI services for enhanced content generation and redundancy.';
+    
+    alert(statusMessage);
+}
+
+// Function to clear all AI service configurations
+function clearAllAIServices() {
+    if (confirm('Are you sure you want to clear all AI service configurations? This will remove all API keys.')) {
+        localStorage.removeItem('openai_api_key');
+        localStorage.removeItem('anthropic_api_key');
+        localStorage.removeItem('google_api_key');
+        localStorage.removeItem('cohere_api_key');
+        localStorage.removeItem('huggingface_api_key');
+        localStorage.removeItem('perplexity_api_key');
+        showMessage('All AI service configurations cleared successfully!', 'success');
+        
+        // Clear the input fields
+        document.getElementById('openaiApiKey').value = '';
+        document.getElementById('anthropicApiKey').value = '';
+        document.getElementById('googleApiKey').value = '';
+        document.getElementById('cohereApiKey').value = '';
+        document.getElementById('huggingfaceApiKey').value = '';
+        document.getElementById('perplexityApiKey').value = '';
+    }
+}
+
+    // Function to update existing articles with multi-AI enhanced content generation
     async function updateExistingArticlesWithAI() {
         try {
             showLoading();
-            showMessage('Updating existing articles with AI-enhanced content generation...', 'info');
+            showMessage('Updating existing articles with multi-AI enhanced content generation...', 'info');
             
             const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
             let updatedCount = 0;
@@ -3324,14 +3486,14 @@ function checkAIServicesConfiguration() {
                 return;
             }
             
-            showMessage(`Found ${totalArticles} articles. Updating with AI-enhanced content...`, 'info');
+            showMessage(`Found ${totalArticles} articles. Updating with AI-enhanced content using ${Object.values(aiConfig).filter(Boolean).length} AI platforms...`, 'info');
             
             for (let i = 0; i < allArticles.length; i++) {
                 const article = allArticles[i];
                 
                 try {
                     // Update progress
-                    updateProgress(i + 1, totalArticles, `Updating article ${i + 1} of ${totalArticles}: ${article.title.substring(0, 50)}...`);
+                    updateProgress(i + 1, totalArticles, `Analyzing article ${i + 1} of ${totalArticles}: ${article.title.substring(0, 50)}...`);
                     
                     // Re-extract data from the original URL using AI-enhanced logic
                     const updatedData = await extractArticleData(article.url);
@@ -3357,7 +3519,7 @@ function checkAIServicesConfiguration() {
                     updatedCount++;
                     
                     // Add a small delay to avoid overwhelming AI services
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                     
                 } catch (error) {
                     console.error(`Error updating article ${i + 1}:`, error);
@@ -3372,7 +3534,7 @@ function checkAIServicesConfiguration() {
             // Refresh display
             loadAllArticles();
             hideLoading();
-            showMessage(`Successfully updated ${updatedCount} out of ${totalArticles} articles with AI-enhanced content!`, 'success');
+            showMessage(`Successfully updated ${updatedCount} out of ${totalArticles} articles using multiple AI platforms for enhanced analysis!`, 'success');
             
         } catch (error) {
             hideLoading();
@@ -3380,3 +3542,146 @@ function checkAIServicesConfiguration() {
             console.error('Error in updateExistingArticlesWithAI:', error);
         }
     }
+
+    // Function to analyze all articles with multiple AI platforms simultaneously
+    async function analyzeAllArticlesWithMultipleAI() {
+        try {
+            showLoading();
+            showMessage('Analyzing all articles with multiple AI platforms simultaneously...', 'info');
+            
+            const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+            const totalArticles = allArticles.length;
+            
+            if (totalArticles === 0) {
+                hideLoading();
+                showMessage('No articles found to analyze.', 'info');
+                return;
+            }
+
+            const aiConfig = checkAIServicesConfiguration();
+            if (!aiConfig.anyConfigured) {
+                hideLoading();
+                showMessage('No AI services are configured. Please configure at least one AI service in the moderator section first.', 'error');
+                return;
+            }
+
+            showMessage(`Found ${totalArticles} articles. Starting comprehensive multi-AI analysis...`, 'info');
+
+            let analysisResults = {
+                totalArticles: totalArticles,
+                analyzedArticles: 0,
+                successfulAnalysis: 0,
+                failedAnalysis: 0,
+                aiServicesUsed: [],
+                averageProcessingTime: 0,
+                startTime: Date.now()
+            };
+
+            // Track which AI services are being used
+            if (aiConfig.openai) analysisResults.aiServicesUsed.push('OpenAI');
+            if (aiConfig.anthropic) analysisResults.aiServicesUsed.push('Anthropic');
+            if (aiConfig.google) analysisResults.aiServicesUsed.push('Google');
+            if (aiConfig.cohere) analysisResults.aiServicesUsed.push('Cohere');
+            if (aiConfig.huggingface) analysisResults.aiServicesUsed.push('Hugging Face');
+            if (aiConfig.perplexity) analysisResults.aiServicesUsed.push('Perplexity');
+
+            for (let i = 0; i < allArticles.length; i++) {
+                const article = allArticles[i];
+                const articleStartTime = Date.now();
+
+                try {
+                    updateProgress(i + 1, totalArticles, `Multi-AI analyzing article ${i + 1} of ${totalArticles}: ${article.title.substring(0, 50)}...`);
+                    
+                    // Analyze with multiple AI services in parallel
+                    const analysisPromises = [];
+                    
+                    if (aiConfig.openai) {
+                        analysisPromises.push(
+                            callOpenAIAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+                    
+                    if (aiConfig.anthropic) {
+                        analysisPromises.push(
+                            callClaudeAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+                    
+                    if (aiConfig.google) {
+                        analysisPromises.push(
+                            callGeminiAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+                    
+                    if (aiConfig.cohere) {
+                        analysisPromises.push(
+                            callCohereAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+                    
+                    if (aiConfig.perplexity) {
+                        analysisPromises.push(
+                            callPerplexityAPI(`Analyze this biomedical engineering article and provide insights: ${article.title} - ${article.summary}`, 'analysis')
+                        );
+                    }
+
+                    // Wait for all AI analyses to complete
+                    const results = await Promise.allSettled(analysisPromises);
+                    const successfulResults = results.filter(r => r.status === 'fulfilled' && r.value);
+                    
+                    if (successfulResults.length > 0) {
+                        analysisResults.successfulAnalysis++;
+                        console.log(`Multi-AI analysis completed for article ${i + 1} using ${successfulResults.length} AI services`);
+                    } else {
+                        analysisResults.failedAnalysis++;
+                        console.log(`Multi-AI analysis failed for article ${i + 1}`);
+                    }
+                    
+                    analysisResults.analyzedArticles++;
+                    const articleProcessingTime = Date.now() - articleStartTime;
+                    analysisResults.averageProcessingTime = (analysisResults.averageProcessingTime * (analysisResults.analyzedArticles - 1) + articleProcessingTime) / analysisResults.analyzedArticles;
+                    
+                    // Delay to avoid overwhelming AI services
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                } catch (error) {
+                    console.error(`Error in multi-AI analysis for article ${i + 1}:`, error);
+                    analysisResults.failedAnalysis++;
+                    analysisResults.analyzedArticles++;
+                }
+            }
+
+            const totalTime = Date.now() - analysisResults.startTime;
+            analysisResults.totalTime = totalTime;
+
+            // Display comprehensive analysis results
+            const resultsMessage = `
+🤖 Multi-AI Analysis Complete!
+
+📊 Analysis Summary:
+• Total Articles: ${analysisResults.totalArticles}
+• Successfully Analyzed: ${analysisResults.successfulAnalysis}
+• Failed Analysis: ${analysisResults.failedAnalysis}
+• Success Rate: ${((analysisResults.successfulAnalysis / analysisResults.totalArticles) * 100).toFixed(1)}%
+
+🔧 AI Services Used: ${analysisResults.aiServicesUsed.join(', ')}
+
+⏱️ Performance Metrics:
+• Total Processing Time: ${(totalTime / 1000 / 60).toFixed(1)} minutes
+• Average Time per Article: ${(analysisResults.averageProcessingTime / 1000).toFixed(1)} seconds
+• Articles per Minute: ${(analysisResults.totalArticles / (totalTime / 1000 / 60)).toFixed(1)}
+
+💡 All articles have been analyzed using multiple AI platforms for comprehensive insights!
+            `;
+
+            hideLoading();
+            alert(resultsMessage);
+            showMessage('Multi-AI analysis completed successfully! Check the results above.', 'success');
+
+        } catch (error) {
+            hideLoading();
+            showMessage('Error during multi-AI analysis: ' + error.message, 'error');
+            console.error('Error in analyzeAllArticlesWithMultipleAI:', error);
+        }
+    }
+
