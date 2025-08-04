@@ -789,6 +789,77 @@ async function updateExistingArticlesWithNewLogic() {
     }
 }
 
+// Function to add AI-generated images to existing articles that don't have images
+async function addAIImagesToExistingArticles() {
+    try {
+        showLoading();
+        showMessage('Adding AI-generated images to articles without images...', 'info');
+        
+        const allArticles = JSON.parse(localStorage.getItem('articles')) || [];
+        let updatedCount = 0;
+        const totalArticles = allArticles.length;
+        
+        // Filter articles that don't have images
+        const articlesWithoutImages = allArticles.filter(article => !article.image || article.image.trim() === '');
+        
+        if (articlesWithoutImages.length === 0) {
+            hideLoading();
+            showMessage('All articles already have images!', 'success');
+            return;
+        }
+        
+        showMessage(`Found ${articlesWithoutImages.length} articles without images. Adding AI-generated images...`, 'info');
+        
+        for (let i = 0; i < articlesWithoutImages.length; i++) {
+            const article = articlesWithoutImages[i];
+            
+            try {
+                // Update progress
+                updateProgress(i + 1, articlesWithoutImages.length, `Adding AI image to article ${i + 1} of ${articlesWithoutImages.length}`);
+                
+                // Extract domain from URL
+                const urlObj = new URL(article.url);
+                const domain = urlObj.hostname;
+                
+                // Generate AI image based on article title and domain
+                const aiImage = generateArtificialImage(domain, article.title);
+                
+                // Update the article with the AI-generated image
+                article.image = aiImage;
+                
+                // Find and update the article in the main array
+                const articleIndex = allArticles.findIndex(a => a.url === article.url);
+                if (articleIndex !== -1) {
+                    allArticles[articleIndex] = article;
+                }
+                
+                updatedCount++;
+                
+                // Small delay to avoid overwhelming the server
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (error) {
+                console.error(`Failed to add AI image to article ${i + 1}:`, error);
+                // Continue with next article even if one fails
+            }
+        }
+        
+        // Save updated articles
+        localStorage.setItem('articles', JSON.stringify(allArticles));
+        
+        // Refresh display
+        loadAllArticles();
+        
+        hideLoading();
+        showMessage(`Successfully added AI-generated images to ${updatedCount} out of ${articlesWithoutImages.length} articles`, 'success');
+        
+    } catch (error) {
+        hideLoading();
+        showMessage('Error adding AI images to existing articles: ' + error.message, 'error');
+        console.error('Error in addAIImagesToExistingArticles:', error);
+    }
+}
+
 // Article data extraction
 async function extractArticleData(url) {
     try {
