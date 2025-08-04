@@ -697,6 +697,11 @@ async function extractArticleData(url) {
             const response = await fetch(proxyUrl);
             const data = await response.json();
             
+            // Check if we successfully fetched content
+            if (!data.contents || data.contents.trim().length === 0) {
+                throw new Error('can not read URL');
+            }
+            
             if (data.contents) {
                 // Step 2: Parsing HTML content
                 currentStep = 2;
@@ -893,7 +898,13 @@ async function extractArticleData(url) {
                     textContent = textContent
                         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
                         .replace(/\n+/g, ' ') // Replace newlines with spaces
-                        .trim();
+                    
+                    // Check if we have meaningful content
+                    if (!textContent || textContent.trim().length < 100) {
+                        throw new Error('can not read URL');
+                    }
+                    
+                    textContent = textContent.trim();
                     
                     // Remove common unwanted elements
                     textContent = textContent
@@ -1622,7 +1633,11 @@ if (urlForm) {
             document.getElementById('url1').value = '';
         } catch (error) {
             hideLoading();
-            showMessage('An error occurred while analyzing the URL. Please try again.', 'error');
+            if (error.message === 'can not read URL') {
+                showMessage('can not read URL', 'error');
+            } else {
+                showMessage('An error occurred while analyzing the URL. Please try again.', 'error');
+            }
             console.error('Analysis error:', error);
         } finally {
             if (analyzeBtn) {
