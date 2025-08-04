@@ -624,6 +624,64 @@ async function extractArticleData(url) {
         let summary = `Content extracted from ${url}`;
         let image = null;
         
+        // Function to generate a better default title based on URL and domain
+        const generateDefaultTitle = (url, domain) => {
+            // Extract meaningful words from URL path
+            const urlPath = url.split('/').slice(3).join(' '); // Remove protocol and domain
+            const urlWords = urlPath
+                .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                .split(' ')
+                .filter(word => word.length > 2)
+                .slice(0, 5); // Take first 5 meaningful words
+            
+            if (urlWords.length > 0) {
+                // Capitalize first letter of each word and join
+                const capitalizedWords = urlWords.map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                );
+                return `${capitalizedWords.join(' ')} - ${domain}`;
+            }
+            
+            // Domain-specific default titles
+            const domainTitles = {
+                'phys.org': 'Biomedical Engineering Research Article',
+                'sciencedaily.com': 'ScienceDaily Biomedical Study',
+                'spectrum.ieee.org': 'IEEE Spectrum Technology Article',
+                'medicalxpress.com': 'Medical Xpress Research Report',
+                'nature.com': 'Nature Biomedical Research',
+                'scitechdaily.com': 'SciTechDaily Innovation Report',
+                'science.org': 'Science Journal Research',
+                'cell.com': 'Cell Journal Study',
+                'thelancet.com': 'The Lancet Medical Research',
+                'nejm.org': 'NEJM Medical Study'
+            };
+            
+            return domainTitles[domain] || `Research Article from ${domain}`;
+        };
+        
+        // Function to generate an artificial image URL based on domain and content
+        const generateArtificialImage = (domain, title) => {
+            // Use a placeholder image service with domain-specific colors
+            const domainColors = {
+                'phys.org': '4f46e5', // Indigo
+                'sciencedaily.com': '059669', // Emerald
+                'spectrum.ieee.org': 'dc2626', // Red
+                'medicalxpress.com': '7c3aed', // Purple
+                'nature.com': '1f2937', // Gray
+                'scitechdaily.com': '0891b2', // Blue
+                'science.org': '059669', // Emerald
+                'cell.com': 'dc2626', // Red
+                'thelancet.com': 'dc2626', // Red
+                'nejm.org': '1f2937' // Gray
+            };
+            
+            const color = domainColors[domain] || '4f46e5';
+            const encodedTitle = encodeURIComponent(title.substring(0, 50));
+            
+            // Use a placeholder image service
+            return `https://via.placeholder.com/800x400/${color}/ffffff?text=${encodedTitle}`;
+        };
+        
         // Progress tracking
         const totalSteps = 6;
         let currentStep = 0;
@@ -654,7 +712,16 @@ async function extractArticleData(url) {
                                    doc.querySelector('h1') || 
                                    doc.querySelector('meta[property="og:title"]');
                 if (titleElement) {
-                    title = titleElement.textContent || titleElement.getAttribute('content') || title;
+                    const extractedTitle = titleElement.textContent || titleElement.getAttribute('content');
+                    if (extractedTitle && extractedTitle.trim().length > 0) {
+                        title = extractedTitle.trim();
+                    } else {
+                        // Generate a better default title if extracted title is empty
+                        title = generateDefaultTitle(url, domain);
+                    }
+                } else {
+                    // Generate a better default title if no title element found
+                    title = generateDefaultTitle(url, domain);
                 }
                 
                 // Step 4: Extracting article image
@@ -681,6 +748,11 @@ async function extractArticleData(url) {
                             image = `${urlObj.protocol}//${urlObj.hostname}/${imageSrc}`;
                         }
                     }
+                }
+                
+                // If no image found, generate an artificial one
+                if (!image) {
+                    image = generateArtificialImage(domain, title);
                 }
                 
                 // Step 5: Extracting article summary and abstract
@@ -809,31 +881,11 @@ async function extractArticleData(url) {
         } catch (fetchError) {
             console.log('Could not fetch article data, using domain-specific defaults');
             
-                         // Fallback to domain-specific content
-             const domainContent = {
-                 'phys.org': {
-                     title: 'Phys.org Biomedical Engineering Research'
-                 },
-                 'sciencedaily.com': {
-                     title: 'ScienceDaily Biomedical Engineering Study'
-                 },
-                 'spectrum.ieee.org': {
-                     title: 'IEEE Spectrum Biomedical Technology'
-                 },
-                 'medicalxpress.com': {
-                     title: 'Medical Xpress Biomedical Solutions'
-                 },
-                 'nature.com': {
-                     title: 'Nature Biomedical Engineering Research'
-                 },
-                 'scitechdaily.com': {
-                     title: 'SciTechDaily Biomedical Innovations'
-                 }
-             };
-             
-             if (domainContent[domain]) {
-                 title = domainContent[domain].title;
-             }
+                         // Use the new title generation function for fallback
+                         title = generateDefaultTitle(url, domain);
+                         
+                         // Generate artificial image for fallback
+                         image = generateArtificialImage(domain, title);
             
                          // Generate intelligent abstract based on domain and URL patterns
              const generateIntelligentAbstract = (url, domain) => {
