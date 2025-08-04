@@ -706,108 +706,110 @@ async function extractArticleData(url) {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(data.contents, 'text/html');
                 
-                // Step 3: Extracting article title
+                // Step 3: Generating custom title based on article content
                 currentStep = 3;
-                updateProgress(currentStep, totalSteps, 'Extracting article title...');
+                updateProgress(currentStep, totalSteps, 'Generating custom title from article content...');
                 
-                // Extract title
-                const titleElement = doc.querySelector('title') || 
-                                   doc.querySelector('h1') || 
-                                   doc.querySelector('meta[property="og:title"]');
-                if (titleElement) {
-                    const extractedTitle = titleElement.textContent || titleElement.getAttribute('content');
-                    if (extractedTitle && extractedTitle.trim().length > 0) {
-                        title = extractedTitle.trim();
-                    } else {
-                        // Generate a better default title if extracted title is empty
-                        title = generateDefaultTitle(url, domain);
+                // Function to generate a custom title based on article content
+                const generateCustomTitle = (articleContent, domain) => {
+                    if (!articleContent) {
+                        return generateDefaultTitle(url, domain);
                     }
-                } else {
-                    // Generate a better default title if no title element found
-                    title = generateDefaultTitle(url, domain);
-                }
-                
-                // Step 4: Validating and improving title based on content
-                currentStep = 4;
-                updateProgress(currentStep, totalSteps, 'Validating title against content...');
-                
-                // Function to check if title matches article content and generate new title if needed
-                const validateAndImproveTitle = (currentTitle, articleContent) => {
-                    if (!articleContent) return currentTitle;
                     
                     // Get text content for analysis
                     let textContent = articleContent.textContent || articleContent.innerText;
                     textContent = textContent.replace(/\s+/g, ' ').trim().toLowerCase();
                     
-                    // Extract key terms from the current title
-                    const titleWords = currentTitle.toLowerCase()
-                        .replace(/[^a-z0-9\s]/g, ' ')
-                        .split(' ')
-                        .filter(word => word.length > 3);
+                    // Split into sentences and filter meaningful ones
+                    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
                     
-                    // Check if title words appear in the content
-                    const titleWordMatches = titleWords.filter(word => 
-                        textContent.includes(word)
-                    ).length;
-                    
-                    // If less than 50% of title words match content, generate new title
-                    const matchPercentage = titleWords.length > 0 ? titleWordMatches / titleWords.length : 0;
-                    
-                    if (matchPercentage < 0.5) {
-                        // Generate new title based on content
-                        const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
-                        
-                        if (sentences.length > 0) {
-                            // Find the most informative sentence (longest with key terms)
-                            let bestSentence = sentences[0];
-                            let bestScore = 0;
-                            
-                            const keyTerms = ['research', 'study', 'scientists', 'discovery', 'breakthrough', 
-                                            'technology', 'medical', 'biomedical', 'engineering', 'device', 
-                                            'treatment', 'therapy', 'patient', 'clinical', 'trial'];
-                            
-                            sentences.forEach(sentence => {
-                                const sentenceLower = sentence.toLowerCase();
-                                const keyTermMatches = keyTerms.filter(term => sentenceLower.includes(term)).length;
-                                const score = keyTermMatches * 10 + sentence.length;
-                                
-                                if (score > bestScore) {
-                                    bestScore = score;
-                                    bestSentence = sentence;
-                                }
-                            });
-                            
-                            // Create title from the best sentence
-                            const words = bestSentence.split(' ').filter(word => word.length > 2);
-                            if (words.length > 5) {
-                                // Take first 8-12 words and capitalize properly
-                                const titleWords = words.slice(0, Math.min(12, words.length));
-                                const newTitle = titleWords.map(word => 
-                                    word.charAt(0).toUpperCase() + word.slice(1)
-                                ).join(' ');
-                                
-                                // Ensure it's not too long
-                                if (newTitle.length <= 100) {
-                                    return newTitle + ' - ' + domain;
-                                }
-                            }
-                        }
-                        
-                        // Fallback: generate domain-specific title
+                    if (sentences.length === 0) {
                         return generateDefaultTitle(url, domain);
                     }
                     
-                    return currentTitle;
+                    // Define biomedical engineering key terms for scoring
+                    const keyTerms = [
+                        'research', 'study', 'scientists', 'discovery', 'breakthrough', 
+                        'technology', 'medical', 'biomedical', 'engineering', 'device', 
+                        'treatment', 'therapy', 'patient', 'clinical', 'trial', 'innovation',
+                        'development', 'advancement', 'progress', 'solution', 'method',
+                        'technique', 'procedure', 'system', 'application', 'implementation',
+                        'analysis', 'investigation', 'examination', 'assessment', 'evaluation',
+                        'biotechnology', 'nanotechnology', 'robotics', 'artificial intelligence',
+                        'machine learning', 'data science', 'genomics', 'proteomics', 'metabolomics',
+                        'imaging', 'diagnostic', 'therapeutic', 'preventive', 'rehabilitation',
+                        'prosthetics', 'implants', 'sensors', 'monitoring', 'detection'
+                    ];
+                    
+                    // Find the most informative sentence
+                    let bestSentence = sentences[0];
+                    let bestScore = 0;
+                    
+                    sentences.forEach(sentence => {
+                        const sentenceLower = sentence.toLowerCase();
+                        const keyTermMatches = keyTerms.filter(term => sentenceLower.includes(term)).length;
+                        const sentenceLength = sentence.length;
+                        
+                        // Score based on key terms (weighted heavily) and sentence length
+                        const score = (keyTermMatches * 15) + (sentenceLength * 0.1);
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestSentence = sentence;
+                        }
+                    });
+                    
+                    // Clean and format the sentence into a title
+                    let titleWords = bestSentence
+                        .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                        .split(' ')
+                        .filter(word => word.length > 2)
+                        .slice(0, 12); // Limit to 12 words
+                    
+                    if (titleWords.length < 3) {
+                        // If we don't have enough words, try to get more from other sentences
+                        const allWords = sentences.slice(0, 3)
+                            .join(' ')
+                            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                            .split(' ')
+                            .filter(word => word.length > 2)
+                            .slice(0, 12);
+                        titleWords = allWords;
+                    }
+                    
+                    if (titleWords.length > 0) {
+                        // Capitalize each word properly
+                        const formattedTitle = titleWords.map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                        ).join(' ');
+                        
+                        // Ensure title is not too long
+                        if (formattedTitle.length <= 80) {
+                            return formattedTitle + ' - ' + domain;
+                        } else {
+                            // Truncate if too long
+                            const truncated = titleWords.slice(0, 8).map(word => 
+                                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                            ).join(' ');
+                            return truncated + ' - ' + domain;
+                        }
+                    }
+                    
+                    // Fallback to domain-specific title
+                    return generateDefaultTitle(url, domain);
                 };
                 
-                // Validate and improve the title
-                title = validateAndImproveTitle(title, doc.querySelector('article') || 
-                                              doc.querySelector('.article-content') || 
-                                              doc.querySelector('.post-content') || 
-                                              doc.querySelector('.entry-content') || 
-                                              doc.querySelector('.content') || 
-                                              doc.querySelector('main') || 
-                                              doc.querySelector('body'));
+                // Find the main article content
+                const articleContent = doc.querySelector('article') || 
+                                     doc.querySelector('.article-content') || 
+                                     doc.querySelector('.post-content') || 
+                                     doc.querySelector('.entry-content') || 
+                                     doc.querySelector('.content') || 
+                                     doc.querySelector('main') || 
+                                     doc.querySelector('body');
+                
+                // Generate custom title based on content
+                title = generateCustomTitle(articleContent, domain);
                 
                 // Step 5: Extracting article image
                 currentStep = 5;
@@ -875,7 +877,7 @@ async function extractArticleData(url) {
                 }
                 
                 // Extract main article content for comprehensive summary
-                const articleContent = doc.querySelector('article') ||
+                const mainContent = doc.querySelector('article') ||
                                      doc.querySelector('.article-content') ||
                                      doc.querySelector('.post-content') ||
                                      doc.querySelector('.entry-content') ||
@@ -883,9 +885,9 @@ async function extractArticleData(url) {
                                      doc.querySelector('main') ||
                                      doc.querySelector('body');
                 
-                if (articleContent) {
+                if (mainContent) {
                     // Get all text content
-                    let textContent = articleContent.textContent || articleContent.innerText;
+                    let textContent = mainContent.textContent || mainContent.innerText;
                     
                     // Clean up the text
                     textContent = textContent
