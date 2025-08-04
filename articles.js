@@ -890,7 +890,7 @@ async function extractArticleData(url) {
                 const capitalizedWords = urlWords.map(word => 
                     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                 );
-                return `${capitalizedWords.join(' ')} - ${domain}`;
+                return capitalizedWords.join(' ');
             }
             
             // Domain-specific default titles
@@ -907,7 +907,7 @@ async function extractArticleData(url) {
                 'nejm.org': 'NEJM Medical Study'
             };
             
-            return domainTitles[domain] || `Research Article from ${domain}`;
+            return domainTitles[domain] || `Research Article`;
         };
         
         // Function to generate an artificial image URL based on domain and content
@@ -1132,13 +1132,13 @@ async function extractArticleData(url) {
                         
                         // Ensure title is not too long
                         if (formattedTitle.length <= 80) {
-                            return formattedTitle + ' - ' + domain;
+                            return formattedTitle;
                         } else {
                             // Truncate if too long
                             const truncated = titleWords.slice(0, 8).map(word => 
                                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                             ).join(' ');
-                            return truncated + ' - ' + domain;
+                            return truncated;
                         }
                     }
                     
@@ -1463,89 +1463,34 @@ async function extractArticleData(url) {
                 }
             }
         } catch (fetchError) {
-            console.log('Could not fetch article data, using domain-specific defaults');
+            console.log('Could not fetch article data, using AI-generated fallbacks');
             
-                         // Use the new title generation function for fallback
-                         title = generateDefaultTitle(url, domain);
-                         
-                         // Generate artificial image for fallback
-                         image = generateArtificialImage(domain, title);
+            // Use the new title generation function for fallback
+            title = generateDefaultTitle(url, domain);
             
-                         // Generate intelligent abstract based on domain and URL patterns
-             const generateIntelligentAbstract = (url, domain) => {
-                 // Extract keywords from URL
-                 const urlKeywords = url.toLowerCase()
-                     .replace(/[^a-z0-9\s]/g, ' ')
-                     .split(' ')
-                     .filter(word => word.length > 3);
-                 
-                 // Domain-specific abstract templates
-                 const abstractTemplates = {
-                     'phys.org': {
-                         intro: 'This research article explores cutting-edge developments in biomedical engineering',
-                         methods: 'Researchers utilized innovative methodologies and state-of-the-art experimental techniques',
-                         results: 'The study demonstrates significant advances in diagnostic tools and therapeutic interventions',
-                         impact: 'These findings represent a significant milestone in the field of biomedical engineering'
-                     },
-                     'sciencedaily.com': {
-                         intro: 'A comprehensive study examining the latest breakthroughs in biomedical engineering',
-                         methods: 'The research team conducted extensive laboratory and clinical trials',
-                         results: 'This work represents a significant milestone showcasing innovative approaches',
-                         impact: 'These advancements hold promise for addressing previously untreatable medical conditions'
-                     },
-                     'spectrum.ieee.org': {
-                         intro: 'An in-depth analysis of emerging technologies in biomedical engineering',
-                         methods: 'The study examines the integration of artificial intelligence and advanced sensor technologies',
-                         results: 'Researchers present novel frameworks for developing next-generation medical devices',
-                         impact: 'Results indicate substantial improvements in treatment efficacy and patient safety'
-                     },
-                     'medicalxpress.com': {
-                         intro: 'This study investigates advanced biomedical engineering solutions',
-                         methods: 'The research encompasses multiple disciplines including materials science and electronics',
-                         results: 'Findings suggest promising applications in personalized medicine',
-                         impact: 'These advancements hold promise for improving healthcare outcomes'
-                     },
-                     'nature.com': {
-                         intro: 'A peer-reviewed research article presenting groundbreaking findings in biomedical engineering',
-                         methods: 'The study employs state-of-the-art experimental techniques and computational modeling',
-                         results: 'Results indicate substantial improvements in treatment efficacy and patient safety',
-                         impact: 'These findings represent a significant milestone in the field of biomedical engineering'
-                     },
-                     'scitechdaily.com': {
-                         intro: 'An exploration of cutting-edge biomedical engineering innovations',
-                         methods: 'Scientists conducted extensive laboratory and clinical trials',
-                         results: 'The research demonstrates novel approaches to tissue engineering and drug delivery',
-                         impact: 'These advancements hold promise for addressing previously untreatable medical conditions'
-                     }
-                 };
-                 
-                 const template = abstractTemplates[domain] || abstractTemplates['phys.org'];
-                 
-                 // Build abstract with context from URL keywords
-                 let abstract = template.intro;
-                 
-                 // Add context based on URL keywords
-                 if (urlKeywords.some(word => ['device', 'sensor', 'monitor'].includes(word))) {
-                     abstract += ', focusing on medical device development and patient monitoring systems';
-                 } else if (urlKeywords.some(word => ['therapy', 'treatment', 'drug'].includes(word))) {
-                     abstract += ', presenting novel therapeutic interventions and treatment protocols';
-                 } else if (urlKeywords.some(word => ['ai', 'machine', 'learning'].includes(word))) {
-                     abstract += ', incorporating artificial intelligence and machine learning technologies';
-                 } else if (urlKeywords.some(word => ['tissue', 'regenerative', 'stem'].includes(word))) {
-                     abstract += ', advancing tissue engineering and regenerative medicine approaches';
-                 }
-                 
-                 abstract += '. ' + template.methods + ' to address complex challenges in healthcare delivery. ' + 
-                           template.results + ' that could revolutionize medical technology and patient care. ' +
-                           'The comprehensive analysis encompasses various aspects of biomedical engineering including ' +
-                           'device development, therapeutic applications, and clinical implementation strategies. ' +
-                           template.impact + ', contributing to the advancement of medical science and healthcare delivery.';
-                 
-                 return abstract;
-             };
-             
-             // Generate intelligent abstract
-             summary = generateIntelligentAbstract(url, domain);
+            // Generate artificial image for fallback
+            image = generateArtificialImage(domain, title);
+            
+            // Try to generate AI abstract even for failed fetches
+            const aiConfig = checkAIServicesConfiguration();
+            if (aiConfig.anyConfigured) {
+                try {
+                    // Create a minimal content from URL for AI processing
+                    const urlContent = `Article from ${domain} about biomedical engineering research and technology. URL: ${url}`;
+                    const aiAbstract = await generateMultiAIAbstract(urlContent, domain, url);
+                    if (aiAbstract && aiAbstract.length > 200) {
+                        summary = aiAbstract;
+                        console.log('Generated AI abstract for failed fetch');
+                    } else {
+                        summary = `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions.`;
+                    }
+                } catch (error) {
+                    console.log('AI abstract generation failed for failed fetch:', error);
+                    summary = `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions.`;
+                }
+            } else {
+                summary = `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions.`;
+            }
         }
         
         return {
