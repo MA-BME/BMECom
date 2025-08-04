@@ -530,7 +530,7 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
         ${imageDisplay}
         <div class="article-header">
             <h3 class="article-title">
-                <a href="article-detail.html?id=${index}">${article.title}</a>
+                <a href="article-detail.html?url=${encodeURIComponent(article.url)}">${article.title}</a>
             </h3>
             ${deleteButton}
         </div>
@@ -545,7 +545,7 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
                 ${likeButton}
                 ${dislikeButton}
             </div>
-            <a href="article-detail.html?id=${index}" class="read-more-btn">
+            <a href="article-detail.html?url=${encodeURIComponent(article.url)}" class="read-more-btn">
                 Read Full Abstract →
             </a>
         </div>

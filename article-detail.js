@@ -40,18 +40,17 @@ if (navToggle && navMenu) {
     });
 }
 
-// Get article ID from URL parameters
-function getArticleId() {
+// Get article URL from URL parameters
+function getArticleUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('id');
+    return urlParams.get('url');
 }
 
-// Load article data from localStorage
-function loadArticleData(articleId) {
+// Load article data from localStorage by URL
+function loadArticleData(articleUrl) {
     try {
-        // Fix: Use 'articles' key instead of 'userArticles'
         const articles = JSON.parse(localStorage.getItem('articles')) || [];
-        return articles[articleId];
+        return articles.find(article => article.url === articleUrl);
     } catch (error) {
         console.error('Error loading article data:', error);
         return null;
@@ -97,8 +96,8 @@ function likeArticle(articleUrl) {
     localStorage.setItem('userLikes', JSON.stringify(userLikes));
     
     // Refresh the display
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (article) {
         displayArticleDetail(article);
     }
@@ -142,8 +141,8 @@ function dislikeArticle(articleUrl) {
     localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
     
     // Refresh the display
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (article) {
         displayArticleDetail(article);
     }
@@ -317,15 +316,15 @@ function hideLoading() {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
-    const articleId = getArticleId();
+    const articleUrl = getArticleUrl();
     
-    if (articleId === null) {
-        showError('No article ID provided');
+    if (articleUrl === null) {
+        showError('No article URL provided');
         return;
     }
     
     // Load article data
-    const article = loadArticleData(articleId);
+    const article = loadArticleData(articleUrl);
     
     if (article) {
         hideLoading();
@@ -387,11 +386,9 @@ function addCommentDetail(commentText, parentCommentId = null) {
         return;
     }
     
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (!article) return;
-    
-    const articleUrl = article.url;
     
     if (!articleComments[articleUrl]) {
         articleComments[articleUrl] = [];
@@ -444,11 +441,9 @@ function deleteCommentDetail(commentId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
     
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (!article) return;
-    
-    const articleUrl = article.url;
     if (!articleComments[articleUrl]) return;
     
     const comment = findCommentByIdDetail(articleComments[articleUrl], commentId);
@@ -492,8 +487,8 @@ function likeCommentDetail(commentId) {
         return;
     }
     
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (!article) return;
     
     const comment = findCommentByIdDetail(articleComments[article.url], commentId);
@@ -531,8 +526,8 @@ function dislikeCommentDetail(commentId) {
         return;
     }
     
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (!article) return;
     
     const comment = findCommentByIdDetail(articleComments[article.url], commentId);
@@ -564,8 +559,8 @@ function dislikeCommentDetail(commentId) {
 }
 
 function displayCommentsDetail() {
-    const articleId = getArticleId();
-    const article = loadArticleData(articleId);
+    const articleUrl = getArticleUrl();
+    const article = loadArticleData(articleUrl);
     if (!article) return;
     
     const commentsContainer = document.getElementById('comments-container');
