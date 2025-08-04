@@ -654,6 +654,71 @@
                         </button>
                     </div>
                     
+                    <!-- AI Services Configuration Section -->
+                    <div class="url-input-section">
+                        <h3 style="text-align: center; color: #1f2937; margin-bottom: 1.5rem; font-size: 1.5rem;">
+                            🤖 AI Services Configuration
+                        </h3>
+                        <p style="text-align: center; color: #6b7280; margin-bottom: 2rem; font-size: 1rem;">
+                            Configure AI services for enhanced title, abstract, and image generation
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                            <!-- OpenAI Configuration -->
+                            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 2px solid #e5e7eb;">
+                                <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🔮 OpenAI (GPT-4 + DALL-E)</h4>
+                                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                                    Generate titles, abstracts, and images using GPT-4 and DALL-E
+                                </p>
+                                <input type="password" id="openaiApiKey" placeholder="Enter OpenAI API Key..." 
+                                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                                <button onclick="configureAIServices('openai', document.getElementById('openaiApiKey').value)" 
+                                        style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.875rem; cursor: pointer; width: 100%;">
+                                    Configure OpenAI
+                                </button>
+                            </div>
+                            
+                            <!-- Anthropic Configuration -->
+                            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 2px solid #e5e7eb;">
+                                <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🧠 Anthropic (Claude)</h4>
+                                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                                    Generate titles and abstracts using Claude AI
+                                </p>
+                                <input type="password" id="anthropicApiKey" placeholder="Enter Anthropic API Key..." 
+                                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                                <button onclick="configureAIServices('anthropic', document.getElementById('anthropicApiKey').value)" 
+                                        style="background: #8b5cf6; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.875rem; cursor: pointer; width: 100%;">
+                                    Configure Anthropic
+                                </button>
+                            </div>
+                            
+                            <!-- Google Configuration -->
+                            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 2px solid #e5e7eb;">
+                                <h4 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.1rem;">🔍 Google (Gemini)</h4>
+                                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                                    Generate titles and abstracts using Google Gemini
+                                </p>
+                                <input type="password" id="googleApiKey" placeholder="Enter Google API Key..." 
+                                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                                <button onclick="configureAIServices('google', document.getElementById('googleApiKey').value)" 
+                                        style="background: #ea4335; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.875rem; cursor: pointer; width: 100%;">
+                                    Configure Google
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <button onclick="checkAIServicesStatus()" 
+                                    style="background: #0ea5e9; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; margin: 0.5rem; cursor: pointer;">
+                                🔍 Check AI Services Status
+                            </button>
+                            <button onclick="clearAllAIServices()" 
+                                    style="background: #dc2626; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; margin: 0.5rem; cursor: pointer;">
+                                🗑️ Clear All AI Services
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="url-input-section">
                         <div style="margin-bottom: 1rem;">
                             <input type="text" id="userSearchInput" placeholder="Search users by name or email..." 
@@ -697,6 +762,6 @@
         </div>
     </footer>
 
-    <script src="articles.js?v=1.17"></script>
+    <script src="articles.js?v=1.18"></script>
 </body>
 </html> 

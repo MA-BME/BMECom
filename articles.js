@@ -1009,53 +1009,54 @@ async function extractArticleData(url) {
                 currentStep = 3;
                 updateProgress(currentStep, totalSteps, 'Generating custom title from article content...');
                 
+                // Collect ALL text content from the entire page for AI processing
+                let allTextContent = '';
+                
+                // Get text from all possible content areas
+                const contentSelectors = [
+                    'article', '.article-content', '.post-content', '.entry-content', 
+                    '.content', 'main', '.main-content', '.post-body', '.article-body',
+                    '.story-content', '.article-text', '.post-text', '.entry-text',
+                    'body', '.body-content', '.page-content', '.site-content'
+                ];
+                
+                contentSelectors.forEach(selector => {
+                    const elements = doc.querySelectorAll(selector);
+                    elements.forEach(element => {
+                        const text = element.textContent || element.innerText;
+                        if (text && text.trim().length > 50) {
+                            allTextContent += ' ' + text.trim();
+                        }
+                    });
+                });
+                
+                // If no content found, try getting text from all paragraphs
+                if (!allTextContent.trim()) {
+                    const paragraphs = doc.querySelectorAll('p');
+                    paragraphs.forEach(p => {
+                        const text = p.textContent || p.innerText;
+                        if (text && text.trim().length > 20) {
+                            allTextContent += ' ' + text.trim();
+                        }
+                    });
+                }
+                
+                // Clean up the text
+                allTextContent = allTextContent
+                    .replace(/\s+/g, ' ')
+                    .replace(/\n+/g, ' ')
+                    .trim();
+                
+                if (!allTextContent || allTextContent.length < 100) {
+                    throw new Error('can not read URL');
+                }
+                
                 // Enhanced function to generate title from ALL available text content
                 const generateCustomTitle = (doc, domain) => {
-                    // Collect ALL text content from the entire page
-                    let allTextContent = '';
-                    
-                    // Get text from all possible content areas
-                    const contentSelectors = [
-                        'article', '.article-content', '.post-content', '.entry-content', 
-                        '.content', 'main', '.main-content', '.post-body', '.article-body',
-                        '.story-content', '.article-text', '.post-text', '.entry-text',
-                        'body', '.body-content', '.page-content', '.site-content'
-                    ];
-                    
-                    contentSelectors.forEach(selector => {
-                        const elements = doc.querySelectorAll(selector);
-                        elements.forEach(element => {
-                            const text = element.textContent || element.innerText;
-                            if (text && text.trim().length > 50) {
-                                allTextContent += ' ' + text.trim();
-                            }
-                        });
-                    });
-                    
-                    // If no content found, try getting text from all paragraphs
-                    if (!allTextContent.trim()) {
-                        const paragraphs = doc.querySelectorAll('p');
-                        paragraphs.forEach(p => {
-                            const text = p.textContent || p.innerText;
-                            if (text && text.trim().length > 20) {
-                                allTextContent += ' ' + text.trim();
-                            }
-                        });
-                    }
-                    
-                    // Clean up the text
-                    allTextContent = allTextContent
-                        .replace(/\s+/g, ' ')
-                        .replace(/\n+/g, ' ')
-                        .trim()
-                        .toLowerCase();
-                    
-                    if (!allTextContent || allTextContent.length < 100) {
-                        return generateDefaultTitle(url, domain);
-                    }
+                    const textContent = allTextContent.toLowerCase();
                     
                     // Split into sentences and filter meaningful ones
-                    const sentences = allTextContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
+                    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
                     
                     if (sentences.length === 0) {
                         return generateDefaultTitle(url, domain);
@@ -1143,8 +1144,27 @@ async function extractArticleData(url) {
                     return generateDefaultTitle(url, domain);
                 };
                 
-                // Generate comprehensive title from ALL text content
-                title = generateCustomTitle(doc, domain);
+                // Try AI title generation first, then fallback to custom title generation
+                const aiConfig = checkAIServicesConfiguration();
+                if (aiConfig.anyConfigured) {
+                    try {
+                        updateProgress(currentStep, totalSteps, 'Generating AI-enhanced title...');
+                        const aiTitle = await generateAITitle(allTextContent, domain, url);
+                        if (aiTitle && aiTitle.length > 10) {
+                            title = aiTitle;
+                            console.log('Using AI-generated title:', title);
+                        } else {
+                            title = generateCustomTitle(doc, domain);
+                            console.log('Using fallback title generation');
+                        }
+                    } catch (error) {
+                        console.log('AI title generation failed, using fallback:', error);
+                        title = generateCustomTitle(doc, domain);
+                    }
+                } else {
+                    // Generate comprehensive title from ALL text content using fallback method
+                    title = generateCustomTitle(doc, domain);
+                }
                 
                 // Step 5: Extracting article image
                 currentStep = 5;
@@ -1172,14 +1192,32 @@ async function extractArticleData(url) {
                     }
                 }
                 
-                // If no image found, generate an artificial one
+                // If no image found, generate an artificial one using AI services
                 if (!image) {
-                    image = generateArtificialImage(domain, title);
-                    console.log('Generated AI image for article:', title);
+                    const aiConfig = checkAIServicesConfiguration();
+                    if (aiConfig.anyConfigured) {
+                        try {
+                            updateProgress(currentStep, totalSteps, 'Generating AI-enhanced image...');
+                            const aiImage = await generateAIImage(domain, title, allTextContent);
+                            if (aiImage && aiImage.startsWith('http')) {
+                                image = aiImage;
+                                console.log('Generated AI image for article:', title);
+                            } else {
+                                image = generateArtificialImage(domain, title);
+                                console.log('Using fallback image generation');
+                            }
+                        } catch (error) {
+                            console.log('AI image generation failed, using fallback:', error);
+                            image = generateArtificialImage(domain, title);
+                        }
+                    } else {
+                        image = generateArtificialImage(domain, title);
+                        console.log('Generated fallback image for article:', title);
+                    }
                 }
                 
                 // Add a timestamp to prevent caching issues with AI-generated images
-                if (image && image.includes('unsplash.com')) {
+                if (image && (image.includes('unsplash.com') || image.includes('openai.com'))) {
                     image += `&t=${Date.now()}`;
                 }
                 
@@ -1379,8 +1417,27 @@ async function extractArticleData(url) {
                     summary = existingAbstract;
                     console.log('Using existing abstract from webpage');
                 } else {
-                    // Generate comprehensive abstract from ALL text content
-                    summary = generateComprehensiveAbstract(doc, domain);
+                    // Try AI abstract generation first, then fallback to comprehensive abstract generation
+                    const aiConfig = checkAIServicesConfiguration();
+                    if (aiConfig.anyConfigured) {
+                        try {
+                            updateProgress(currentStep, totalSteps, 'Generating AI-enhanced abstract...');
+                            const aiAbstract = await generateAIAbstract(allTextContent, domain, url);
+                            if (aiAbstract && aiAbstract.length > 200) {
+                                summary = aiAbstract;
+                                console.log('Using AI-generated abstract');
+                            } else {
+                                summary = generateComprehensiveAbstract(doc, domain);
+                                console.log('Using fallback abstract generation');
+                            }
+                        } catch (error) {
+                            console.log('AI abstract generation failed, using fallback:', error);
+                            summary = generateComprehensiveAbstract(doc, domain);
+                        }
+                    } else {
+                        // Generate comprehensive abstract from ALL text content
+                        summary = generateComprehensiveAbstract(doc, domain);
+                    }
                     
                     // Ensure we have a proper abstract length (300-600 words)
                     const wordCount = summary.split(' ').length;
@@ -2952,3 +3009,299 @@ function showCommentsSection(articleIndex) {
         }
     }
 }
+
+// Advanced AI Integration Functions
+const AI_SERVICES = {
+    OPENAI: 'openai',
+    ANTHROPIC: 'anthropic',
+    GOOGLE: 'google',
+    UNSPLASH: 'unsplash',
+    DALL_E: 'dalle'
+};
+
+// Function to call OpenAI API for enhanced content generation
+async function callOpenAIAPI(prompt, type = 'text') {
+    try {
+        // Note: This requires an OpenAI API key to be configured
+        const apiKey = localStorage.getItem('openai_api_key');
+        if (!apiKey) {
+            console.log('OpenAI API key not configured, using fallback methods');
+            return null;
+        }
+
+        const endpoint = type === 'image' ? 'https://api.openai.com/v1/images/generations' : 'https://api.openai.com/v1/chat/completions';
+        
+        const requestBody = type === 'image' ? {
+            prompt: prompt,
+            n: 1,
+            size: "800x400",
+            model: "dall-e-3"
+        } : {
+            model: "gpt-4",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert biomedical engineering content analyst. Generate concise, accurate, and engaging content based on the provided information."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            max_tokens: type === 'title' ? 100 : 500,
+            temperature: 0.7
+        };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (type === 'image') {
+            return data.data[0].url;
+        } else {
+            return data.choices[0].message.content.trim();
+        }
+    } catch (error) {
+        console.error('OpenAI API call failed:', error);
+        return null;
+    }
+}
+
+// Function to call Anthropic Claude API for enhanced content generation
+async function callClaudeAPI(prompt, type = 'text') {
+    try {
+        const apiKey = localStorage.getItem('anthropic_api_key');
+        if (!apiKey) {
+            console.log('Anthropic API key not configured, using fallback methods');
+            return null;
+        }
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: "claude-3-sonnet-20240229",
+                max_tokens: type === 'title' ? 100 : 500,
+                messages: [
+                    {
+                        role: "user",
+                        content: `You are an expert biomedical engineering content analyst. ${prompt}`
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Claude API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.content[0].text.trim();
+    } catch (error) {
+        console.error('Claude API call failed:', error);
+        return null;
+    }
+}
+
+// Function to call Google Gemini API for enhanced content generation
+async function callGeminiAPI(prompt, type = 'text') {
+    try {
+        const apiKey = localStorage.getItem('google_api_key');
+        if (!apiKey) {
+            console.log('Google API key not configured, using fallback methods');
+            return null;
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `You are an expert biomedical engineering content analyst. ${prompt}`
+                    }]
+                }],
+                generationConfig: {
+                    maxOutputTokens: type === 'title' ? 100 : 500,
+                    temperature: 0.7
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Gemini API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text.trim();
+    } catch (error) {
+        console.error('Gemini API call failed:', error);
+        return null;
+    }
+}
+
+// Enhanced AI title generation using multiple AI services
+async function generateAITitle(articleContent, domain, url) {
+    const prompt = `Based on this biomedical engineering article content, generate a compelling, accurate, and SEO-friendly title (max 80 characters). Focus on the main scientific discovery, technology, or breakthrough mentioned. Content: ${articleContent.substring(0, 1000)}... Domain: ${domain}`;
+    
+    // Try multiple AI services in order of preference
+    const services = [
+        { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'title') },
+        { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'title') },
+        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'title') }
+    ];
+
+    for (const service of services) {
+        try {
+            const result = await service.func();
+            if (result && result.length > 10 && result.length <= 80) {
+                console.log(`Generated AI title using ${service.name}:`, result);
+                return result + ' - ' + domain;
+            }
+        } catch (error) {
+            console.log(`${service.name} title generation failed:`, error);
+            continue;
+        }
+    }
+
+    // Fallback to existing title generation
+    return generateCustomTitle(doc, domain);
+}
+
+// Enhanced AI abstract generation using multiple AI services
+async function generateAIAbstract(articleContent, domain, url) {
+    const prompt = `Based on this biomedical engineering article content, generate a comprehensive, accurate abstract (300-500 words) that summarizes the key findings, methodology, and significance. Focus on scientific accuracy and biomedical engineering relevance. Content: ${articleContent.substring(0, 2000)}... Domain: ${domain}`;
+    
+    const services = [
+        { name: AI_SERVICES.OPENAI, func: () => callOpenAIAPI(prompt, 'abstract') },
+        { name: AI_SERVICES.ANTHROPIC, func: () => callClaudeAPI(prompt, 'abstract') },
+        { name: AI_SERVICES.GOOGLE, func: () => callGeminiAPI(prompt, 'abstract') }
+    ];
+
+    for (const service of services) {
+        try {
+            const result = await service.func();
+            if (result && result.length > 200 && result.length < 1000) {
+                console.log(`Generated AI abstract using ${service.name}:`, result.substring(0, 100) + '...');
+                return result;
+            }
+        } catch (error) {
+            console.log(`${service.name} abstract generation failed:`, error);
+            continue;
+        }
+    }
+
+    // Fallback to existing abstract generation
+    return generateComprehensiveAbstract(doc, domain);
+}
+
+// Enhanced AI image generation using multiple AI services
+async function generateAIImage(domain, title, articleContent) {
+    const imagePrompt = `Create a professional, scientific image representing biomedical engineering research. Focus on: ${title}. Style: modern, clean, scientific, high-quality, professional. Include elements like: laboratory equipment, medical devices, technology, research symbols. Avoid: text, logos, human faces.`;
+    
+    const services = [
+        { name: AI_SERVICES.DALL_E, func: () => callOpenAIAPI(imagePrompt, 'image') },
+        { name: AI_SERVICES.UNSPLASH, func: () => generateArtificialImage(domain, title) }
+    ];
+
+    for (const service of services) {
+        try {
+            const result = await service.func();
+            if (result && result.startsWith('http')) {
+                console.log(`Generated AI image using ${service.name}:`, result);
+                return result;
+            }
+        } catch (error) {
+            console.log(`${service.name} image generation failed:`, error);
+            continue;
+        }
+    }
+
+    // Fallback to existing image generation
+    return generateArtificialImage(domain, title);
+}
+
+// Function to check if AI services are configured
+function checkAIServicesConfiguration() {
+    const openaiKey = localStorage.getItem('openai_api_key');
+    const anthropicKey = localStorage.getItem('anthropic_api_key');
+    const googleKey = localStorage.getItem('google_api_key');
+    
+    return {
+        openai: !!openaiKey,
+        anthropic: !!anthropicKey,
+        google: !!googleKey,
+        anyConfigured: !!(openaiKey || anthropicKey || googleKey)
+    };
+}
+
+    // Function to set AI service API keys
+    function configureAIServices(service, apiKey) {
+        if (apiKey && apiKey.trim()) {
+            localStorage.setItem(`${service}_api_key`, apiKey.trim());
+            showMessage(`${service.toUpperCase()} API key configured successfully!`, 'success');
+        } else {
+            localStorage.removeItem(`${service}_api_key`);
+            showMessage(`${service.toUpperCase()} API key removed.`, 'info');
+        }
+    }
+
+    // Function to check AI services status and display it
+    function checkAIServicesStatus() {
+        const config = checkAIServicesConfiguration();
+        let statusMessage = '🤖 AI Services Status:\n\n';
+        
+        if (config.openai) {
+            statusMessage += '✅ OpenAI (GPT-4 + DALL-E): Configured\n';
+        } else {
+            statusMessage += '❌ OpenAI (GPT-4 + DALL-E): Not configured\n';
+        }
+        
+        if (config.anthropic) {
+            statusMessage += '✅ Anthropic (Claude): Configured\n';
+        } else {
+            statusMessage += '❌ Anthropic (Claude): Not configured\n';
+        }
+        
+        if (config.google) {
+            statusMessage += '✅ Google (Gemini): Configured\n';
+        } else {
+            statusMessage += '❌ Google (Gemini): Not configured\n';
+        }
+        
+        statusMessage += '\n💡 Tip: Configure at least one AI service to enable enhanced content generation for new articles.';
+        
+        alert(statusMessage);
+    }
+
+    // Function to clear all AI service configurations
+    function clearAllAIServices() {
+        if (confirm('Are you sure you want to clear all AI service configurations? This will remove all API keys.')) {
+            localStorage.removeItem('openai_api_key');
+            localStorage.removeItem('anthropic_api_key');
+            localStorage.removeItem('google_api_key');
+            showMessage('All AI service configurations cleared successfully!', 'success');
+            
+            // Clear the input fields
+            document.getElementById('openaiApiKey').value = '';
+            document.getElementById('anthropicApiKey').value = '';
+            document.getElementById('googleApiKey').value = '';
+        }
+    }
