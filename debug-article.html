@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Article Detail</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .article-link { color: blue; text-decoration: underline; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Debug Article Detail Page</h1>
+    
+    <div class="debug-section">
+        <h2>Step 1: Check LocalStorage</h2>
+        <button onclick="checkLocalStorage()">Check Articles in LocalStorage</button>
+        <div id="localStorageOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 2: Test Article Detail Links</h2>
+        <button onclick="createTestLinks()">Create Test Links</button>
+        <div id="testLinksOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 3: Test URL Normalization</h2>
+        <button onclick="testUrlNormalization()">Test URL Normalization</button>
+        <div id="urlTestOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 4: Manual Test</h2>
+        <p>Enter a URL to test:</p>
+        <input type="text" id="testUrl" placeholder="https://example.com/article" style="width: 400px; padding: 5px;">
+        <button onclick="testManualUrl()">Test URL</button>
+        <div id="manualTestOutput"></div>
+    </div>
+
+    <script>
+        function checkLocalStorage() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            let output = `
+                <h3>LocalStorage Status:</h3>
+                <p><strong>Articles:</strong> ${articles.length} articles</p>
+                <p><strong>Current User:</strong> ${currentUser ? currentUser.name : 'Not logged in'}</p>
+            `;
+            
+            if (articles.length > 0) {
+                output += '<h4>Available Articles:</h4><ul>';
+                articles.forEach((article, index) => {
+                    output += `<li><span class="article-link" onclick="testArticleUrl('${article.url}')">${article.title}</span><br>
+                    <small>URL: ${article.url}</small></li>`;
+                });
+                output += '</ul>';
+            } else {
+                output += '<p class="error">No articles found in localStorage!</p>';
+            }
+            
+            document.getElementById('localStorageOutput').innerHTML = output;
+        }
+        
+        function createTestLinks() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            
+            if (articles.length === 0) {
+                document.getElementById('testLinksOutput').innerHTML = '<p class="error">No articles to test with!</p>';
+                return;
+            }
+            
+            let output = '<h4>Test Links:</h4><ul>';
+            articles.forEach((article, index) => {
+                const testUrl = `article-detail.html?url=${encodeURIComponent(article.url)}`;
+                output += `<li><a href="${testUrl}" target="_blank">Test: ${article.title}</a><br>
+                <small>Generated URL: ${testUrl}</small></li>`;
+            });
+            output += '</ul>';
+            
+            document.getElementById('testLinksOutput').innerHTML = output;
+        }
+        
+        function testArticleUrl(url) {
+            const testUrl = `article-detail.html?url=${encodeURIComponent(url)}`;
+            document.getElementById('testLinksOutput').innerHTML = `
+                <h4>Testing Article URL:</h4>
+                <p><strong>Original URL:</strong> ${url}</p>
+                <p><strong>Test URL:</strong> <a href="${testUrl}" target="_blank">${testUrl}</a></p>
+                <button onclick="window.open('${testUrl}', '_blank')">Open in New Tab</button>
+            `;
+        }
+        
+        function testUrlNormalization() {
+            const testUrls = [
+                'https://scitechdaily.com/columbia-scientists-made-a-gel-from-yogurt-that-heals-tissue-and-it-works/',
+                'https://scitechdaily.com/columbia-scientists-made-a-gel-from-yogurt-that-heals-tissue-and-it-works',
+                'https://example.com/test/',
+                'https://example.com/test'
+            ];
+            
+            let output = '<h4>URL Normalization Results:</h4><ul>';
+            testUrls.forEach(url => {
+                const normalized = normalizeUrl(url);
+                output += `<li><strong>Original:</strong> ${url}<br>
+                <strong>Normalized:</strong> ${normalized}</li>`;
+            });
+            output += '</ul>';
+            
+            document.getElementById('urlTestOutput').innerHTML = output;
+        }
+        
+        function normalizeUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+                normalized = normalized.replace(/\/$/, '');
+                return normalized.toLowerCase();
+            } catch (error) {
+                return url.toLowerCase();
+            }
+        }
+        
+        function testManualUrl() {
+            const testUrl = document.getElementById('testUrl').value.trim();
+            
+            if (!testUrl) {
+                document.getElementById('manualTestOutput').innerHTML = '<p class="error">Please enter a URL to test.</p>';
+                return;
+            }
+            
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const normalizedTestUrl = normalizeUrl(testUrl);
+            
+            let output = `
+                <h4>Manual URL Test Results:</h4>
+                <p><strong>Test URL:</strong> ${testUrl}</p>
+                <p><strong>Normalized:</strong> ${normalizedTestUrl}</p>
+            `;
+            
+            // Try to find matching article
+            let foundArticle = null;
+            
+            // Strategy 1: Exact match
+            foundArticle = articles.find(article => normalizeUrl(article.url) === normalizedTestUrl);
+            if (foundArticle) {
+                output += `<p class="success">✅ Found with exact match: ${foundArticle.title}</p>`;
+            } else {
+                output += `<p class="info">❌ No exact match found</p>`;
+                
+                // Strategy 2: Partial match
+                foundArticle = articles.find(article => {
+                    const normalizedArticleUrl = normalizeUrl(article.url);
+                    return normalizedArticleUrl.includes(normalizedTestUrl) || 
+                           normalizedTestUrl.includes(normalizedArticleUrl);
+                });
+                
+                if (foundArticle) {
+                    output += `<p class="success">✅ Found with partial match: ${foundArticle.title}</p>`;
+                } else {
+                    output += `<p class="info">❌ No partial match found</p>`;
+                    
+                    // Strategy 3: Path segment match
+                    const urlParts = testUrl.split('/');
+                    const lastPart = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+                    
+                    if (lastPart) {
+                        foundArticle = articles.find(article => {
+                            const articleUrlParts = article.url.split('/');
+                            const articleLastPart = articleUrlParts[articleUrlParts.length - 1] || articleUrlParts[articleUrlParts.length - 2];
+                            return articleLastPart === lastPart;
+                        });
+                        
+                        if (foundArticle) {
+                            output += `<p class="success">✅ Found with path segment match: ${foundArticle.title}</p>`;
+                        } else {
+                            output += `<p class="error">❌ No path segment match found</p>`;
+                        }
+                    }
+                }
+            }
+            
+            if (foundArticle) {
+                const detailUrl = `article-detail.html?url=${encodeURIComponent(foundArticle.url)}`;
+                output += `<p><a href="${detailUrl}" target="_blank">Open Article Detail Page</a></p>`;
+            }
+            
+            document.getElementById('manualTestOutput').innerHTML = output;
+        }
+        
+        // Initialize on page load
+        checkLocalStorage();
+    </script>
+</body>
+</html> 

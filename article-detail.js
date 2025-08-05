@@ -40,17 +40,93 @@ if (navToggle && navMenu) {
     });
 }
 
+// Normalize URL for comparison
+function normalizeUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        // Remove trailing slash and normalize
+        let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+        normalized = normalized.replace(/\/$/, ''); // Remove trailing slash
+        return normalized.toLowerCase();
+    } catch (error) {
+        // If URL parsing fails, return original URL
+        return url.toLowerCase();
+    }
+}
+
 // Get article URL from URL parameters
 function getArticleUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('url');
 }
 
-// Load article data from localStorage by URL
+// Load article data from localStorage by URL with multiple fallback strategies
 function loadArticleData(articleUrl) {
     try {
         const articles = JSON.parse(localStorage.getItem('articles')) || [];
-        return articles.find(article => article.url === articleUrl);
+        console.log('Total articles in localStorage:', articles.length);
+        console.log('Searching for URL:', articleUrl);
+        
+        if (!articleUrl) {
+            console.log('No article URL provided');
+            return null;
+        }
+        
+        const normalizedSearchUrl = normalizeUrl(articleUrl);
+        console.log('Normalized search URL:', normalizedSearchUrl);
+        
+        // Strategy 1: Exact normalized URL match
+        let foundArticle = articles.find(article => {
+            const normalizedArticleUrl = normalizeUrl(article.url);
+            console.log('Comparing:', normalizedArticleUrl, 'with', normalizedSearchUrl);
+            return normalizedArticleUrl === normalizedSearchUrl;
+        });
+        
+        if (foundArticle) {
+            console.log('Found article with exact match:', foundArticle.title);
+            return foundArticle;
+        }
+        
+        // Strategy 2: Partial URL match
+        console.log('Exact match not found, trying partial match...');
+        foundArticle = articles.find(article => {
+            const normalizedArticleUrl = normalizeUrl(article.url);
+            return normalizedArticleUrl.includes(normalizedSearchUrl) || 
+                   normalizedSearchUrl.includes(normalizedArticleUrl);
+        });
+        
+        if (foundArticle) {
+            console.log('Found article with partial match:', foundArticle.title);
+            return foundArticle;
+        }
+        
+        // Strategy 3: Match by URL path segments
+        console.log('Partial match not found, trying path segment match...');
+        const urlParts = articleUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+        
+        if (lastPart) {
+            foundArticle = articles.find(article => {
+                const articleUrlParts = article.url.split('/');
+                const articleLastPart = articleUrlParts[articleUrlParts.length - 1] || articleUrlParts[articleUrlParts.length - 2];
+                return articleLastPart === lastPart;
+            });
+            
+            if (foundArticle) {
+                console.log('Found article with path segment match:', foundArticle.title);
+                return foundArticle;
+            }
+        }
+        
+        // Strategy 4: Show all available articles for debugging
+        console.log('No match found. Available articles:');
+        articles.forEach((article, index) => {
+            console.log(`${index}: ${article.title} - ${article.url}`);
+        });
+        
+        console.log('Article not found');
+        return null;
+        
     } catch (error) {
         console.error('Error loading article data:', error);
         return null;
@@ -65,30 +141,32 @@ function likeArticle(articleUrl) {
         return;
     }
     
+    const normalizedUrl = normalizeUrl(articleUrl);
+    
     // Remove from dislikes if previously disliked
-    if (userDislikes[articleUrl] && userDislikes[articleUrl].includes(currentUser.id)) {
-        userDislikes[articleUrl] = userDislikes[articleUrl].filter(id => id !== currentUser.id);
-        if (userDislikes[articleUrl].length === 0) {
-            delete userDislikes[articleUrl];
+    if (userDislikes[normalizedUrl] && userDislikes[normalizedUrl].includes(currentUser.id)) {
+        userDislikes[normalizedUrl] = userDislikes[normalizedUrl].filter(id => id !== currentUser.id);
+        if (userDislikes[normalizedUrl].length === 0) {
+            delete userDislikes[normalizedUrl];
         }
         localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
     }
     
     // Toggle like
-    if (!userLikes[articleUrl]) {
-        userLikes[articleUrl] = [];
+    if (!userLikes[normalizedUrl]) {
+        userLikes[normalizedUrl] = [];
     }
     
-    const userIndex = userLikes[articleUrl].indexOf(currentUser.id);
+    const userIndex = userLikes[normalizedUrl].indexOf(currentUser.id);
     if (userIndex === -1) {
         // Add like
-        userLikes[articleUrl].push(currentUser.id);
+        userLikes[normalizedUrl].push(currentUser.id);
         showMessage('Article liked!', 'success');
     } else {
         // Remove like
-        userLikes[articleUrl].splice(userIndex, 1);
-        if (userLikes[articleUrl].length === 0) {
-            delete userLikes[articleUrl];
+        userLikes[normalizedUrl].splice(userIndex, 1);
+        if (userLikes[normalizedUrl].length === 0) {
+            delete userLikes[normalizedUrl];
         }
         showMessage('Like removed.', 'info');
     }
@@ -110,30 +188,32 @@ function dislikeArticle(articleUrl) {
         return;
     }
     
+    const normalizedUrl = normalizeUrl(articleUrl);
+    
     // Remove from likes if previously liked
-    if (userLikes[articleUrl] && userLikes[articleUrl].includes(currentUser.id)) {
-        userLikes[articleUrl] = userLikes[articleUrl].filter(id => id !== currentUser.id);
-        if (userLikes[articleUrl].length === 0) {
-            delete userLikes[articleUrl];
+    if (userLikes[normalizedUrl] && userLikes[normalizedUrl].includes(currentUser.id)) {
+        userLikes[normalizedUrl] = userLikes[normalizedUrl].filter(id => id !== currentUser.id);
+        if (userLikes[normalizedUrl].length === 0) {
+            delete userLikes[normalizedUrl];
         }
         localStorage.setItem('userLikes', JSON.stringify(userLikes));
     }
     
     // Toggle dislike
-    if (!userDislikes[articleUrl]) {
-        userDislikes[articleUrl] = [];
+    if (!userDislikes[normalizedUrl]) {
+        userDislikes[normalizedUrl] = [];
     }
     
-    const userIndex = userDislikes[articleUrl].indexOf(currentUser.id);
+    const userIndex = userDislikes[normalizedUrl].indexOf(currentUser.id);
     if (userIndex === -1) {
         // Add dislike
-        userDislikes[articleUrl].push(currentUser.id);
+        userDislikes[normalizedUrl].push(currentUser.id);
         showMessage('Article disliked.', 'info');
     } else {
         // Remove dislike
-        userDislikes[articleUrl].splice(userIndex, 1);
-        if (userDislikes[articleUrl].length === 0) {
-            delete userDislikes[articleUrl];
+        userDislikes[normalizedUrl].splice(userIndex, 1);
+        if (userDislikes[normalizedUrl].length === 0) {
+            delete userDislikes[normalizedUrl];
         }
         showMessage('Dislike removed.', 'info');
     }
@@ -151,13 +231,15 @@ function dislikeArticle(articleUrl) {
 function isArticleLikedByUser(articleUrl) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return false;
-    return userLikes[articleUrl] && userLikes[articleUrl].includes(currentUser.id);
+    const normalizedUrl = normalizeUrl(articleUrl);
+    return userLikes[normalizedUrl] && userLikes[normalizedUrl].includes(currentUser.id);
 }
 
 function isArticleDislikedByUser(articleUrl) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return false;
-    return userDislikes[articleUrl] && userDislikes[articleUrl].includes(currentUser.id);
+    const normalizedUrl = normalizeUrl(articleUrl);
+    return userDislikes[normalizedUrl] && userDislikes[normalizedUrl].includes(currentUser.id);
 }
 
 // Display article detail
@@ -166,6 +248,8 @@ function displayArticleDetail(article) {
         showError('Article not found');
         return;
     }
+
+    console.log('Displaying article:', article.title);
 
     const imageDisplay = article.image ? 
         `<div class="article-image">
@@ -178,8 +262,9 @@ function displayArticleDetail(article) {
     // Like/Dislike buttons
     const isLiked = isArticleLikedByUser(article.url);
     const isDisliked = isArticleDislikedByUser(article.url);
-    const likeCount = userLikes[article.url] ? userLikes[article.url].length : 0;
-    const dislikeCount = userDislikes[article.url] ? userDislikes[article.url].length : 0;
+    const normalizedUrl = normalizeUrl(article.url);
+    const likeCount = userLikes[normalizedUrl] ? userLikes[normalizedUrl].length : 0;
+    const dislikeCount = userDislikes[normalizedUrl] ? userDislikes[normalizedUrl].length : 0;
     
     const likeButton = `
         <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle('${article.url}')" title="${isLiked ? 'Remove like' : 'Like article'}">
@@ -196,7 +281,7 @@ function displayArticleDetail(article) {
     `;
 
     // Get comment count
-    const commentCount = articleComments[article.url] ? articleComments[article.url].length : 0;
+    const commentCount = articleComments[normalizedUrl] ? articleComments[normalizedUrl].length : 0;
     
     articleDetailCard.innerHTML = `
         <div class="article-header">
@@ -265,6 +350,7 @@ function displayArticleDetail(article) {
 
 // Show error message
 function showError(message) {
+    console.log('Showing error:', message);
     if (errorContainer) {
         errorContainer.innerHTML = `<p>${message}</p>`;
         errorContainer.style.display = 'block';
@@ -316,22 +402,33 @@ function hideLoading() {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('=== ARTICLE DETAIL PAGE LOADING ===');
+    
     const articleUrl = getArticleUrl();
+    console.log('Article URL from parameters:', articleUrl);
     
     if (articleUrl === null) {
-        showError('No article URL provided');
+        console.log('No article URL provided');
+        showError('No article URL provided. Please go back and click "Read Full Abstract" on an article.');
         return;
     }
     
     // Load article data
     const article = loadArticleData(articleUrl);
+    console.log('Loaded article data:', article);
     
     if (article) {
+        console.log('Article found, displaying...');
         hideLoading();
         displayArticleDetail(article);
         articleDetailCard.style.display = 'block';
     } else {
-        showError('Article not found');
+        console.log('Article not found');
+        const articles = JSON.parse(localStorage.getItem('articles')) || [];
+        const errorMessage = articles.length > 0 
+            ? `Article not found. Searched for: ${articleUrl}. Available articles: ${articles.length}. Please check the console for debugging information.`
+            : 'No articles found in localStorage. Please add some articles first.';
+        showError(errorMessage);
     }
     
     // Add smooth scrolling for anchor links
@@ -390,8 +487,9 @@ function addCommentDetail(commentText, parentCommentId = null) {
     const article = loadArticleData(articleUrl);
     if (!article) return;
     
-    if (!articleComments[articleUrl]) {
-        articleComments[articleUrl] = [];
+    const normalizedUrl = normalizeUrl(articleUrl);
+    if (!articleComments[normalizedUrl]) {
+        articleComments[normalizedUrl] = [];
     }
     
     const newComment = {
@@ -408,13 +506,13 @@ function addCommentDetail(commentText, parentCommentId = null) {
     
     if (parentCommentId) {
         // This is a reply
-        const parentComment = findCommentByIdDetail(articleComments[articleUrl], parentCommentId);
+        const parentComment = findCommentByIdDetail(articleComments[normalizedUrl], parentCommentId);
         if (parentComment) {
             parentComment.replies.push(newComment);
         }
     } else {
         // This is a top-level comment
-        articleComments[articleUrl].push(newComment);
+        articleComments[normalizedUrl].push(newComment);
     }
     
     localStorage.setItem('articleComments', JSON.stringify(articleComments));
@@ -444,9 +542,11 @@ function deleteCommentDetail(commentId) {
     const articleUrl = getArticleUrl();
     const article = loadArticleData(articleUrl);
     if (!article) return;
-    if (!articleComments[articleUrl]) return;
     
-    const comment = findCommentByIdDetail(articleComments[articleUrl], commentId);
+    const normalizedUrl = normalizeUrl(articleUrl);
+    if (!articleComments[normalizedUrl]) return;
+    
+    const comment = findCommentByIdDetail(articleComments[normalizedUrl], commentId);
     if (!comment) return;
     
     // Only allow deletion if user is the author or a moderator
@@ -456,7 +556,7 @@ function deleteCommentDetail(commentId) {
     }
     
     // Remove comment from the array
-    removeCommentFromArrayDetail(articleComments[articleUrl], commentId);
+    removeCommentFromArrayDetail(articleComments[normalizedUrl], commentId);
     
     localStorage.setItem('articleComments', JSON.stringify(articleComments));
     showMessage('Comment deleted successfully.', 'success');
@@ -491,7 +591,8 @@ function likeCommentDetail(commentId) {
     const article = loadArticleData(articleUrl);
     if (!article) return;
     
-    const comment = findCommentByIdDetail(articleComments[article.url], commentId);
+    const normalizedUrl = normalizeUrl(articleUrl);
+    const comment = findCommentByIdDetail(articleComments[normalizedUrl], commentId);
     if (!comment) return;
     
     if (!comment.userLikes) comment.userLikes = [];
@@ -530,7 +631,8 @@ function dislikeCommentDetail(commentId) {
     const article = loadArticleData(articleUrl);
     if (!article) return;
     
-    const comment = findCommentByIdDetail(articleComments[article.url], commentId);
+    const normalizedUrl = normalizeUrl(articleUrl);
+    const comment = findCommentByIdDetail(articleComments[normalizedUrl], commentId);
     if (!comment) return;
     
     if (!comment.userLikes) comment.userLikes = [];
@@ -566,7 +668,8 @@ function displayCommentsDetail() {
     const commentsContainer = document.getElementById('comments-container');
     if (!commentsContainer) return;
     
-    const comments = articleComments[article.url] || [];
+    const normalizedUrl = normalizeUrl(articleUrl);
+    const comments = articleComments[normalizedUrl] || [];
     
     if (comments.length === 0) {
         commentsContainer.innerHTML = `

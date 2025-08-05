@@ -10,6 +10,7 @@
         button { padding: 10px 20px; margin: 5px; cursor: pointer; }
         .like-btn { background: #10b981; color: white; border: none; border-radius: 5px; }
         .dislike-btn { background: #ef4444; color: white; border: none; border-radius: 5px; }
+        .article-link { color: blue; text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -21,6 +22,18 @@
         <button onclick="addTestArticle()">Add Test Article</button>
         <button onclick="clearLocalStorage()">Clear LocalStorage</button>
         <div id="localStorageOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Article Detail Test</h2>
+        <button onclick="testArticleDetail()">Test Article Detail Page</button>
+        <div id="articleTestOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>URL Normalization Test</h2>
+        <button onclick="testUrlNormalization()">Test URL Normalization</button>
+        <div id="urlTestOutput"></div>
     </div>
     
     <div class="test-section">
@@ -46,14 +59,65 @@
             const userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             
-            document.getElementById('localStorageOutput').innerHTML = `
+            let output = `
                 <h3>LocalStorage Contents:</h3>
                 <p><strong>Articles:</strong> ${articles.length} articles</p>
                 <p><strong>User Likes:</strong> ${Object.keys(userLikes).length} articles liked</p>
                 <p><strong>User Dislikes:</strong> ${Object.keys(userDislikes).length} articles disliked</p>
                 <p><strong>Current User:</strong> ${currentUser ? currentUser.name : 'Not logged in'}</p>
-                <pre>${JSON.stringify({articles, userLikes, userDislikes, currentUser}, null, 2)}</pre>
             `;
+            
+            if (articles.length > 0) {
+                output += '<h4>Articles:</h4><ul>';
+                articles.forEach((article, index) => {
+                    output += `<li><span class="article-link" onclick="testArticleDetail('${article.url}')">${article.title}</span> - ${article.url}</li>`;
+                });
+                output += '</ul>';
+            }
+            
+            document.getElementById('localStorageOutput').innerHTML = output;
+        }
+        
+        function testArticleDetail(url) {
+            if (url) {
+                const testUrl = `article-detail.html?url=${encodeURIComponent(url)}`;
+                document.getElementById('articleTestOutput').innerHTML = `
+                    <p>Testing URL: <a href="${testUrl}" target="_blank">${testUrl}</a></p>
+                `;
+            } else {
+                document.getElementById('articleTestOutput').innerHTML = `
+                    <p>No URL provided for testing</p>
+                `;
+            }
+        }
+        
+        function testUrlNormalization() {
+            const testUrls = [
+                'https://scitechdaily.com/columbia-scientists-made-a-gel-from-yogurt-that-heals-tissue-and-it-works/',
+                'https://scitechdaily.com/columbia-scientists-made-a-gel-from-yogurt-that-heals-tissue-and-it-works',
+                'https://example.com/test/',
+                'https://example.com/test'
+            ];
+            
+            let output = '<h4>URL Normalization Results:</h4><ul>';
+            testUrls.forEach(url => {
+                const normalized = normalizeUrl(url);
+                output += `<li>Original: ${url}<br>Normalized: ${normalized}</li>`;
+            });
+            output += '</ul>';
+            
+            document.getElementById('urlTestOutput').innerHTML = output;
+        }
+        
+        function normalizeUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+                normalized = normalized.replace(/\/$/, '');
+                return normalized.toLowerCase();
+            } catch (error) {
+                return url.toLowerCase();
+            }
         }
         
         function addTestArticle() {
@@ -175,6 +239,9 @@
         
         // Initialize counts
         updateCounts();
+        
+        // Check localStorage on page load
+        checkLocalStorage();
     </script>
 </body>
 </html> 
