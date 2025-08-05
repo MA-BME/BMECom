@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Read Full Abstract</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .test-article {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .test-btn {
+            background: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-btn:hover {
+            background: #1d4ed8;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Read Full Abstract Functionality</h1>
+    
+    <div class="test-section">
+        <h2>Step 1: Check Current Articles</h2>
+        <button class="test-btn" onclick="checkArticles()">Check Articles in localStorage</button>
+        <div id="articlesOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Step 2: Add Test Article</h2>
+        <button class="test-btn" onclick="addTestArticle()">Add Test Article</button>
+        <div id="addArticleOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Step 3: Test Read Full Abstract Links</h2>
+        <div id="testLinksOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Step 4: Test Article Analysis</h2>
+        <input type="text" id="testUrl" placeholder="Enter URL to test analysis" style="width: 300px; padding: 8px; margin: 5px;">
+        <button class="test-btn" onclick="testArticleAnalysis()">Test Analysis</button>
+        <div id="analysisOutput"></div>
+    </div>
+
+    <script>
+        function checkArticles() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const output = document.getElementById('articlesOutput');
+            
+            if (articles.length === 0) {
+                output.innerHTML = '<p class="error">❌ No articles found in localStorage</p>';
+                return;
+            }
+            
+            let html = `<p class="success">✅ Found ${articles.length} articles:</p><ul>`;
+            articles.forEach((article, index) => {
+                html += `<li><strong>${article.title}</strong><br>
+                <small>URL: ${article.url}</small><br>
+                <small>Summary: ${article.summary ? article.summary.substring(0, 100) + '...' : 'No summary'}</small></li>`;
+            });
+            html += '</ul>';
+            
+            output.innerHTML = html;
+        }
+        
+        function addTestArticle() {
+            const testArticle = {
+                title: "Test Biomedical Engineering Article",
+                summary: "This is a comprehensive test article about biomedical engineering innovations. The research focuses on developing new medical devices and technologies that can improve patient outcomes. The study demonstrates significant advances in tissue engineering, medical imaging, and therapeutic applications. This work represents a major breakthrough in the field of biomedical engineering and has the potential to revolutionize healthcare delivery.",
+                image: "https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology",
+                source: "test.com",
+                date: "2024",
+                url: "https://test.com/biomedical-engineering-article",
+                category: "Biomedical Engineering",
+                ticker: 1,
+                userId: "test-user",
+                userName: "Test User",
+                dateAdded: new Date().toISOString()
+            };
+            
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            articles.push(testArticle);
+            localStorage.setItem('articles', JSON.stringify(articles));
+            
+            document.getElementById('addArticleOutput').innerHTML = 
+                '<p class="success">✅ Test article added successfully!</p>';
+            
+            // Refresh the articles display
+            checkArticles();
+            generateTestLinks();
+        }
+        
+        function generateTestLinks() {
+            const articles = JSON.parse(localStorage.getItem('articles')) || [];
+            const output = document.getElementById('testLinksOutput');
+            
+            if (articles.length === 0) {
+                output.innerHTML = '<p class="error">❌ No articles to test with</p>';
+                return;
+            }
+            
+            let html = '<p class="info">📋 Test these Read Full Abstract links:</p><ul>';
+            articles.forEach((article, index) => {
+                const testUrl = `article-detail.html?url=${encodeURIComponent(article.url)}`;
+                html += `<li>
+                    <strong>${article.title}</strong><br>
+                    <a href="${testUrl}" target="_blank" class="test-btn">🔗 Test Read Full Abstract</a><br>
+                    <small>Generated URL: ${testUrl}</small>
+                </li>`;
+            });
+            html += '</ul>';
+            
+            output.innerHTML = html;
+        }
+        
+        async function testArticleAnalysis() {
+            const url = document.getElementById('testUrl').value.trim();
+            const output = document.getElementById('analysisOutput');
+            
+            if (!url) {
+                output.innerHTML = '<p class="error">❌ Please enter a URL to test</p>';
+                return;
+            }
+            
+            output.innerHTML = '<p class="info">⏳ Testing article analysis...</p>';
+            
+            try {
+                // Simulate the analysis process
+                const testArticle = {
+                    title: `Test Article from ${new URL(url).hostname}`,
+                    summary: `This is a test analysis of the article from ${url}. The analysis process would extract content, generate titles and abstracts, and create a comprehensive biomedical engineering article summary.`,
+                    image: "https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology",
+                    source: new URL(url).hostname,
+                    date: new Date().getFullYear().toString(),
+                    url: url,
+                    category: "Biomedical Engineering",
+                    ticker: 1,
+                    userId: "test-user",
+                    userName: "Test User",
+                    dateAdded: new Date().toISOString()
+                };
+                
+                // Simulate delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                output.innerHTML = `
+                    <p class="success">✅ Article analysis test completed!</p>
+                    <div class="test-article">
+                        <h3>${testArticle.title}</h3>
+                        <p><strong>Source:</strong> ${testArticle.source}</p>
+                        <p><strong>Summary:</strong> ${testArticle.summary}</p>
+                        <p><strong>URL:</strong> ${testArticle.url}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Analysis test failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkArticles();
+            generateTestLinks();
+        });
+    </script>
+</body>
+</html> 
