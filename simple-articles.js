@@ -1,6 +1,6 @@
-// Super Simple BMECom Articles - Enhanced with AI Integration
+// Super Simple BMECom Articles - Enhanced with Built-in AI Integration
 
-console.log('🔧 Loading Super Simple BMECom Articles with AI...');
+console.log('🔧 Loading Super Simple BMECom Articles with Built-in AI...');
 
 // Global variables
 let articles = [];
@@ -8,7 +8,24 @@ let currentUser = null;
 let userLikes = new Set();
 let userDislikes = new Set();
 
-// AI Configuration
+// Built-in AI Configuration
+const BUILT_IN_AI_CONFIG = {
+    enabled: true,
+    models: {
+        keywordExtractor: true,
+        sentimentAnalyzer: true,
+        textSummarizer: true,
+        topicClassifier: true,
+        biomedicalAnalyzer: true
+    },
+    settings: {
+        maxKeywords: 10,
+        summaryLength: 400,
+        confidenceThreshold: 0.7
+    }
+};
+
+// AI Configuration (for external APIs - kept for compatibility)
 const AI_CONFIG = {
     openai: {
         apiKey: localStorage.getItem('openaiApiKey') || '',
@@ -37,6 +54,338 @@ const AI_CONFIG = {
     cursor_ai: {
         apiKey: localStorage.getItem('cursorAiApiKey') || '',
         enabled: false
+    }
+};
+
+// Built-in AI Models and Analysis Functions
+const BuiltInAI = {
+    // Biomedical Engineering Keywords Database
+    biomedicalKeywords: {
+        'diagnostic': ['diagnostic', 'diagnosis', 'detection', 'screening', 'monitoring', 'biomarker'],
+        'therapeutic': ['therapy', 'treatment', 'drug delivery', 'implant', 'prosthetic', 'regenerative'],
+        'imaging': ['imaging', 'mri', 'ct scan', 'ultrasound', 'x-ray', 'spectroscopy'],
+        'biomaterials': ['biomaterial', 'scaffold', 'polymer', 'ceramic', 'metal', 'composite'],
+        'tissue_engineering': ['tissue engineering', 'cell culture', 'stem cell', 'differentiation'],
+        'neural': ['neural', 'brain', 'neuro', 'cognitive', 'neuromodulation'],
+        'cardiac': ['cardiac', 'heart', 'cardiovascular', 'pacemaker', 'defibrillator'],
+        'orthopedic': ['orthopedic', 'bone', 'joint', 'fracture', 'replacement'],
+        'microfluidics': ['microfluidics', 'lab-on-chip', 'microdevice', 'microscale'],
+        'robotics': ['robotic', 'automation', 'surgical robot', 'assistive technology']
+    },
+
+    // Sentiment Analysis Keywords
+    sentimentKeywords: {
+        positive: ['breakthrough', 'innovative', 'successful', 'effective', 'promising', 'revolutionary', 'advanced', 'improved', 'enhanced', 'superior'],
+        negative: ['limitation', 'challenge', 'difficulty', 'failure', 'ineffective', 'problematic', 'restrictive', 'degraded', 'worse', 'inferior'],
+        neutral: ['study', 'research', 'analysis', 'investigation', 'examination', 'evaluation', 'assessment', 'review', 'comparison', 'observation']
+    },
+
+    // Text Processing Utilities
+    textProcessor: {
+        // Clean and normalize text
+        cleanText: function(text) {
+            return text
+                .toLowerCase()
+                .replace(/[^\w\s.,!?-]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        },
+
+        // Extract sentences
+        extractSentences: function(text) {
+            return text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 10);
+        },
+
+        // Extract words
+        extractWords: function(text) {
+            return text.toLowerCase().match(/\b\w+\b/g) || [];
+        },
+
+        // Calculate word frequency
+        getWordFrequency: function(words) {
+            const frequency = {};
+            words.forEach(word => {
+                if (word.length > 3) { // Skip short words
+                    frequency[word] = (frequency[word] || 0) + 1;
+                }
+            });
+            return frequency;
+        }
+    },
+
+    // Keyword Extraction Model
+    extractKeywords: function(text, maxKeywords = 10) {
+        console.log('🔍 Built-in AI: Extracting keywords...');
+        
+        const cleanText = this.textProcessor.cleanText(text);
+        const words = this.textProcessor.extractWords(cleanText);
+        const frequency = this.textProcessor.getWordFrequency(words);
+        
+        // Remove common stop words
+        const stopWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'a', 'an', 'as', 'from', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'within', 'without', 'against', 'toward', 'towards', 'upon', 'about', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'you', 'your', 'yours', 'yourself', 'yourselves', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'being', 'been', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'would', 'should', 'could', 'ought', 'im', 'youre', 'hes', 'shes', 'its', 'were', 'theyre', 'ive', 'youve', 'weve', 'theyve', 'id', 'youd', 'hed', 'shed', 'wed', 'theyd', 'ill', 'youll', 'hell', 'shell', 'well', 'theyll', 'isnt', 'arent', 'wasnt', 'werent', 'hasnt', 'havent', 'hadnt', 'doesnt', 'dont', 'didnt', 'wont', 'wouldnt', 'couldnt', 'shouldnt', 'may', 'might', 'must', 'can', 'cant']);
+        
+        // Filter out stop words and get top keywords
+        const filteredWords = Object.entries(frequency)
+            .filter(([word]) => !stopWords.has(word) && word.length > 3)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, maxKeywords)
+            .map(([word]) => word);
+        
+        console.log('✅ Built-in AI: Keywords extracted:', filteredWords);
+        return filteredWords;
+    },
+
+    // Sentiment Analysis Model
+    analyzeSentiment: function(text) {
+        console.log('😊 Built-in AI: Analyzing sentiment...');
+        
+        const cleanText = this.textProcessor.cleanText(text);
+        const words = this.textProcessor.extractWords(cleanText);
+        
+        let positiveScore = 0;
+        let negativeScore = 0;
+        let neutralScore = 0;
+        
+        words.forEach(word => {
+            if (this.sentimentKeywords.positive.includes(word)) positiveScore++;
+            else if (this.sentimentKeywords.negative.includes(word)) negativeScore++;
+            else if (this.sentimentKeywords.neutral.includes(word)) neutralScore++;
+        });
+        
+        const total = positiveScore + negativeScore + neutralScore;
+        const sentiment = total > 0 ? 
+            (positiveScore > negativeScore ? 'positive' : 
+             negativeScore > positiveScore ? 'negative' : 'neutral') : 'neutral';
+        
+        const confidence = total > 0 ? Math.max(positiveScore, negativeScore, neutralScore) / total : 0;
+        
+        console.log('✅ Built-in AI: Sentiment analysis complete:', { sentiment, confidence });
+        return { sentiment, confidence, scores: { positive: positiveScore, negative: negativeScore, neutral: neutralScore } };
+    },
+
+    // Topic Classification Model
+    classifyTopic: function(text) {
+        console.log('🏷️ Built-in AI: Classifying topic...');
+        
+        const cleanText = this.textProcessor.cleanText(text);
+        const words = this.textProcessor.extractWords(cleanText);
+        
+        const topicScores = {};
+        
+        // Calculate scores for each biomedical topic
+        Object.entries(this.biomedicalKeywords).forEach(([topic, keywords]) => {
+            let score = 0;
+            words.forEach(word => {
+                if (keywords.includes(word)) score++;
+            });
+            topicScores[topic] = score;
+        });
+        
+        // Find the topic with highest score
+        const primaryTopic = Object.entries(topicScores)
+            .sort(([,a], [,b]) => b - a)[0];
+        
+        const topic = primaryTopic[0];
+        const confidence = primaryTopic[1] / Math.max(...Object.values(topicScores));
+        
+        console.log('✅ Built-in AI: Topic classification complete:', { topic, confidence });
+        return { topic, confidence, scores: topicScores };
+    },
+
+    // Text Summarization Model
+    generateSummary: function(text, targetLength = 400) {
+        console.log('📝 Built-in AI: Generating summary...');
+        
+        const sentences = this.textProcessor.extractSentences(text);
+        if (sentences.length === 0) return '';
+        
+        // Score sentences based on keyword density and position
+        const keywords = this.extractKeywords(text, 15);
+        const sentenceScores = sentences.map((sentence, index) => {
+            const sentenceWords = this.textProcessor.extractWords(sentence);
+            let keywordScore = 0;
+            
+            keywords.forEach(keyword => {
+                if (sentenceWords.includes(keyword)) keywordScore++;
+            });
+            
+            // Position bonus (first sentences are more important)
+            const positionBonus = Math.max(0, 1 - (index / sentences.length));
+            
+            return {
+                sentence,
+                score: keywordScore + positionBonus,
+                index
+            };
+        });
+        
+        // Sort by score and select top sentences
+        sentenceScores.sort((a, b) => b.score - a.score);
+        
+        let summary = '';
+        let currentLength = 0;
+        
+        for (const { sentence } of sentenceScores) {
+            if (currentLength + sentence.length > targetLength) break;
+            summary += sentence + '. ';
+            currentLength += sentence.length;
+        }
+        
+        summary = summary.trim();
+        if (!summary.endsWith('.')) summary += '.';
+        
+        console.log('✅ Built-in AI: Summary generated, length:', summary.length);
+        return summary;
+    },
+
+    // Biomedical Analysis Model
+    analyzeBiomedical: function(text) {
+        console.log('🔬 Built-in AI: Performing biomedical analysis...');
+        
+        const cleanText = this.textProcessor.cleanText(text);
+        const words = this.textProcessor.extractWords(cleanText);
+        
+        // Analyze biomedical relevance
+        let biomedicalScore = 0;
+        const totalBiomedicalKeywords = Object.values(this.biomedicalKeywords).flat();
+        
+        words.forEach(word => {
+            if (totalBiomedicalKeywords.includes(word)) biomedicalScore++;
+        });
+        
+        const biomedicalRelevance = biomedicalScore / words.length;
+        
+        // Detect research type
+        const researchTypes = {
+            'experimental': ['experiment', 'trial', 'study', 'investigation', 'test'],
+            'clinical': ['clinical', 'patient', 'trial', 'treatment', 'therapy'],
+            'computational': ['simulation', 'model', 'algorithm', 'computation', 'analysis'],
+            'review': ['review', 'survey', 'overview', 'literature', 'meta-analysis']
+        };
+        
+        const researchScores = {};
+        Object.entries(researchTypes).forEach(([type, keywords]) => {
+            let score = 0;
+            words.forEach(word => {
+                if (keywords.includes(word)) score++;
+            });
+            researchScores[type] = score;
+        });
+        
+        const primaryResearchType = Object.entries(researchScores)
+            .sort(([,a], [,b]) => b - a)[0][0];
+        
+        console.log('✅ Built-in AI: Biomedical analysis complete');
+        return {
+            biomedicalRelevance,
+            primaryResearchType,
+            researchScores,
+            keywordCount: biomedicalScore
+        };
+    },
+
+    // Main Analysis Function
+    analyzeArticle: function(url, content) {
+        console.log('🤖 Built-in AI: Starting comprehensive article analysis...');
+        
+        try {
+            // Perform all analyses
+            const keywords = this.extractKeywords(content);
+            const sentiment = this.analyzeSentiment(content);
+            const topic = this.classifyTopic(content);
+            const summary = this.generateSummary(content, BUILT_IN_AI_CONFIG.settings.summaryLength);
+            const biomedical = this.analyzeBiomedical(content);
+            
+            // Generate intelligent title based on analysis
+            const title = this.generateTitle(url, content, keywords, topic);
+            
+            // Combine analyses into comprehensive abstract
+            const abstract = this.generateComprehensiveAbstract(content, keywords, sentiment, topic, biomedical);
+            
+            console.log('✅ Built-in AI: Comprehensive analysis complete');
+            
+            return {
+                title,
+                summary: abstract,
+                keywords,
+                sentiment,
+                topic,
+                biomedical,
+                analysisMethod: 'built-in-ai'
+            };
+            
+        } catch (error) {
+            console.error('❌ Built-in AI analysis error:', error);
+            return null;
+        }
+    },
+
+    // Generate intelligent title
+    generateTitle: function(url, content, keywords, topic) {
+        console.log('📋 Built-in AI: Generating intelligent title...');
+        
+        // Extract domain for context
+        const domain = new URL(url).hostname.replace('www.', '');
+        
+        // Use top keywords and topic to create title
+        const topKeywords = keywords.slice(0, 3);
+        const topicName = topic.topic.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        let title = '';
+        
+        if (topKeywords.length > 0) {
+            title = `${topKeywords[0].charAt(0).toUpperCase() + topKeywords[0].slice(1)} `;
+            if (topKeywords.length > 1) {
+                title += `and ${topKeywords[1]} `;
+            }
+            title += `in ${topicName}`;
+        } else {
+            title = `Biomedical Engineering Research: ${topicName}`;
+        }
+        
+        // Add domain context if relevant
+        if (domain.includes('nature') || domain.includes('science')) {
+            title += ' - Research Study';
+        } else if (domain.includes('medical') || domain.includes('health')) {
+            title += ' - Medical Application';
+        }
+        
+        console.log('✅ Built-in AI: Title generated:', title);
+        return title;
+    },
+
+    // Generate comprehensive abstract
+    generateComprehensiveAbstract: function(content, keywords, sentiment, topic, biomedical) {
+        console.log('📄 Built-in AI: Generating comprehensive abstract...');
+        
+        // Start with AI-generated summary
+        let abstract = this.generateSummary(content, 300);
+        
+        // Add topic context
+        const topicName = topic.topic.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        abstract += ` This research focuses on ${topicName} applications in biomedical engineering.`;
+        
+        // Add sentiment context
+        if (sentiment.confidence > 0.3) {
+            if (sentiment.sentiment === 'positive') {
+                abstract += ' The findings demonstrate promising results and significant potential for clinical applications.';
+            } else if (sentiment.sentiment === 'negative') {
+                abstract += ' The study identifies important challenges and limitations that need to be addressed.';
+            }
+        }
+        
+        // Add biomedical relevance
+        if (biomedical.biomedicalRelevance > 0.1) {
+            abstract += ` The research contributes to the field of biomedical engineering with ${biomedical.primaryResearchType} methodology.`;
+        }
+        
+        // Ensure proper length
+        if (abstract.length > 500) {
+            abstract = abstract.substring(0, 500) + '...';
+        }
+        
+        console.log('✅ Built-in AI: Comprehensive abstract generated, length:', abstract.length);
+        return abstract;
     }
 };
 
@@ -248,7 +597,7 @@ async function handleUrlSubmission() {
 
 // Create article data with AI
 async function createArticleDataWithAI(url) {
-    console.log('🤖 Creating article data with AI for URL:', url);
+    console.log('🤖 Creating article data with Built-in AI for URL:', url);
     
     const domain = new URL(url).hostname;
     
@@ -256,24 +605,80 @@ async function createArticleDataWithAI(url) {
     let title = 'Biomedical Engineering Article';
     let summary = '';
     let image = '';
+    let aiAnalysis = null;
     
     try {
         // First, try to extract image from the article
         image = await extractImageFromArticle(url);
         
-        // Get multiple AI-generated abstracts and combine them
-        const combinedAIResults = await generateCombinedAbstracts(url);
-        
-        if (combinedAIResults) {
-            title = combinedAIResults.title;
-            summary = combinedAIResults.summary;
-            console.log('✅ Combined AI generated content successfully');
+        // Use Built-in AI for analysis
+        if (BUILT_IN_AI_CONFIG.enabled) {
+            console.log('🤖 Using Built-in AI models for analysis...');
+            
+            // Fetch article content for analysis
+            const corsProxy = 'https://api.allorigins.win/raw?url=';
+            const articleResponse = await fetch(corsProxy + encodeURIComponent(url));
+            
+            if (articleResponse.ok) {
+                const articleContent = await articleResponse.text();
+                console.log('📄 Successfully fetched article content, length:', articleContent.length);
+                
+                // Parse and clean the content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(articleContent, 'text/html');
+                
+                // Remove script and style elements
+                const scripts = doc.querySelectorAll('script, style, nav, header, footer, .ad, .advertisement');
+                scripts.forEach(el => el.remove());
+                
+                // Extract text content
+                const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
+                const titleText = doc.title || '';
+                
+                const cleanText = (bodyText + ' ' + titleText)
+                    .replace(/\s+/g, ' ')
+                    .replace(/[^\w\s.,!?-]/g, ' ')
+                    .trim()
+                    .substring(0, 8000);
+                
+                console.log('🧹 Cleaned content length:', cleanText.length);
+                
+                // Perform comprehensive Built-in AI analysis
+                aiAnalysis = BuiltInAI.analyzeArticle(url, cleanText);
+                
+                if (aiAnalysis) {
+                    title = aiAnalysis.title;
+                    summary = aiAnalysis.summary;
+                    console.log('✅ Built-in AI generated content successfully');
+                    console.log('📊 Analysis results:', {
+                        keywords: aiAnalysis.keywords,
+                        sentiment: aiAnalysis.sentiment,
+                        topic: aiAnalysis.topic,
+                        biomedical: aiAnalysis.biomedical
+                    });
+                }
+            } else {
+                console.log('❌ Failed to fetch article content for Built-in AI analysis');
+            }
         }
+        
+        // Fallback to external AI if Built-in AI is disabled or fails
+        if (!aiAnalysis && (!BUILT_IN_AI_CONFIG.enabled || !title || title === 'Biomedical Engineering Article')) {
+            console.log('🔄 Falling back to external AI services...');
+            const combinedAIResults = await generateCombinedAbstracts(url);
+            
+            if (combinedAIResults) {
+                title = combinedAIResults.title;
+                summary = combinedAIResults.summary;
+                console.log('✅ External AI generated content successfully');
+            }
+        }
+        
     } catch (error) {
         console.log('❌ AI generation failed, using fallback:', error.message);
     }
     
-    // Fallback if AI fails
+    // Fallback if all AI fails
     if (!title || title === 'Biomedical Engineering Article') {
         title = generateFallbackTitle(url);
     }
@@ -300,7 +705,8 @@ async function createArticleDataWithAI(url) {
         userName: currentUser.name,
         dateAdded: new Date().toISOString(),
         likes: 0,
-        dislikes: 0
+        dislikes: 0,
+        aiAnalysis: aiAnalysis // Store the detailed AI analysis
     };
 }
 
