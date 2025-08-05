@@ -103,6 +103,8 @@ function setupUI() {
     const logoutLink = document.getElementById('logoutLink');
     const urlInputSection = document.getElementById('urlInputSection');
     const loginRequiredSection = document.getElementById('loginRequiredSection');
+    const moderatorLink = document.getElementById('moderatorLink');
+    const moderatorSection = document.getElementById('moderatorSection');
     
     console.log('📋 Found UI elements:', {
         userInfo: !!userInfo,
@@ -110,7 +112,9 @@ function setupUI() {
         loginLink: !!loginLink,
         logoutLink: !!logoutLink,
         urlInputSection: !!urlInputSection,
-        loginRequiredSection: !!loginRequiredSection
+        loginRequiredSection: !!loginRequiredSection,
+        moderatorLink: !!moderatorLink,
+        moderatorSection: !!moderatorSection
     });
     
     if (currentUser) {
@@ -122,6 +126,21 @@ function setupUI() {
         if (logoutLink) logoutLink.style.display = 'inline';
         if (urlInputSection) urlInputSection.style.display = 'block';
         if (loginRequiredSection) loginRequiredSection.style.display = 'none';
+        
+        // Check for moderator access
+        console.log('🔍 Checking moderator access for user:', currentUser.email, 'role:', currentUser.role);
+        if (moderatorLink && currentUser.role === 'moderator') {
+            console.log('👑 Showing moderator link for user:', currentUser.email);
+            moderatorLink.style.display = 'inline-block';
+        } else if (moderatorLink) {
+            console.log('❌ Hiding moderator link - user is not a moderator');
+            moderatorLink.style.display = 'none';
+        }
+        
+        // Hide moderator section by default
+        if (moderatorSection) {
+            moderatorSection.style.display = 'none';
+        }
     } else {
         console.log('❌ User is not logged in, showing login UI');
         // User is not logged in
@@ -130,6 +149,10 @@ function setupUI() {
         if (logoutLink) logoutLink.style.display = 'none';
         if (urlInputSection) urlInputSection.style.display = 'none';
         if (loginRequiredSection) loginRequiredSection.style.display = 'block';
+        
+        // Hide moderator elements when not logged in
+        if (moderatorLink) moderatorLink.style.display = 'none';
+        if (moderatorSection) moderatorSection.style.display = 'none';
     }
     
     // Display articles
@@ -159,6 +182,15 @@ function setupEventListeners() {
     if (logoutLink) {
         logoutLink.onclick = function() {
             handleLogout();
+        };
+    }
+    
+    // Moderator link
+    const moderatorLink = document.getElementById('moderatorLink');
+    if (moderatorLink) {
+        moderatorLink.onclick = function(e) {
+            e.preventDefault();
+            toggleModeratorSection();
         };
     }
 }
@@ -789,6 +821,40 @@ function handleLogout() {
     userDislikes = new Set();
     setupUI();
     showMessage('Logged out successfully', 'success');
+}
+
+// Toggle moderator section visibility
+function toggleModeratorSection() {
+    console.log('🔄 Toggling moderator section...');
+    const moderatorSection = document.getElementById('moderatorSection');
+    const moderatorLink = document.getElementById('moderatorLink');
+    
+    if (!moderatorSection) {
+        console.log('❌ Moderator section not found');
+        return;
+    }
+    
+    if (!currentUser || currentUser.role !== 'moderator') {
+        console.log('❌ User is not a moderator, cannot access moderator section');
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    if (moderatorSection.style.display === 'none') {
+        console.log('👑 Showing moderator section');
+        moderatorSection.style.display = 'block';
+        if (moderatorLink) {
+            moderatorLink.style.color = '#10b981';
+            moderatorLink.style.fontWeight = '600';
+        }
+    } else {
+        console.log('👑 Hiding moderator section');
+        moderatorSection.style.display = 'none';
+        if (moderatorLink) {
+            moderatorLink.style.color = '';
+            moderatorLink.style.fontWeight = '';
+        }
+    }
 }
 
 // Show message
