@@ -861,6 +861,45 @@ function showDuplicateStats() {
     alert(`📊 Duplicate Statistics:\n\nTotal Articles: ${stats.totalArticles}\nUnique URLs: ${stats.uniqueUrls}\nDuplicates: ${stats.duplicates}`);
 }
 
+function deleteAllArticles() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required to delete all articles', 'error');
+        return;
+    }
+    
+    if (articles.length === 0) {
+        showMessage('No articles to delete', 'info');
+        return;
+    }
+    
+    const confirmMessage = `Are you sure you want to delete ALL ${articles.length} articles?\n\nThis action cannot be undone!`;
+    
+    if (confirm(confirmMessage)) {
+        // Clear all articles
+        articles = [];
+        localStorage.setItem('articles', JSON.stringify(articles));
+        
+        // Clear all user likes/dislikes for all users
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith('userLikes_') || key.startsWith('userDislikes_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Clear current user's likes/dislikes
+        if (currentUser) {
+            userLikes = new Set();
+            userDislikes = new Set();
+            localStorage.setItem(`userLikes_${currentUser.id}`, JSON.stringify([...userLikes]));
+            localStorage.setItem(`userDislikes_${currentUser.id}`, JSON.stringify([...userDislikes]));
+        }
+        
+        showMessage(`Successfully deleted all ${articles.length} articles!`, 'success');
+        displayArticles();
+    }
+}
+
 function resetTickerStats() {
     if (confirm('Are you sure you want to reset all ticker statistics?')) {
         // Reset any ticker-related data
@@ -918,4 +957,35 @@ function ensureMinimumAbstractLength() {
     // Implementation would go here
 }
 
-console.log('✅ Super Simple BMECom Articles with AI loaded successfully!'); 
+console.log('✅ Super Simple BMECom Articles with AI loaded successfully!');
+
+// Global function to delete all articles (can be called from console)
+window.deleteAllArticlesNow = function() {
+    if (confirm('Are you sure you want to delete ALL articles? This cannot be undone!')) {
+        // Clear all articles
+        articles = [];
+        localStorage.setItem('articles', JSON.stringify(articles));
+        
+        // Clear all user likes/dislikes for all users
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith('userLikes_') || key.startsWith('userDislikes_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Clear current user's likes/dislikes
+        if (currentUser) {
+            userLikes = new Set();
+            userDislikes = new Set();
+            localStorage.setItem(`userLikes_${currentUser.id}`, JSON.stringify([...userLikes]));
+            localStorage.setItem(`userDislikes_${currentUser.id}`, JSON.stringify([...userDislikes]));
+        }
+        
+        alert('All articles have been deleted successfully!');
+        displayArticles();
+        console.log('🗑️ All articles deleted successfully!');
+    }
+};
+
+console.log('💡 To delete all articles from console, run: deleteAllArticlesNow()'); 
