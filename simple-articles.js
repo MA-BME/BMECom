@@ -5,6 +5,8 @@ console.log('🔧 Loading Super Simple BMECom Articles with AI...');
 // Global variables
 let articles = [];
 let currentUser = null;
+let userLikes = new Set();
+let userDislikes = new Set();
 
 // AI Configuration
 const AI_CONFIG = {
@@ -69,12 +71,24 @@ function loadData() {
             console.log('❌ No current user found');
         }
         
+        // Load user likes/dislikes
+        if (currentUser) {
+            const likesData = localStorage.getItem(`userLikes_${currentUser.id}`) || '[]';
+            const dislikesData = localStorage.getItem(`userDislikes_${currentUser.id}`) || '[]';
+            userLikes = new Set(JSON.parse(likesData));
+            userDislikes = new Set(JSON.parse(dislikesData));
+            console.log('👍 User likes loaded:', userLikes.size);
+            console.log('👎 User dislikes loaded:', userDislikes.size);
+        }
+        
         console.log('📊 Loaded', articles.length, 'articles');
         console.log('🔐 Authentication status:', currentUser ? 'Logged in as ' + currentUser.name : 'Not logged in');
     } catch (error) {
         console.error('Error loading data:', error);
         articles = [];
         currentUser = null;
+        userLikes = new Set();
+        userDislikes = new Set();
     }
 }
 
@@ -241,6 +255,7 @@ async function createArticleDataWithAI(url) {
     }
     
     return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         title: title,
         summary: summary,
         image: `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology&t=${Date.now()}`,
@@ -589,6 +604,13 @@ function createArticleCard(article, index) {
     const card = document.createElement('div');
     card.className = 'article-card';
     
+    // Check if user has liked/disliked this article
+    const isLiked = userLikes.has(article.id);
+    const isDisliked = userDislikes.has(article.id);
+    
+    // Check if user can delete this article (own article or moderator)
+    const canDelete = currentUser && (article.userId === currentUser.id || currentUser.role === 'moderator');
+    
     card.innerHTML = `
         <div class="article-image">
             <img src="${article.image}" alt="${article.title}" loading="lazy" 
@@ -596,9 +618,18 @@ function createArticleCard(article, index) {
         </div>
         
         <div class="article-content">
-            <h3 class="article-title">
-                <a href="abstract-viewer.html?url=${encodeURIComponent(article.url)}">${article.title}</a>
-            </h3>
+            <div class="article-header">
+                <h3 class="article-title">
+                    <a href="abstract-viewer.html?url=${encodeURIComponent(article.url)}">${article.title}</a>
+                </h3>
+                ${canDelete ? `
+                    <button class="delete-btn" onclick="deleteArticle('${article.id}')" title="Delete article">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                ` : ''}
+            </div>
             
             <p class="article-summary">${article.summary.substring(0, 200)}...</p>
             
@@ -609,10 +640,10 @@ function createArticleCard(article, index) {
             
             <div class="article-actions">
                 <div class="like-dislike-buttons">
-                    <button class="like-btn" onclick="likeArticle(${index})">
+                    <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle('${article.id}')" title="Like article">
                         👍 ${article.likes || 0}
                     </button>
-                    <button class="dislike-btn" onclick="dislikeArticle(${index})">
+                    <button class="dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeArticle('${article.id}')" title="Dislike article">
                         👎 ${article.dislikes || 0}
                     </button>
                 </div>
@@ -628,33 +659,128 @@ function createArticleCard(article, index) {
 }
 
 // Like article
-function likeArticle(index) {
+function likeArticle(articleId) {
     if (!currentUser) {
         showMessage('Please log in to like articles', 'error');
         return;
     }
     
-    articles[index].likes = (articles[index].likes || 0) + 1;
+    const article = articles.find(a => a.id === articleId);
+    if (!article) {
+        showMessage('Article not found', 'error');
+        return;
+    }
+    
+    // If user already liked, remove like
+    if (userLikes.has(articleId)) {
+        userLikes.delete(articleId);
+        article.likes = Math.max(0, (article.likes || 0) - 1);
+        showMessage('Like removed', 'success');
+    } else {
+        // Add like and remove dislike if exists
+        userLikes.add(articleId);
+        if (userDislikes.has(articleId)) {
+            userDislikes.delete(articleId);
+            article.dislikes = Math.max(0, (article.dislikes || 0) - 1);
+        }
+        article.likes = (article.likes || 0) + 1;
+        showMessage('Article liked!', 'success');
+    }
+    
+    // Save data
     localStorage.setItem('articles', JSON.stringify(articles));
+    localStorage.setItem(`userLikes_${currentUser.id}`, JSON.stringify([...userLikes]));
+    localStorage.setItem(`userDislikes_${currentUser.id}`, JSON.stringify([...userDislikes]));
+    
+    // Update display
     displayArticles();
 }
 
 // Dislike article
-function dislikeArticle(index) {
+function dislikeArticle(articleId) {
     if (!currentUser) {
         showMessage('Please log in to dislike articles', 'error');
         return;
     }
     
-    articles[index].dislikes = (articles[index].dislikes || 0) + 1;
+    const article = articles.find(a => a.id === articleId);
+    if (!article) {
+        showMessage('Article not found', 'error');
+        return;
+    }
+    
+    // If user already disliked, remove dislike
+    if (userDislikes.has(articleId)) {
+        userDislikes.delete(articleId);
+        article.dislikes = Math.max(0, (article.dislikes || 0) - 1);
+        showMessage('Dislike removed', 'success');
+    } else {
+        // Add dislike and remove like if exists
+        userDislikes.add(articleId);
+        if (userLikes.has(articleId)) {
+            userLikes.delete(articleId);
+            article.likes = Math.max(0, (article.likes || 0) - 1);
+        }
+        article.dislikes = (article.dislikes || 0) + 1;
+        showMessage('Article disliked', 'success');
+    }
+    
+    // Save data
     localStorage.setItem('articles', JSON.stringify(articles));
+    localStorage.setItem(`userLikes_${currentUser.id}`, JSON.stringify([...userLikes]));
+    localStorage.setItem(`userDislikes_${currentUser.id}`, JSON.stringify([...userDislikes]));
+    
+    // Update display
     displayArticles();
+}
+
+// Delete article
+function deleteArticle(articleId) {
+    if (!currentUser) {
+        showMessage('Please log in to delete articles', 'error');
+        return;
+    }
+    
+    const article = articles.find(a => a.id === articleId);
+    if (!article) {
+        showMessage('Article not found', 'error');
+        return;
+    }
+    
+    // Check if user can delete this article
+    if (article.userId !== currentUser.id && currentUser.role !== 'moderator') {
+        showMessage('You can only delete your own articles', 'error');
+        return;
+    }
+    
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete "${article.title}"?`)) {
+        return;
+    }
+    
+    // Remove article
+    const articleIndex = articles.findIndex(a => a.id === articleId);
+    if (articleIndex > -1) {
+        articles.splice(articleIndex, 1);
+        localStorage.setItem('articles', JSON.stringify(articles));
+        
+        // Remove from user likes/dislikes
+        userLikes.delete(articleId);
+        userDislikes.delete(articleId);
+        localStorage.setItem(`userLikes_${currentUser.id}`, JSON.stringify([...userLikes]));
+        localStorage.setItem(`userDislikes_${currentUser.id}`, JSON.stringify([...userDislikes]));
+        
+        showMessage('Article deleted successfully', 'success');
+        displayArticles();
+    }
 }
 
 // Handle logout
 function handleLogout() {
     localStorage.removeItem('currentUser');
     currentUser = null;
+    userLikes = new Set();
+    userDislikes = new Set();
     setupUI();
     showMessage('Logged out successfully', 'success');
 }

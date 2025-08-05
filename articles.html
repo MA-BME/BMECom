@@ -490,6 +490,96 @@
         .ticker-text {
             font-weight: 600;
         }
+        
+        /* Like/Dislike Button Styles */
+        .like-dislike-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .like-btn, .dislike-btn {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .like-btn:hover {
+            border-color: #10b981;
+            color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .dislike-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .like-btn.liked {
+            border-color: #10b981;
+            background: #10b981;
+            color: white;
+        }
+        
+        .dislike-btn.disliked {
+            border-color: #ef4444;
+            background: #ef4444;
+            color: white;
+        }
+        
+        /* Delete Button Styles */
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            opacity: 0.7;
+        }
+        
+        .delete-btn:hover {
+            background: #dc2626;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        
+        .delete-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .article-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1.4;
+            flex: 1;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
