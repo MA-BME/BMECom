@@ -724,66 +724,66 @@ async function createArticleDataWithAI(url) {
         // First, try to extract image from the article
         image = await extractImageFromArticle(url);
         
-        // Use Built-in AI for analysis
-        if (BUILT_IN_AI_CONFIG.enabled) {
-            console.log('🤖 Using Built-in AI models for analysis...');
-            
-            // Fetch article content for analysis
-            const corsProxy = 'https://api.allorigins.win/raw?url=';
-            const articleResponse = await fetch(corsProxy + encodeURIComponent(url));
-            
-            if (articleResponse.ok) {
-                const articleContent = await articleResponse.text();
-                console.log('📄 Successfully fetched article content, length:', articleContent.length);
-                
-                // Parse and clean the content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(articleContent, 'text/html');
-                
-                // Remove script and style elements
-                const scripts = doc.querySelectorAll('script, style, nav, header, footer, .ad, .advertisement');
-                scripts.forEach(el => el.remove());
-                
-                // Extract text content
-                const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
-                const titleText = doc.title || '';
-                
-                const cleanText = (bodyText + ' ' + titleText)
-                    .replace(/\s+/g, ' ')
-                    .replace(/[^\w\s.,!?-]/g, ' ')
-                    .trim()
-                    .substring(0, 8000);
-                
-                console.log('🧹 Cleaned content length:', cleanText.length);
-                
-                // Perform comprehensive Built-in AI analysis
-                aiAnalysis = BuiltInAI.analyzeArticle(url, cleanText);
-                
-                if (aiAnalysis) {
-                    title = aiAnalysis.title;
-                    summary = aiAnalysis.summary;
-                    console.log('✅ Built-in AI generated content successfully');
-                    console.log('📊 Analysis results:', {
-                        keywords: aiAnalysis.keywords,
-                        sentiment: aiAnalysis.sentiment,
-                        topic: aiAnalysis.topic,
-                        biomedical: aiAnalysis.biomedical
-                    });
-                }
-            } else {
-                console.log('❌ Failed to fetch article content for Built-in AI analysis');
-            }
+        // Use External AI services as primary
+        console.log('🤖 Using External AI services as primary...');
+        const combinedAIResults = await generateCombinedAbstracts(url);
+        
+        if (combinedAIResults) {
+            title = combinedAIResults.title;
+            summary = combinedAIResults.summary;
+            console.log('✅ External AI generated content successfully');
         }
         
-        // Fallback to external AI if Built-in AI is disabled or fails
-        if (!aiAnalysis && (!BUILT_IN_AI_CONFIG.enabled || !title || title === 'Biomedical Engineering Article')) {
-            console.log('🔄 Falling back to external AI services...');
-            const combinedAIResults = await generateCombinedAbstracts(url);
+        // Fallback to Built-in AI if external AI fails
+        if (!title || title === 'Biomedical Engineering Article' || !summary) {
+            console.log('🔄 Falling back to Built-in AI models...');
             
-            if (combinedAIResults) {
-                title = combinedAIResults.title;
-                summary = combinedAIResults.summary;
-                console.log('✅ External AI generated content successfully');
+            if (BUILT_IN_AI_CONFIG.enabled) {
+                // Fetch article content for analysis
+                const corsProxy = 'https://api.allorigins.win/raw?url=';
+                const articleResponse = await fetch(corsProxy + encodeURIComponent(url));
+                
+                if (articleResponse.ok) {
+                    const articleContent = await articleResponse.text();
+                    console.log('📄 Successfully fetched article content, length:', articleContent.length);
+                    
+                    // Parse and clean the content
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(articleContent, 'text/html');
+                    
+                    // Remove script and style elements
+                    const scripts = doc.querySelectorAll('script, style, nav, header, footer, .ad, .advertisement');
+                    scripts.forEach(el => el.remove());
+                    
+                    // Extract text content
+                    const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
+                    const titleText = doc.title || '';
+                    
+                    const cleanText = (bodyText + ' ' + titleText)
+                        .replace(/\s+/g, ' ')
+                        .replace(/[^\w\s.,!?-]/g, ' ')
+                        .trim()
+                        .substring(0, 8000);
+                    
+                    console.log('🧹 Cleaned content length:', cleanText.length);
+                    
+                    // Perform comprehensive Built-in AI analysis
+                    aiAnalysis = BuiltInAI.analyzeArticle(url, cleanText);
+                    
+                    if (aiAnalysis) {
+                        title = aiAnalysis.title;
+                        summary = aiAnalysis.summary;
+                        console.log('✅ Built-in AI generated content successfully');
+                        console.log('📊 Analysis results:', {
+                            keywords: aiAnalysis.keywords,
+                            sentiment: aiAnalysis.sentiment,
+                            topic: aiAnalysis.topic,
+                            biomedical: aiAnalysis.biomedical
+                        });
+                    }
+                } else {
+                    console.log('❌ Failed to fetch article content for Built-in AI analysis');
+                }
             }
         }
         
