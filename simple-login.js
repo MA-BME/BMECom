@@ -1,18 +1,10 @@
-// Super Simple BMECom Login - Guaranteed to Work
+// Super Simple BMECom Login - Fixed to Match HTML Structure
 
 console.log('🔧 Loading Super Simple BMECom Login...');
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Page loaded, setting up login...');
-    
-    // Get form elements
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const loginTab = document.getElementById('loginTab');
-    const registerTab = document.getElementById('registerTab');
-    const loginContent = document.getElementById('loginContent');
-    const registerContent = document.getElementById('registerContent');
     
     // Check if already logged in
     const currentUser = localStorage.getItem('currentUser');
@@ -22,20 +14,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Setup tab switching
-    if (loginTab && registerTab && loginContent && registerContent) {
-        loginTab.onclick = function() {
-            loginTab.classList.add('active');
-            registerTab.classList.remove('active');
-            loginContent.style.display = 'block';
-            registerContent.style.display = 'none';
-        };
-        
-        registerTab.onclick = function() {
-            registerTab.classList.add('active');
-            loginTab.classList.remove('active');
-            registerContent.style.display = 'block';
-            loginContent.style.display = 'none';
+    // Get form elements
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const toggleLink = document.getElementById('toggleLink');
+    const toggleText = document.getElementById('toggleText');
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    
+    console.log('📋 Found elements:', {
+        loginForm: !!loginForm,
+        signupForm: !!signupForm,
+        toggleLink: !!toggleLink
+    });
+    
+    // Setup form switching
+    if (toggleLink) {
+        toggleLink.onclick = function(e) {
+            e.preventDefault();
+            toggleForms();
         };
     }
     
@@ -47,21 +44,61 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
-    // Setup register form
-    if (registerForm) {
-        registerForm.onsubmit = function(e) {
+    // Setup signup form
+    if (signupForm) {
+        signupForm.onsubmit = function(e) {
             e.preventDefault();
-            handleRegister();
+            handleSignup();
         };
     }
     
     console.log('✅ Login setup complete!');
 });
 
+// Toggle between login and signup forms
+function toggleForms() {
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const toggleLink = document.getElementById('toggleLink');
+    const toggleText = document.getElementById('toggleText');
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    
+    if (loginForm.style.display === 'none') {
+        // Show login form
+        loginForm.style.display = 'flex';
+        signupForm.style.display = 'none';
+        authTitle.textContent = 'Login';
+        authSubtitle.textContent = 'Welcome back to BMECom';
+        toggleText.innerHTML = 'Don\'t have an account? <a href="#" id="toggleLink">Sign up</a>';
+    } else {
+        // Show signup form
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'flex';
+        authTitle.textContent = 'Sign Up';
+        authSubtitle.textContent = 'Create your BMECom account';
+        toggleText.innerHTML = 'Already have an account? <a href="#" id="toggleLink">Login</a>';
+    }
+    
+    // Re-attach click handler
+    const newToggleLink = document.getElementById('toggleLink');
+    if (newToggleLink) {
+        newToggleLink.onclick = function(e) {
+            e.preventDefault();
+            toggleForms();
+        };
+    }
+}
+
 // Handle login
 function handleLogin() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    console.log('🔐 Handling login...');
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
     
     if (!email || !password) {
         showMessage('Please fill in all fields', 'error');
@@ -70,11 +107,14 @@ function handleLogin() {
     
     // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]');
+    console.log('👥 Found', users.length, 'users in storage');
     
     // Find user
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
+        console.log('✅ Login successful for user:', user.name);
+        
         // Login successful
         localStorage.setItem('currentUser', JSON.stringify({
             id: user.id,
@@ -88,16 +128,23 @@ function handleLogin() {
             window.location.href = 'articles.html';
         }, 1000);
     } else {
+        console.log('❌ Login failed - invalid credentials');
         showMessage('Invalid email or password', 'error');
     }
 }
 
-// Handle register
-function handleRegister() {
-    const name = document.getElementById('registerName').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
+// Handle signup
+function handleSignup() {
+    console.log('📝 Handling signup...');
+    
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    console.log('👤 Name:', name);
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
     
     if (!name || !email || !password || !confirmPassword) {
         showMessage('Please fill in all fields', 'error');
@@ -131,6 +178,8 @@ function handleRegister() {
         password: password
     };
     
+    console.log('✅ Creating new user:', newUser.name);
+    
     // Add to users array
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
@@ -151,12 +200,17 @@ function handleRegister() {
 
 // Show message
 function showMessage(message, type) {
+    console.log('💬 Showing message:', type, message);
+    
     const messageContainer = document.getElementById('messageContainer');
     if (messageContainer) {
         messageContainer.innerHTML = '<div class="' + type + '-message">' + message + '</div>';
         setTimeout(function() {
             messageContainer.innerHTML = '';
         }, 5000);
+    } else {
+        console.error('❌ Message container not found!');
+        alert(message); // Fallback
     }
 }
 
