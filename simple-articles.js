@@ -421,67 +421,122 @@ const BuiltInAI = {
             !['research', 'study', 'analysis', 'method', 'result', 'conclusion'].includes(keyword.toLowerCase())
         );
         
-        // Build unique abstract with specific details
+        // Extract specific research findings and conclusions
+        const findingPatterns = [
+            /found that (.+?)(?:\.|,)/gi,
+            /discovered (.+?)(?:\.|,)/gi,
+            /revealed (.+?)(?:\.|,)/gi,
+            /demonstrated (.+?)(?:\.|,)/gi,
+            /showed (.+?)(?:\.|,)/gi,
+            /indicated (.+?)(?:\.|,)/gi,
+            /concluded (.+?)(?:\.|,)/gi
+        ];
+        
+        const specificFindings = [];
+        findingPatterns.forEach(pattern => {
+            const matches = content.match(pattern);
+            if (matches) {
+                specificFindings.push(...matches.slice(0, 2)); // Take first 2 matches from each pattern
+            }
+        });
+        
+        // Build intelligent abstract that combines AI analysis with article-specific content
         let abstract = '';
         
-        // Start with the most relevant sentence from keyword analysis
-        if (keywordSentences.length > 0) {
-            abstract = keywordSentences[0];
-            if (!abstract.endsWith('.')) abstract += '.';
-        } else {
-            // Fallback to AI-generated summary
-            abstract = this.generateSummary(content, 200);
-        }
-        
-        // Add specific technical details
-        if (technicalTerms.length > 0) {
-            const topTerms = technicalTerms.slice(0, 3).join(', ');
-            abstract += ` The study specifically examines ${topTerms} in detail.`;
-        }
-        
-        // Add numerical data if available
-        if (numericalData.length > 0) {
-            const uniqueData = [...new Set(numericalData)].slice(0, 3);
-            abstract += ` Key measurements include ${uniqueData.join(', ')}.`;
-        }
-        
-        // Add topic-specific context with details
+        // Start with AI-generated contextual introduction
         const topicName = topic.topic.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        abstract += ` This research specifically addresses ${topicName} challenges in biomedical engineering.`;
+        const researchType = biomedical.primaryResearchType || 'comprehensive';
         
-        // Add research methodology details
-        if (biomedical.primaryResearchType) {
-            const methodDetails = {
-                'experimental': 'using experimental protocols and controlled testing procedures',
-                'clinical': 'through clinical trials and patient-based studies',
-                'computational': 'employing computational modeling and algorithmic analysis',
-                'review': 'via comprehensive literature review and meta-analysis'
-            };
-            const methodDetail = methodDetails[biomedical.primaryResearchType] || 'using advanced analytical methods';
-            abstract += ` The investigation employs ${methodDetail}.`;
+        // Create intelligent opening based on research type and topic
+        const openingPhrases = {
+            'experimental': `This experimental investigation explores advanced ${topicName.toLowerCase()} methodologies`,
+            'clinical': `This clinical study examines ${topicName.toLowerCase()} applications in patient care`,
+            'computational': `This computational analysis investigates ${topicName.toLowerCase()} algorithms and models`,
+            'review': `This comprehensive review evaluates ${topicName.toLowerCase()} developments and trends`,
+            'comprehensive': `This research investigation examines ${topicName.toLowerCase()} applications and methodologies`
+        };
+        
+        abstract = openingPhrases[researchType] || openingPhrases['comprehensive'];
+        
+        // Add specific technical context from the article
+        if (technicalTerms.length > 0) {
+            const primaryTerms = technicalTerms.slice(0, 2);
+            abstract += `, specifically focusing on ${primaryTerms.join(' and ')}`;
         }
         
-        // Add sentiment-based specific conclusions
-        if (sentiment.confidence > 0.3) {
-            if (sentiment.sentiment === 'positive') {
-                abstract += ' The results demonstrate significant improvements and validate the effectiveness of the proposed approach.';
-            } else if (sentiment.sentiment === 'negative') {
-                abstract += ' The findings reveal critical limitations and identify specific areas requiring further investigation.';
-            } else {
-                abstract += ' The analysis provides balanced insights into both advantages and limitations of the methodology.';
+        abstract += '.';
+        
+        // Add specific findings from the article content (not just keywords)
+        if (specificFindings.length > 0) {
+            const keyFinding = specificFindings[0].replace(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded)\s+/i, '');
+            if (keyFinding.length > 20 && keyFinding.length < 150) {
+                abstract += ` The research ${specificFindings[0].match(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded)/i)[0]} ${keyFinding}`;
+                if (!abstract.endsWith('.')) abstract += '.';
             }
         }
         
-        // Add biomedical relevance with specific details
-        if (biomedical.biomedicalRelevance > 0.1) {
-            const relevanceLevel = biomedical.biomedicalRelevance > 0.3 ? 'highly relevant' : 'relevant';
-            abstract += ` This work is ${relevanceLevel} to biomedical engineering applications, particularly in ${topicName.toLowerCase()} research.`;
+        // Add numerical data with context
+        if (numericalData.length > 0) {
+            const uniqueData = [...new Set(numericalData)].slice(0, 3);
+            abstract += ` Key measurements and parameters include ${uniqueData.join(', ')}, providing quantitative validation of the methodology.`;
         }
         
-        // Ensure the abstract is unique and specific
+        // Add methodology details with article-specific context
+        if (biomedical.primaryResearchType) {
+            const methodDetails = {
+                'experimental': 'employing controlled experimental protocols and systematic testing procedures',
+                'clinical': 'utilizing patient-based clinical trials and evidence-based assessment methods',
+                'computational': 'implementing advanced computational modeling and algorithmic optimization techniques',
+                'review': 'conducting systematic literature analysis and meta-analytical evaluation'
+            };
+            const methodDetail = methodDetails[biomedical.primaryResearchType] || 'using sophisticated analytical methodologies';
+            abstract += ` The investigation ${methodDetail} to ensure robust and reliable results.`;
+        }
+        
+        // Add sentiment-based intelligent conclusions
+        if (sentiment.confidence > 0.3) {
+            if (sentiment.sentiment === 'positive') {
+                abstract += ' The outcomes demonstrate significant advancements and validate the effectiveness of the proposed ${topicName.toLowerCase()} approach.';
+            } else if (sentiment.sentiment === 'negative') {
+                abstract += ' The findings identify critical limitations and highlight specific areas requiring further investigation and refinement.';
+            } else {
+                abstract += ' The analysis provides comprehensive insights into both the advantages and limitations of the ${topicName.toLowerCase()} methodology.';
+            }
+        }
+        
+        // Add biomedical relevance with intelligent context
+        if (biomedical.biomedicalRelevance > 0.1) {
+            const relevanceLevel = biomedical.biomedicalRelevance > 0.3 ? 'highly significant' : 'significant';
+            const applicationAreas = {
+                'diagnostic': 'diagnostic imaging and disease detection',
+                'therapeutic': 'therapeutic interventions and drug delivery',
+                'imaging': 'medical imaging and diagnostic procedures',
+                'biomaterials': 'biomaterial development and tissue engineering',
+                'tissue_engineering': 'tissue regeneration and organ development',
+                'neural': 'neural interface and brain-computer interaction',
+                'cardiac': 'cardiovascular health and cardiac monitoring',
+                'orthopedic': 'orthopedic applications and bone regeneration',
+                'microfluidics': 'microfluidic diagnostics and lab-on-chip systems',
+                'robotics': 'surgical robotics and assistive technologies'
+            };
+            
+            const applicationArea = applicationAreas[topic.topic] || 'biomedical engineering applications';
+            abstract += ` This work is ${relevanceLevel} for ${applicationArea}, contributing to the advancement of healthcare technologies.`;
+        }
+        
+        // Add additional specific details from keyword sentences if available
+        if (keywordSentences.length > 1) {
+            const additionalDetail = keywordSentences[1];
+            if (additionalDetail.length > 30 && additionalDetail.length < 120) {
+                abstract += ` Furthermore, ${additionalDetail.toLowerCase()}`;
+                if (!abstract.endsWith('.')) abstract += '.';
+            }
+        }
+        
+        // Ensure the abstract is intelligent and contextually relevant
         abstract = abstract.replace(/\.\.\./g, '.').replace(/\s+/g, ' ').trim();
         
-        // Ensure proper length while maintaining specificity
+        // Ensure proper length while maintaining intelligence
         if (abstract.length > 600) {
             const sentences = abstract.split('.');
             let truncatedAbstract = '';
@@ -492,12 +547,12 @@ const BuiltInAI = {
             abstract = truncatedAbstract.trim();
         }
         
-        // Final uniqueness check - ensure it doesn't sound generic
+        // Final intelligence check - ensure it sounds analytical and specific
         if (abstract.includes('This research focuses on') && !abstract.includes('specifically')) {
-            abstract = abstract.replace('This research focuses on', 'This study specifically investigates');
+            abstract = abstract.replace('This research focuses on', 'This investigation specifically examines');
         }
         
-        console.log('✅ Built-in AI: Unique comprehensive abstract generated, length:', abstract.length);
+        console.log('✅ Built-in AI: Intelligent comprehensive abstract generated, length:', abstract.length);
         return abstract;
     }
 };
@@ -918,7 +973,7 @@ function combineAbstracts(abstracts, cleanText = '') {
     if (abstracts.length === 0) return '';
     if (abstracts.length === 1) return abstracts[0];
     
-    console.log('🔗 Combining abstracts with enhanced uniqueness and minimum 300 words...');
+    console.log('🔗 Combining abstracts with intelligent analysis and minimum 300 words...');
     
     // Remove the generic abstract pattern that the user specifically doesn't want
     const genericPattern = /This biomedical engineering research article from phys\.org explores cutting-edge developments in medical technology and healthcare innovation\. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions\. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems\. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences\. The comprehensive analysis encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies\. The research team employed state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions\. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems\. These findings represent a significant milestone in the field of biomedical engineering, contributing to the advancement of medical science and healthcare delivery\./gi;
@@ -958,8 +1013,11 @@ function combineAbstracts(abstracts, cleanText = '') {
     // Extract specific details from the original article content if available
     let specificDetails = [];
     let additionalSentences = [];
+    let researchFindings = [];
+    let technicalData = [];
+    
     if (cleanText && cleanText.length > 100) {
-        console.log('🔍 Extracting specific details from article content...');
+        console.log('🔍 Extracting intelligent details from article content...');
         
         // Extract keywords from the article content
         const articleKeywords = BuiltInAI.extractKeywords(cleanText);
@@ -974,18 +1032,54 @@ function combineAbstracts(abstracts, cleanText = '') {
             );
         });
         
+        // Extract specific research findings and conclusions
+        const findingPatterns = [
+            /found that (.+?)(?:\.|,)/gi,
+            /discovered (.+?)(?:\.|,)/gi,
+            /revealed (.+?)(?:\.|,)/gi,
+            /demonstrated (.+?)(?:\.|,)/gi,
+            /showed (.+?)(?:\.|,)/gi,
+            /indicated (.+?)(?:\.|,)/gi,
+            /concluded (.+?)(?:\.|,)/gi,
+            /results show (.+?)(?:\.|,)/gi,
+            /analysis reveals (.+?)(?:\.|,)/gi,
+            /study demonstrates (.+?)(?:\.|,)/gi
+        ];
+        
+        findingPatterns.forEach(pattern => {
+            const matches = cleanText.match(pattern);
+            if (matches) {
+                researchFindings.push(...matches.slice(0, 2));
+            }
+        });
+        
+        // Extract technical data and measurements
+        const technicalPatterns = [
+            /(\d+(?:\.\d+)?(?:%|mg|ml|mm|cm|kg|g|Hz|kHz|MHz|V|A|W|J|Pa|mmHg|°C|K))/g,
+            /(efficiency|accuracy|precision|sensitivity|specificity|performance|rate|speed|capacity|density)/gi
+        ];
+        
+        technicalPatterns.forEach(pattern => {
+            const matches = cleanText.match(pattern);
+            if (matches) {
+                technicalData.push(...matches.slice(0, 5));
+            }
+        });
+        
         // Get the most relevant sentences (up to 5 for potential expansion)
         specificDetails = keywordSentences.slice(0, 3);
         additionalSentences = keywordSentences.slice(3, 8); // Additional sentences for expansion
         console.log('📝 Specific details found:', specificDetails.length);
         console.log('📝 Additional sentences available:', additionalSentences.length);
+        console.log('🔬 Research findings found:', researchFindings.length);
+        console.log('📊 Technical data found:', technicalData.length);
     }
     
     // Combine the first two abstracts
     const abstract1 = cleanedAbstracts[0];
     const abstract2 = cleanedAbstracts[1];
     
-    // Create a combined abstract that incorporates specific details
+    // Create an intelligent combined abstract that incorporates AI analysis with article-specific content
     let combined = abstract1;
     
     // If the first abstract doesn't end with a period, add one
@@ -993,19 +1087,38 @@ function combineAbstracts(abstracts, cleanText = '') {
         combined += '.';
     }
     
-    // Add specific details from the article if available
-    if (specificDetails.length > 0) {
-        const detailSentence = specificDetails[0];
-        if (detailSentence.length > 20 && detailSentence.length < 200) {
-            combined += ' Specifically, ' + detailSentence;
+    // Add specific research findings from the article if available
+    if (researchFindings.length > 0) {
+        const keyFinding = researchFindings[0];
+        const findingText = keyFinding.replace(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded|results show|analysis reveals|study demonstrates)\s+/i, '');
+        if (findingText.length > 20 && findingText.length < 150) {
+            const actionVerb = keyFinding.match(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded|results show|analysis reveals|study demonstrates)/i)[0];
+            combined += ` The research ${actionVerb} ${findingText}`;
             if (!combined.endsWith('.')) {
                 combined += '.';
             }
         }
     }
     
-    // Add a transition and the second abstract
-    combined += ' Furthermore, ' + abstract2;
+    // Add technical data with context if available
+    if (technicalData.length > 0) {
+        const uniqueData = [...new Set(technicalData)].slice(0, 3);
+        combined += ` Key technical parameters include ${uniqueData.join(', ')}, demonstrating the quantitative aspects of the investigation.`;
+    }
+    
+    // Add specific details from the article if available
+    if (specificDetails.length > 0) {
+        const detailSentence = specificDetails[0];
+        if (detailSentence.length > 20 && detailSentence.length < 200) {
+            combined += ` Additionally, ${detailSentence.toLowerCase()}`;
+            if (!combined.endsWith('.')) {
+                combined += '.';
+            }
+        }
+    }
+    
+    // Add a transition and the second abstract with intelligent context
+    combined += ' Furthermore, the analysis reveals that ' + abstract2;
     
     // Ensure it ends with a period
     if (!combined.endsWith('.')) {
@@ -1019,11 +1132,26 @@ function combineAbstracts(abstracts, cleanText = '') {
     if (wordCount < 300) {
         console.log(`📈 Expanding abstract to reach minimum 300 words (need ${300 - wordCount} more words)...`);
         
+        // Add more specific research findings if available
+        if (researchFindings.length > 1) {
+            const secondFinding = researchFindings[1];
+            const findingText = secondFinding.replace(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded|results show|analysis reveals|study demonstrates)\s+/i, '');
+            if (findingText.length > 20 && findingText.length < 150) {
+                const actionVerb = secondFinding.match(/^(found that|discovered|revealed|demonstrated|showed|indicated|concluded|results show|analysis reveals|study demonstrates)/i)[0];
+                combined += ` The investigation also ${actionVerb} ${findingText}`;
+                if (!combined.endsWith('.')) {
+                    combined += '.';
+                }
+                wordCount = combined.split(' ').length;
+                console.log(`📊 Word count after second finding: ${wordCount} words`);
+            }
+        }
+        
         // Add more specific details if available
         if (specificDetails.length > 1) {
             const secondDetail = specificDetails[1];
             if (secondDetail && secondDetail.length > 20 && secondDetail.length < 200) {
-                combined += ' Additionally, ' + secondDetail;
+                combined += ` Furthermore, ${secondDetail.toLowerCase()}`;
                 if (!combined.endsWith('.')) {
                     combined += '.';
                 }
@@ -1032,12 +1160,20 @@ function combineAbstracts(abstracts, cleanText = '') {
             }
         }
         
+        // Add additional technical context if available
+        if (wordCount < 300 && technicalData.length > 3) {
+            const additionalData = technicalData.slice(3, 6);
+            combined += ` The methodology incorporates ${additionalData.join(', ')}, ensuring comprehensive analysis.`;
+            wordCount = combined.split(' ').length;
+            console.log(`📊 Word count after technical context: ${wordCount} words`);
+        }
+        
         // Add additional sentences from the article if still under 300 words
         if (wordCount < 300 && additionalSentences.length > 0) {
             for (let i = 0; i < additionalSentences.length && wordCount < 300; i++) {
                 const sentence = additionalSentences[i];
                 if (sentence && sentence.length > 20 && sentence.length < 200) {
-                    combined += ' Moreover, ' + sentence;
+                    combined += ` Moreover, ${sentence.toLowerCase()}`;
                     if (!combined.endsWith('.')) {
                         combined += '.';
                     }
@@ -1058,13 +1194,26 @@ function combineAbstracts(abstracts, cleanText = '') {
             console.log(`📊 Word count after third abstract: ${wordCount} words`);
         }
         
-        // Final check - if still under 300 words, add a concluding statement
+        // Final check - if still under 300 words, add an intelligent concluding statement
         if (wordCount < 300) {
             const remainingWords = 300 - wordCount;
-            const concludingPhrase = `This comprehensive analysis demonstrates the significant impact of biomedical engineering research on advancing healthcare technologies and improving patient outcomes.`;
+            
+            // Create contextually relevant concluding statements based on available data
+            let concludingPhrase = '';
+            
+            if (researchFindings.length > 0) {
+                concludingPhrase = `These findings contribute significantly to the advancement of biomedical engineering methodologies and demonstrate the potential for improved healthcare outcomes through innovative technological applications.`;
+            } else if (technicalData.length > 0) {
+                concludingPhrase = `The quantitative analysis and technical parameters presented in this research provide valuable insights for future biomedical engineering developments and clinical applications.`;
+            } else if (specificDetails.length > 0) {
+                concludingPhrase = `This comprehensive investigation offers important contributions to the field of biomedical engineering, highlighting the significance of advanced analytical approaches in healthcare technology development.`;
+            } else {
+                concludingPhrase = `This research represents a significant advancement in biomedical engineering technology, demonstrating the potential for improved patient outcomes and healthcare delivery through innovative methodologies.`;
+            }
+            
             combined += ' ' + concludingPhrase;
             wordCount = combined.split(' ').length;
-            console.log(`📊 Final word count after concluding phrase: ${wordCount} words`);
+            console.log(`📊 Final word count after intelligent concluding phrase: ${wordCount} words`);
         }
     }
     
@@ -1076,7 +1225,7 @@ function combineAbstracts(abstracts, cleanText = '') {
     }
     
     const finalWordCount = combined.split(' ').length;
-    console.log(`✅ Enhanced combined abstract created successfully with ${finalWordCount} words`);
+    console.log(`✅ Intelligent combined abstract created successfully with ${finalWordCount} words`);
     
     return combined;
 }
