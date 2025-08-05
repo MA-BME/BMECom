@@ -1,4 +1,4 @@
-// BMECom Article Detail Page JavaScript
+// BMECom Article Detail Page JavaScript - COMPLETELY REWRITTEN
 
 // DOM elements
 const loadingContainer = document.getElementById('loadingContainer');
@@ -40,16 +40,20 @@ if (navToggle && navMenu) {
     });
 }
 
-// Normalize URL for comparison
+// SIMPLIFIED URL NORMALIZATION - More reliable
 function normalizeUrl(url) {
+    if (!url) return '';
+    
     try {
-        const urlObj = new URL(url);
-        // Remove trailing slash and normalize
-        let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
-        normalized = normalized.replace(/\/$/, ''); // Remove trailing slash
-        return normalized.toLowerCase();
+        // Remove protocol if present
+        let cleanUrl = url.replace(/^https?:\/\//, '');
+        // Remove trailing slash
+        cleanUrl = cleanUrl.replace(/\/$/, '');
+        // Convert to lowercase
+        cleanUrl = cleanUrl.toLowerCase();
+        return cleanUrl;
     } catch (error) {
-        // If URL parsing fails, return original URL
+        console.error('Error normalizing URL:', error);
         return url.toLowerCase();
     }
 }
@@ -57,74 +61,68 @@ function normalizeUrl(url) {
 // Get article URL from URL parameters
 function getArticleUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('url');
+    const url = urlParams.get('url');
+    console.log('URL from parameters:', url);
+    return url;
 }
 
-// Load article data from localStorage by URL with multiple fallback strategies
+// SIMPLIFIED ARTICLE LOADING - More reliable
 function loadArticleData(articleUrl) {
+    console.log('=== LOADING ARTICLE DATA ===');
+    console.log('Searching for URL:', articleUrl);
+    
+    if (!articleUrl) {
+        console.log('No article URL provided');
+        return null;
+    }
+    
     try {
         const articles = JSON.parse(localStorage.getItem('articles')) || [];
         console.log('Total articles in localStorage:', articles.length);
-        console.log('Searching for URL:', articleUrl);
         
-        if (!articleUrl) {
-            console.log('No article URL provided');
+        if (articles.length === 0) {
+            console.log('No articles found in localStorage');
             return null;
         }
         
         const normalizedSearchUrl = normalizeUrl(articleUrl);
         console.log('Normalized search URL:', normalizedSearchUrl);
         
-        // Strategy 1: Exact normalized URL match
+        // STRATEGY 1: Direct URL match (most reliable)
         let foundArticle = articles.find(article => {
             const normalizedArticleUrl = normalizeUrl(article.url);
-            console.log('Comparing:', normalizedArticleUrl, 'with', normalizedSearchUrl);
-            return normalizedArticleUrl === normalizedSearchUrl;
+            const isMatch = normalizedArticleUrl === normalizedSearchUrl;
+            console.log(`Comparing: "${normalizedArticleUrl}" with "${normalizedSearchUrl}" = ${isMatch}`);
+            return isMatch;
         });
         
         if (foundArticle) {
-            console.log('Found article with exact match:', foundArticle.title);
+            console.log('✅ Found article with exact match:', foundArticle.title);
             return foundArticle;
         }
         
-        // Strategy 2: Partial URL match
+        // STRATEGY 2: Partial match
         console.log('Exact match not found, trying partial match...');
         foundArticle = articles.find(article => {
             const normalizedArticleUrl = normalizeUrl(article.url);
-            return normalizedArticleUrl.includes(normalizedSearchUrl) || 
-                   normalizedSearchUrl.includes(normalizedArticleUrl);
+            const searchInArticle = normalizedArticleUrl.includes(normalizedSearchUrl);
+            const articleInSearch = normalizedSearchUrl.includes(normalizedArticleUrl);
+            console.log(`Partial match: "${normalizedArticleUrl}" includes "${normalizedSearchUrl}" = ${searchInArticle}`);
+            console.log(`Partial match: "${normalizedSearchUrl}" includes "${normalizedArticleUrl}" = ${articleInSearch}`);
+            return searchInArticle || articleInSearch;
         });
         
         if (foundArticle) {
-            console.log('Found article with partial match:', foundArticle.title);
+            console.log('✅ Found article with partial match:', foundArticle.title);
             return foundArticle;
         }
         
-        // Strategy 3: Match by URL path segments
-        console.log('Partial match not found, trying path segment match...');
-        const urlParts = articleUrl.split('/');
-        const lastPart = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
-        
-        if (lastPart) {
-            foundArticle = articles.find(article => {
-                const articleUrlParts = article.url.split('/');
-                const articleLastPart = articleUrlParts[articleUrlParts.length - 1] || articleUrlParts[articleUrlParts.length - 2];
-                return articleLastPart === lastPart;
-            });
-            
-            if (foundArticle) {
-                console.log('Found article with path segment match:', foundArticle.title);
-                return foundArticle;
-            }
-        }
-        
-        // Strategy 4: Show all available articles for debugging
-        console.log('No match found. Available articles:');
+        // STRATEGY 3: Last resort - show all articles for debugging
+        console.log('❌ No match found. Available articles:');
         articles.forEach((article, index) => {
-            console.log(`${index}: ${article.title} - ${article.url}`);
+            console.log(`${index}: "${article.title}" - "${normalizeUrl(article.url)}"`);
         });
         
-        console.log('Article not found');
         return null;
         
     } catch (error) {
@@ -244,12 +242,13 @@ function isArticleDislikedByUser(articleUrl) {
 
 // Display article detail
 function displayArticleDetail(article) {
+    console.log('=== DISPLAYING ARTICLE DETAIL ===');
+    console.log('Article:', article);
+    
     if (!article) {
         showError('Article not found');
         return;
     }
-
-    console.log('Displaying article:', article.title);
 
     const imageDisplay = article.image ? 
         `<div class="article-image">
@@ -297,7 +296,7 @@ function displayArticleDetail(article) {
         
         <div class="article-abstract-section" id="abstractSection">
             <h2>Abstract</h2>
-            <p>${article.summary}</p>
+            <p>${article.summary || 'No abstract available.'}</p>
         </div>
         
         <div class="article-actions">
@@ -305,7 +304,7 @@ function displayArticleDetail(article) {
                 ${likeButton}
                 ${dislikeButton}
             </div>
-            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="read-article-btn" id="readArticleBtn" style="display: none;">
+            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="read-article-btn">
                 Read Full Article →
             </a>
             <a href="articles.html" class="back-btn">
@@ -336,16 +335,6 @@ function displayArticleDetail(article) {
     
     // Load comments after the HTML is set
     displayCommentsDetail();
-    
-    // Add click event to abstract section to show the article link
-    const abstractSection = document.getElementById('abstractSection');
-    const readArticleBtn = document.getElementById('readArticleBtn');
-    
-    if (abstractSection && readArticleBtn) {
-        abstractSection.addEventListener('click', () => {
-            readArticleBtn.style.display = 'inline-block';
-        });
-    }
 }
 
 // Show error message
@@ -458,7 +447,7 @@ window.addEventListener('scroll', () => {
             header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
         }
     }
-}); 
+});
 
 // Comment Functions for Article Detail Page
 function containsCurseWords(text) {
