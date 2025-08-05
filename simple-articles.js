@@ -261,20 +261,13 @@ async function createArticleDataWithAI(url) {
         // First, try to extract image from the article
         image = await extractImageFromArticle(url);
         
-        // Try multiple AI services for content generation
-        const aiResults = await Promise.any([
-            generateWithCursorAI(url),
-            generateWithOpenAI(url),
-            generateWithAnthropic(url),
-            generateWithGoogle(url),
-            generateWithCohere(url),
-            generateWithPerplexity(url)
-        ]);
+        // Get multiple AI-generated abstracts and combine them
+        const combinedAIResults = await generateCombinedAbstracts(url);
         
-        if (aiResults) {
-            title = aiResults.title;
-            summary = aiResults.summary;
-            console.log('✅ AI generated content successfully');
+        if (combinedAIResults) {
+            title = combinedAIResults.title;
+            summary = combinedAIResults.summary;
+            console.log('✅ Combined AI generated content successfully');
         }
     } catch (error) {
         console.log('❌ AI generation failed, using fallback:', error.message);
@@ -309,6 +302,109 @@ async function createArticleDataWithAI(url) {
         likes: 0,
         dislikes: 0
     };
+}
+
+// Generate combined abstracts from multiple AI platforms
+async function generateCombinedAbstracts(url) {
+    console.log('🔄 Generating combined abstracts from multiple AI platforms for:', url);
+    
+    const aiServices = [
+        { name: 'Cursor AI', function: generateWithCursorAI },
+        { name: 'OpenAI', function: generateWithOpenAI },
+        { name: 'Anthropic', function: generateWithAnthropic },
+        { name: 'Google', function: generateWithGoogle },
+        { name: 'Cohere', function: generateWithCohere },
+        { name: 'Perplexity', function: generateWithPerplexity }
+    ];
+    
+    const results = [];
+    const promises = aiServices.map(async (service) => {
+        try {
+            console.log(`🤖 Trying ${service.name}...`);
+            const result = await service.function(url);
+            if (result && result.summary) {
+                results.push({
+                    name: service.name,
+                    title: result.title,
+                    summary: result.summary
+                });
+                console.log(`✅ ${service.name} generated abstract successfully`);
+            }
+        } catch (error) {
+            console.log(`❌ ${service.name} failed:`, error.message);
+        }
+    });
+    
+    // Wait for all AI services to complete (with timeout)
+    await Promise.allSettled(promises);
+    
+    console.log(`📊 Generated ${results.length} abstracts from AI services`);
+    
+    if (results.length === 0) {
+        console.log('❌ No AI services generated abstracts');
+        return null;
+    }
+    
+    // Take the first two successful results and combine them
+    const firstTwo = results.slice(0, 2);
+    console.log(`🔗 Combining abstracts from: ${firstTwo.map(r => r.name).join(', ')}`);
+    
+    // Combine the abstracts
+    const combinedTitle = firstTwo[0].title; // Use the first title
+    const combinedSummary = combineAbstracts(firstTwo.map(r => r.summary));
+    
+    return {
+        title: combinedTitle,
+        summary: combinedSummary
+    };
+}
+
+// Combine multiple abstracts into one
+function combineAbstracts(abstracts) {
+    if (abstracts.length === 0) return '';
+    if (abstracts.length === 1) return abstracts[0];
+    
+    console.log('🔗 Combining abstracts...');
+    
+    // Clean and normalize abstracts
+    const cleanedAbstracts = abstracts.map(abstract => {
+        return abstract
+            .replace(/^[^a-zA-Z]*/, '') // Remove leading non-letters
+            .replace(/[^a-zA-Z]*$/, '') // Remove trailing non-letters
+            .trim();
+    }).filter(abstract => abstract.length > 50); // Only keep substantial abstracts
+    
+    if (cleanedAbstracts.length === 0) return abstracts[0] || '';
+    if (cleanedAbstracts.length === 1) return cleanedAbstracts[0];
+    
+    // Combine the first two abstracts
+    const abstract1 = cleanedAbstracts[0];
+    const abstract2 = cleanedAbstracts[1];
+    
+    // Create a combined abstract that flows naturally
+    let combined = abstract1;
+    
+    // If the first abstract doesn't end with a period, add one
+    if (!combined.endsWith('.')) {
+        combined += '.';
+    }
+    
+    // Add a transition and the second abstract
+    combined += ' Furthermore, ' + abstract2;
+    
+    // Ensure it ends with a period
+    if (!combined.endsWith('.')) {
+        combined += '.';
+    }
+    
+    // Limit the length to reasonable size (max 500 words)
+    const words = combined.split(' ');
+    if (words.length > 500) {
+        combined = words.slice(0, 500).join(' ') + '...';
+    }
+    
+    console.log('✅ Combined abstract created successfully');
+    return combined;
 }
 
 // Extract image from article

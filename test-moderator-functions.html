@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Moderator Functions - BMECom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        .danger {
+            background: #dc2626;
+        }
+        .danger:hover {
+            background: #b91c1c;
+        }
+        .success {
+            background: #059669;
+        }
+        .success:hover {
+            background: #047857;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Moderator Functions</h1>
+    
+    <div class="test-section">
+        <h2>Current User Status</h2>
+        <div id="userStatus">Loading...</div>
+        <button class="test-button" onclick="checkUserStatus()">Check User Status</button>
+        <button class="test-button" onclick="createTestModerator()">Create Test Moderator</button>
+        <button class="test-button" onclick="createTestUser()">Create Test User</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Article Management Tests</h2>
+        <button class="test-button" onclick="createTestArticles()">Create Test Articles</button>
+        <button class="test-button" onclick="testDeleteArticle()">Test Delete Single Article</button>
+        <button class="test-button danger" onclick="testDeleteAllArticles()">Test Delete All Articles</button>
+        <button class="test-button" onclick="showArticles()">Show All Articles</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Moderator Access Tests</h2>
+        <button class="test-button" onclick="testModeratorAccess()">Test Moderator Access</button>
+        <button class="test-button" onclick="testRoleCheck()">Test Role Check</button>
+        <button class="test-button" onclick="goToModeratorPage()">Go to Moderator Page</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Test functions
+        function logTest(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(statusDiv);
+            console.log(`[TEST] ${message}`);
+        }
+        
+        function checkUserStatus() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            const userStatus = document.getElementById('userStatus');
+            
+            if (currentUser) {
+                userStatus.innerHTML = `
+                    <div class="status success">
+                        ✅ Logged in as: ${currentUser.name} (${currentUser.email})<br>
+                        Role: ${currentUser.role || 'User'}<br>
+                        ID: ${currentUser.id}
+                    </div>
+                `;
+                logTest(`User logged in: ${currentUser.name} (${currentUser.role})`, 'success');
+            } else {
+                userStatus.innerHTML = '<div class="status error">❌ No user logged in</div>';
+                logTest('No user logged in', 'error');
+            }
+        }
+        
+        function createTestModerator() {
+            const moderator = {
+                id: 'test-moderator-' + Date.now(),
+                name: 'Test Moderator',
+                email: 'moderator@test.com',
+                password: 'test123',
+                role: 'moderator',
+                timestamp: Date.now()
+            };
+            
+            // Add to users array
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            users.push(moderator);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Set as current user
+            localStorage.setItem('currentUser', JSON.stringify(moderator));
+            
+            logTest('Test moderator created and logged in', 'success');
+            checkUserStatus();
+        }
+        
+        function createTestUser() {
+            const user = {
+                id: 'test-user-' + Date.now(),
+                name: 'Test User',
+                email: 'user@test.com',
+                password: 'test123',
+                role: 'user',
+                timestamp: Date.now()
+            };
+            
+            // Add to users array
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            users.push(user);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Set as current user
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            
+            logTest('Test user created and logged in', 'success');
+            checkUserStatus();
+        }
+        
+        function createTestArticles() {
+            const articles = [
+                {
+                    id: 'test-article-1',
+                    title: 'Test Article 1',
+                    url: 'https://example.com/article1',
+                    summary: 'This is a test article for testing purposes.',
+                    userId: 'test-user-1',
+                    userName: 'Test User',
+                    timestamp: Date.now()
+                },
+                {
+                    id: 'test-article-2',
+                    title: 'Test Article 2',
+                    url: 'https://example.com/article2',
+                    summary: 'Another test article for testing purposes.',
+                    userId: 'test-user-2',
+                    userName: 'Test User',
+                    timestamp: Date.now()
+                }
+            ];
+            
+            localStorage.setItem('articles', JSON.stringify(articles));
+            logTest(`Created ${articles.length} test articles`, 'success');
+        }
+        
+        function testDeleteArticle() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            const articles = JSON.parse(localStorage.getItem('articles') || '[]');
+            
+            if (articles.length === 0) {
+                logTest('No articles to delete', 'error');
+                return;
+            }
+            
+            const article = articles[0];
+            logTest(`Testing delete of article: ${article.title}`, 'info');
+            
+            // Test the delete logic
+            if (!currentUser) {
+                logTest('❌ Delete failed: No user logged in', 'error');
+                return;
+            }
+            
+            if (article.userId !== currentUser.id && currentUser.role !== 'moderator' && currentUser.role !== 'Moderator') {
+                logTest('❌ Delete failed: User cannot delete this article', 'error');
+                return;
+            }
+            
+            logTest('✅ Delete logic test passed', 'success');
+        }
+        
+        function testDeleteAllArticles() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!currentUser) {
+                logTest('❌ Delete all failed: No user logged in', 'error');
+                return;
+            }
+            
+            if (currentUser.role !== 'moderator' && currentUser.role !== 'Moderator') {
+                logTest('❌ Delete all failed: Moderator access required', 'error');
+                return;
+            }
+            
+            logTest('✅ Delete all logic test passed', 'success');
+        }
+        
+        function showArticles() {
+            const articles = JSON.parse(localStorage.getItem('articles') || '[]');
+            logTest(`Found ${articles.length} articles in storage`, 'info');
+            
+            articles.forEach((article, index) => {
+                logTest(`Article ${index + 1}: ${article.title} (ID: ${article.id})`, 'info');
+            });
+        }
+        
+        function testModeratorAccess() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!currentUser) {
+                logTest('❌ Moderator access failed: No user logged in', 'error');
+                return;
+            }
+            
+            if (currentUser.role === 'moderator' || currentUser.role === 'Moderator') {
+                logTest('✅ Moderator access granted', 'success');
+            } else {
+                logTest('❌ Moderator access denied: User is not a moderator', 'error');
+            }
+        }
+        
+        function testRoleCheck() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!currentUser) {
+                logTest('❌ Role check failed: No user logged in', 'error');
+                return;
+            }
+            
+            logTest(`User role: "${currentUser.role}"`, 'info');
+            logTest(`Is moderator (lowercase): ${currentUser.role === 'moderator'}`, 'info');
+            logTest(`Is moderator (uppercase): ${currentUser.role === 'Moderator'}`, 'info');
+            logTest(`Is moderator (case insensitive): ${currentUser.role === 'moderator' || currentUser.role === 'Moderator'}`, 'info');
+        }
+        
+        function goToModeratorPage() {
+            window.open('moderator-access.html', '_blank');
+            logTest('Opening moderator access page in new tab', 'info');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logTest('Test page loaded', 'info');
+            checkUserStatus();
+        });
+    </script>
+</body>
+</html> 

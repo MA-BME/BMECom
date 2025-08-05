@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Abstract Generation - BMECom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        .success {
+            background: #059669;
+        }
+        .success:hover {
+            background: #047857;
+        }
+        .url-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+        .abstract-result {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .abstract-title {
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        .abstract-content {
+            color: #475569;
+            line-height: 1.6;
+        }
+        .ai-service-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        .ai-enabled {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .ai-disabled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Test AI Abstract Generation</h1>
+    
+    <div class="test-section">
+        <h2>AI Services Status</h2>
+        <div id="aiStatus">Loading AI services status...</div>
+        <button class="test-button" onclick="checkAIServices()">Check AI Services</button>
+        <button class="test-button" onclick="configureAIServices()">Configure AI Services</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test URL Submission</h2>
+        <input type="url" id="testUrl" class="url-input" placeholder="Enter a URL to test AI abstract generation..." value="https://www.nature.com/articles/s41551-023-01083-5">
+        <button class="test-button success" onclick="testAIAbstractGeneration()">Generate AI Abstract</button>
+        <button class="test-button" onclick="testWithSampleUrls()">Test with Sample URLs</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Generated Abstract</h2>
+        <div id="generatedAbstract"></div>
+    </div>
+
+    <script>
+        // Test functions
+        function logTest(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(statusDiv);
+            console.log(`[TEST] ${message}`);
+        }
+        
+        function checkAIServices() {
+            const services = [
+                { name: 'OpenAI', key: 'openaiApiKey' },
+                { name: 'Anthropic', key: 'anthropicApiKey' },
+                { name: 'Google', key: 'googleApiKey' },
+                { name: 'Cohere', key: 'cohereApiKey' },
+                { name: 'Perplexity', key: 'perplexityApiKey' },
+                { name: 'Cursor AI', key: 'cursorAiApiKey' }
+            ];
+            
+            const statusDiv = document.getElementById('aiStatus');
+            let statusHtml = '<h3>AI Services Configuration:</h3>';
+            let enabledCount = 0;
+            
+            services.forEach(service => {
+                const apiKey = localStorage.getItem(service.key);
+                const isEnabled = apiKey && apiKey.trim() !== '';
+                const statusClass = isEnabled ? 'ai-enabled' : 'ai-disabled';
+                const statusText = isEnabled ? 'Enabled' : 'Disabled';
+                
+                statusHtml += `<span class="ai-service-status ${statusClass}">${service.name}: ${statusText}</span> `;
+                if (isEnabled) enabledCount++;
+            });
+            
+            statusHtml += `<br><br><strong>Total enabled: ${enabledCount}/${services.length}</strong>`;
+            
+            if (enabledCount === 0) {
+                statusHtml += '<div class="status warning">⚠️ No AI services are configured. Please configure at least one AI service to test abstract generation.</div>';
+            } else {
+                statusHtml += '<div class="status success">✅ AI services are ready for testing!</div>';
+            }
+            
+            statusDiv.innerHTML = statusHtml;
+            logTest(`AI services check complete: ${enabledCount}/${services.length} enabled`, enabledCount > 0 ? 'success' : 'warning');
+        }
+        
+        function configureAIServices() {
+            const services = [
+                { name: 'OpenAI', key: 'openaiApiKey', url: 'https://platform.openai.com/api-keys' },
+                { name: 'Anthropic', key: 'anthropicApiKey', url: 'https://console.anthropic.com/' },
+                { name: 'Google', key: 'googleApiKey', url: 'https://makersuite.google.com/app/apikey' },
+                { name: 'Cohere', key: 'cohereApiKey', url: 'https://dashboard.cohere.ai/api-keys' },
+                { name: 'Perplexity', key: 'perplexityApiKey', url: 'https://www.perplexity.ai/settings/api' },
+                { name: 'Cursor AI', key: 'cursorAiApiKey', url: 'https://cursor.sh/settings' }
+            ];
+            
+            let configHtml = '<h3>Configure AI Services:</h3>';
+            configHtml += '<p>Enter API keys for the AI services you want to use:</p>';
+            
+            services.forEach(service => {
+                const currentKey = localStorage.getItem(service.key) || '';
+                configHtml += `
+                    <div style="margin: 10px 0;">
+                        <label><strong>${service.name}:</strong></label><br>
+                        <input type="password" id="${service.key}" value="${currentKey}" placeholder="Enter ${service.name} API key" style="width: 300px; padding: 8px; margin: 5px 0;">
+                        <button onclick="saveApiKey('${service.key}')" style="padding: 8px 12px; background: #059669; color: white; border: none; border-radius: 3px; cursor: pointer;">Save</button>
+                        <a href="${service.url}" target="_blank" style="margin-left: 10px; color: #2563eb;">Get API Key</a>
+                    </div>
+                `;
+            });
+            
+            configHtml += '<button onclick="checkAIServices()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">Check Status</button>';
+            
+            document.getElementById('aiStatus').innerHTML = configHtml;
+        }
+        
+        function saveApiKey(key) {
+            const input = document.getElementById(key);
+            const value = input.value.trim();
+            
+            if (value) {
+                localStorage.setItem(key, value);
+                logTest(`${key} API key saved`, 'success');
+                input.type = 'password';
+            } else {
+                localStorage.removeItem(key);
+                logTest(`${key} API key removed`, 'info');
+            }
+        }
+        
+        async function testAIAbstractGeneration() {
+            const url = document.getElementById('testUrl').value.trim();
+            
+            if (!url) {
+                logTest('Please enter a URL to test', 'error');
+                return;
+            }
+            
+            if (!isValidUrl(url)) {
+                logTest('Please enter a valid URL', 'error');
+                return;
+            }
+            
+            logTest(`Testing AI abstract generation for: ${url}`, 'info');
+            
+            // Show loading state
+            const abstractDiv = document.getElementById('generatedAbstract');
+            abstractDiv.innerHTML = '<div class="loading"></div> Generating AI abstract...';
+            
+            try {
+                // Import the functions from simple-articles.js
+                if (typeof generateCombinedAbstracts === 'undefined') {
+                    // Load the script if not already loaded
+                    await loadSimpleArticlesScript();
+                }
+                
+                const result = await generateCombinedAbstracts(url);
+                
+                if (result) {
+                    abstractDiv.innerHTML = `
+                        <div class="abstract-result">
+                            <div class="abstract-title">${result.title}</div>
+                            <div class="abstract-content">${result.summary}</div>
+                        </div>
+                    `;
+                    logTest('AI abstract generation completed successfully', 'success');
+                } else {
+                    abstractDiv.innerHTML = '<div class="status error">❌ Failed to generate AI abstract</div>';
+                    logTest('AI abstract generation failed', 'error');
+                }
+            } catch (error) {
+                abstractDiv.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+                logTest(`AI abstract generation error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testWithSampleUrls() {
+            const sampleUrls = [
+                'https://www.nature.com/articles/s41551-023-01083-5',
+                'https://www.science.org/doi/10.1126/science.abc6284',
+                'https://www.cell.com/cell/fulltext/S0092-8674(23)00123-4',
+                'https://www.pnas.org/doi/10.1073/pnas.2021237118'
+            ];
+            
+            const randomUrl = sampleUrls[Math.floor(Math.random() * sampleUrls.length)];
+            document.getElementById('testUrl').value = randomUrl;
+            logTest(`Loaded sample URL: ${randomUrl}`, 'info');
+        }
+        
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+        
+        async function loadSimpleArticlesScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'simple-articles.js?v=2.5';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logTest('AI Abstract Generation Test Page loaded', 'info');
+            checkAIServices();
+        });
+    </script>
+</body>
+</html> 
