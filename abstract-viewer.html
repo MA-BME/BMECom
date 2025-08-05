@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMECom - Abstract Viewer</title>
+    <link rel="stylesheet" href="styles.css?v=1.8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .abstract-viewer-container {
+            padding: 120px 0 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .abstract-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .abstract-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        .abstract-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .abstract-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+            line-height: 1.2;
+        }
+        
+        .abstract-meta {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .abstract-content {
+            padding: 3rem;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #374151;
+        }
+        
+        .abstract-text {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #1f2937;
+            margin-bottom: 2rem;
+            text-align: justify;
+        }
+        
+        .abstract-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .primary-btn {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .secondary-btn {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .secondary-btn:hover {
+            background: #e5e7eb;
+            transform: translateY(-2px);
+        }
+        
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 3rem;
+            color: #dc2626;
+        }
+        
+        .article-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            margin-bottom: 2rem;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #2563eb;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            z-index: 1000;
+        }
+        
+        .back-to-top:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .abstract-title {
+                font-size: 2rem;
+            }
+            
+            .abstract-content {
+                padding: 2rem;
+            }
+            
+            .abstract-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .abstract-actions {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="nav-brand">
+                    <a href="index.html">BMECom</a>
+                </div>
+                <div class="nav-menu">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="articles.html" class="nav-link">Articles</a>
+                    <a href="login.html" class="nav-link">Login</a>
+                </div>
+                <div class="nav-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="abstract-viewer-container">
+        <div class="container">
+            <!-- Loading State -->
+            <div id="loadingContainer" class="loading-container">
+                <div class="loading-spinner"></div>
+                <h2>Loading Abstract...</h2>
+                <p>Please wait while we retrieve the article details.</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorContainer" class="error-container" style="display: none;">
+                <h2>❌ Error Loading Abstract</h2>
+                <p id="errorMessage">Unable to load the article abstract.</p>
+                <div class="abstract-actions">
+                    <a href="articles.html" class="action-btn secondary-btn">← Back to Articles</a>
+                    <button onclick="location.reload()" class="action-btn primary-btn">🔄 Try Again</button>
+                </div>
+            </div>
+
+            <!-- Abstract Content -->
+            <div id="abstractCard" class="abstract-card" style="display: none;">
+                <!-- Abstract Header -->
+                <div class="abstract-header">
+                    <div class="category-badge" id="categoryBadge">Biomedical Engineering</div>
+                    <h1 class="abstract-title" id="abstractTitle">Article Title</h1>
+                    <div class="abstract-meta">
+                        <div class="meta-item">
+                            <span>📰</span>
+                            <span id="articleSource">Source</span>
+                        </div>
+                        <div class="meta-item">
+                            <span>📅</span>
+                            <span id="articleDate">Date</span>
+                        </div>
+                        <div class="meta-item">
+                            <span>👤</span>
+                            <span id="articleAuthor">Author</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abstract Content -->
+                <div class="abstract-content">
+                    <img id="articleImage" class="article-image" style="display: none;" alt="Article Image">
+                    
+                    <div class="abstract-text" id="abstractText">
+                        Article abstract will be displayed here...
+                    </div>
+
+                    <div class="abstract-actions">
+                        <a id="originalArticleLink" href="#" target="_blank" class="action-btn primary-btn">
+                            🌐 Read Original Article
+                        </a>
+                        <a href="articles.html" class="action-btn secondary-btn">
+                            ← Back to Articles
+                        </a>
+                        <button onclick="window.print()" class="action-btn secondary-btn">
+                            🖨️ Print Abstract
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Back to Top Button -->
+    <div class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        ↑
+    </div>
+
+    <script>
+        // Abstract Viewer JavaScript
+        console.log('🔍 Abstract Viewer Loading...');
+
+        // DOM elements
+        const loadingContainer = document.getElementById('loadingContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const abstractCard = document.getElementById('abstractCard');
+        const abstractTitle = document.getElementById('abstractTitle');
+        const abstractText = document.getElementById('abstractText');
+        const articleImage = document.getElementById('articleImage');
+        const articleSource = document.getElementById('articleSource');
+        const articleDate = document.getElementById('articleDate');
+        const articleAuthor = document.getElementById('articleAuthor');
+        const categoryBadge = document.getElementById('categoryBadge');
+        const originalArticleLink = document.getElementById('originalArticleLink');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // URL normalization function
+        function normalizeUrl(url) {
+            if (!url) return '';
+            try {
+                let cleanUrl = url.replace(/^https?:\/\//, '');
+                cleanUrl = cleanUrl.replace(/\/$/, '');
+                cleanUrl = cleanUrl.toLowerCase();
+                return cleanUrl;
+            } catch (error) {
+                console.error('Error normalizing URL:', error);
+                return url.toLowerCase();
+            }
+        }
+
+        // Get article URL from URL parameters
+        function getArticleUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const url = urlParams.get('url');
+            console.log('URL from parameters:', url);
+            return url;
+        }
+
+        // Load article data
+        function loadArticleData(articleUrl) {
+            console.log('=== LOADING ARTICLE DATA ===');
+            console.log('Searching for URL:', articleUrl);
+            
+            if (!articleUrl) {
+                console.log('No article URL provided');
+                return null;
+            }
+            
+            try {
+                const articles = JSON.parse(localStorage.getItem('articles')) || [];
+                console.log('Total articles in localStorage:', articles.length);
+                
+                if (articles.length === 0) {
+                    console.log('No articles found in localStorage');
+                    return null;
+                }
+                
+                const normalizedSearchUrl = normalizeUrl(articleUrl);
+                console.log('Normalized search URL:', normalizedSearchUrl);
+                
+                // Find article by URL
+                let foundArticle = articles.find(article => {
+                    const normalizedArticleUrl = normalizeUrl(article.url);
+                    const isMatch = normalizedArticleUrl === normalizedSearchUrl;
+                    console.log(`Comparing: "${normalizedArticleUrl}" with "${normalizedSearchUrl}" = ${isMatch}`);
+                    return isMatch;
+                });
+                
+                if (foundArticle) {
+                    console.log('✅ Found article:', foundArticle.title);
+                    return foundArticle;
+                }
+                
+                // Try partial match
+                console.log('Exact match not found, trying partial match...');
+                foundArticle = articles.find(article => {
+                    const normalizedArticleUrl = normalizeUrl(article.url);
+                    const searchInArticle = normalizedArticleUrl.includes(normalizedSearchUrl);
+                    const articleInSearch = normalizedSearchUrl.includes(normalizedArticleUrl);
+                    console.log(`Partial match: "${normalizedArticleUrl}" includes "${normalizedSearchUrl}" = ${searchInArticle}`);
+                    return searchInArticle || articleInSearch;
+                });
+                
+                if (foundArticle) {
+                    console.log('✅ Found article with partial match:', foundArticle.title);
+                    return foundArticle;
+                }
+                
+                console.log('❌ No match found. Available articles:');
+                articles.forEach((article, index) => {
+                    console.log(`${index}: "${article.title}" - "${normalizeUrl(article.url)}"`);
+                });
+                
+                return null;
+                
+            } catch (error) {
+                console.error('Error loading article data:', error);
+                return null;
+            }
+        }
+
+        // Display abstract
+        function displayAbstract(article) {
+            console.log('=== DISPLAYING ABSTRACT ===');
+            console.log('Article:', article);
+            
+            if (!article) {
+                showError('Article not found');
+                return;
+            }
+
+            // Update page title
+            document.title = `BMECom - ${article.title}`;
+
+            // Update abstract content
+            abstractTitle.textContent = article.title;
+            abstractText.textContent = article.summary || 'No abstract available for this article.';
+            articleSource.textContent = article.source || 'Unknown Source';
+            articleDate.textContent = article.date || 'Unknown Date';
+            articleAuthor.textContent = article.userName || article.addedBy || 'Unknown Author';
+            
+            if (article.category) {
+                categoryBadge.textContent = article.category;
+            }
+            
+            // Set original article link
+            originalArticleLink.href = article.url;
+            
+            // Display image if available
+            if (article.image) {
+                articleImage.src = article.image;
+                articleImage.style.display = 'block';
+                articleImage.onerror = function() {
+                    this.style.display = 'none';
+                };
+            } else {
+                articleImage.style.display = 'none';
+            }
+
+            // Show the abstract card
+            hideLoading();
+            abstractCard.style.display = 'block';
+            
+            console.log('✅ Abstract displayed successfully');
+        }
+
+        // Show error
+        function showError(message) {
+            console.log('Showing error:', message);
+            errorMessage.textContent = message;
+            hideLoading();
+            errorContainer.style.display = 'block';
+        }
+
+        // Hide loading
+        function hideLoading() {
+            if (loadingContainer) {
+                loadingContainer.style.display = 'none';
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('=== ABSTRACT VIEWER PAGE LOADING ===');
+            
+            const articleUrl = getArticleUrl();
+            console.log('Article URL from parameters:', articleUrl);
+            
+            if (articleUrl === null) {
+                console.log('No article URL provided');
+                showError('No article URL provided. Please go back and click "Read Full Abstract" on an article.');
+                return;
+            }
+            
+            // Load article data
+            const article = loadArticleData(articleUrl);
+            console.log('Loaded article data:', article);
+            
+            if (article) {
+                console.log('Article found, displaying abstract...');
+                displayAbstract(article);
+            } else {
+                console.log('Article not found');
+                const articles = JSON.parse(localStorage.getItem('articles')) || [];
+                const errorMessage = articles.length > 0 
+                    ? `Article not found. Searched for: ${articleUrl}. Available articles: ${articles.length}. Please check the console for debugging information.`
+                    : 'No articles found in localStorage. Please add some articles first.';
+                showError(errorMessage);
+            }
+        });
+
+        // Mobile navigation toggle
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.querySelector('.nav-menu');
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                navMenu.classList.toggle('active');
+                navToggle.classList.toggle('active');
+            });
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    navMenu.classList.remove('active');
+                    navToggle.classList.remove('active');
+                });
+            });
+        }
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (header) {
+                if (window.scrollY > 100) {
+                    header.style.background = 'rgba(255, 255, 255, 0.98)';
+                    header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
+                } else {
+                    header.style.background = 'rgba(255, 255, 255, 0.95)';
+                    header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

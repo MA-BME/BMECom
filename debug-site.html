@@ -400,7 +400,7 @@
                 
                 let linksHtml = '<p class="success">✅ Read Full Abstract test links:</p><ul>';
                 articles.forEach((article, index) => {
-                    const testUrl = `article-detail.html?url=${encodeURIComponent(article.url)}`;
+                    const testUrl = `abstract-viewer.html?url=${encodeURIComponent(article.url)}`;
                     linksHtml += `<li><a href="${testUrl}" target="_blank">Test: ${article.title}</a></li>`;
                 });
                 linksHtml += '</ul>';

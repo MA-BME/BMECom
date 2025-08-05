@@ -126,7 +126,7 @@
             
             let html = '<p class="info">📋 Test these Read Full Abstract links:</p><ul>';
             articles.forEach((article, index) => {
-                const testUrl = `article-detail.html?url=${encodeURIComponent(article.url)}`;
+                const testUrl = `abstract-viewer.html?url=${encodeURIComponent(article.url)}`;
                 html += `<li>
                     <strong>${article.title}</strong><br>
                     <a href="${testUrl}" target="_blank" class="test-btn">🔗 Test Read Full Abstract</a><br>

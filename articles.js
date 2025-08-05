@@ -545,7 +545,7 @@ function createArticleCard(article, index, isCommunityFavorite = false) {
                 ${likeButton}
                 ${dislikeButton}
             </div>
-            <a href="article-detail.html?url=${encodeURIComponent(article.url)}" class="read-more-btn">
+            <a href="abstract-viewer.html?url=${encodeURIComponent(article.url)}" class="read-more-btn">
                 Read Full Abstract →
             </a>
         </div>
