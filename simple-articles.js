@@ -482,6 +482,42 @@ async function generateWithCursorAI(url) {
     if (!AI_CONFIG.cursor_ai.enabled || !AI_CONFIG.cursor_ai.apiKey) return null;
     
     try {
+        console.log('🔍 Cursor AI: Fetching content from URL:', url);
+        
+        // First, fetch the actual article content from the URL
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+        const articleResponse = await fetch(corsProxy + encodeURIComponent(url));
+        
+        if (!articleResponse.ok) {
+            console.error('❌ Cursor AI: Failed to fetch article content');
+            return null;
+        }
+        
+        const articleContent = await articleResponse.text();
+        console.log('📄 Cursor AI: Successfully fetched article content, length:', articleContent.length);
+        
+        // Clean the content to extract meaningful text
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(articleContent, 'text/html');
+        
+        // Remove script and style elements
+        const scripts = doc.querySelectorAll('script, style, nav, header, footer, .ad, .advertisement');
+        scripts.forEach(el => el.remove());
+        
+        // Extract text content from body
+        const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
+        const titleText = doc.title || '';
+        
+        // Clean and limit the content
+        const cleanText = (bodyText + ' ' + titleText)
+            .replace(/\s+/g, ' ')
+            .replace(/[^\w\s.,!?-]/g, ' ')
+            .trim()
+            .substring(0, 8000); // Limit to 8000 characters
+        
+        console.log('🧹 Cursor AI: Cleaned content length:', cleanText.length);
+        
+        // Now send the actual article content to Cursor AI
         const response = await fetch('https://api.cursor.sh/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -492,10 +528,10 @@ async function generateWithCursorAI(url) {
                 model: 'gpt-4',
                 messages: [{
                     role: 'system',
-                    content: 'You are a biomedical engineering expert. Analyze the article at the given URL and provide a unique title and comprehensive abstract (300-500 words) that accurately reflects the specific content and findings of that article. Focus on the actual research, methodology, and results. Make it specific to the article, not generic.'
+                    content: 'You are a biomedical engineering expert. Analyze the provided article content and generate a unique title and comprehensive abstract (300-500 words) that accurately reflects the specific content and findings of that article. Focus on the actual research, methodology, and results. Make it specific to the article, not generic.'
                 }, {
                     role: 'user',
-                    content: `Please analyze this biomedical engineering article: ${url}\n\nProvide:\n1. A specific, descriptive title (not generic)\n2. A detailed abstract that captures the unique aspects of this research`
+                    content: `Article URL: ${url}\n\nArticle Content:\n${cleanText}\n\nBased on this content, provide:\n1. A specific, descriptive title (not generic)\n2. A detailed abstract that captures the unique aspects of this research`
                 }],
                 max_tokens: 1000
             })
@@ -507,10 +543,12 @@ async function generateWithCursorAI(url) {
             const lines = content.split('\n');
             const title = lines.find(line => line.includes('Title:') || line.includes('1.'))?.replace(/^.*?[:.]\s*/, '') || '';
             const summary = lines.slice(lines.findIndex(line => line.includes('Abstract:') || line.includes('2.')) + 1).join('\n').trim();
+            
+            console.log('✅ Cursor AI: Successfully generated title and abstract');
             return { title, summary };
         }
     } catch (error) {
-        console.error('Cursor AI error:', error);
+        console.error('❌ Cursor AI error:', error);
     }
     return null;
 }
