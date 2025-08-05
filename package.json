@@ -1,0 +1,30 @@
+{
+  "name": "bmecom",
+  "version": "1.0.0",
+  "description": "Biomedical Engineering Community - Article sharing and analysis platform",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "build": "echo 'Static site - no build required'",
+    "deploy": "echo 'Deployment handled by GitHub Actions'"
+  },
+  "keywords": [
+    "biomedical",
+    "engineering",
+    "articles",
+    "community",
+    "ai",
+    "analysis"
+  ],
+  "author": "BMECom Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MA-BME/BMECom.git"
+  },
+  "homepage": "https://ma-bme.github.io/BMECom/",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 

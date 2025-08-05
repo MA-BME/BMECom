@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMECom Site Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .test-btn {
+            background: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-btn:hover {
+            background: #1d4ed8;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        .console-output {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 BMECom Site Debug & Testing</h1>
+    
+    <div class="debug-section">
+        <h2>Step 1: Check JavaScript Loading</h2>
+        <button class="test-btn" onclick="testJavaScriptLoading()">Test JavaScript Loading</button>
+        <div id="jsLoadingOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 2: Test User Authentication</h2>
+        <button class="test-btn" onclick="testAuthentication()">Test Authentication</button>
+        <button class="test-btn" onclick="createTestUser()">Create Test User</button>
+        <button class="test-btn" onclick="loginTestUser()">Login Test User</button>
+        <div id="authOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 3: Test Article Functionality</h2>
+        <button class="test-btn" onclick="testArticleStorage()">Test Article Storage</button>
+        <button class="test-btn" onclick="addTestArticle()">Add Test Article</button>
+        <button class="test-btn" onclick="testLikeDislike()">Test Like/Dislike</button>
+        <button class="test-btn" onclick="testComments()">Test Comments</button>
+        <div id="articleOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 4: Test URL Analysis</h2>
+        <input type="text" id="testUrlInput" placeholder="Enter URL to test" style="width: 300px; padding: 8px; margin: 5px;">
+        <button class="test-btn" onclick="testUrlAnalysis()">Test URL Analysis</button>
+        <div id="urlAnalysisOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 5: Test Navigation</h2>
+        <button class="test-btn" onclick="testNavigation()">Test Navigation Links</button>
+        <button class="test-btn" onclick="testReadFullAbstract()">Test Read Full Abstract</button>
+        <div id="navigationOutput"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 6: Console Output</h2>
+        <button class="test-btn" onclick="clearConsole()">Clear Console</button>
+        <div id="consoleOutput" class="console-output"></div>
+    </div>
+
+    <script>
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function captureConsole(type, ...args) {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const message = `[${timestamp}] ${type.toUpperCase()}: ${args.join(' ')}\n`;
+            output.textContent += message;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        console.log = (...args) => {
+            originalLog.apply(console, args);
+            captureConsole('log', ...args);
+        };
+        
+        console.error = (...args) => {
+            originalError.apply(console, args);
+            captureConsole('error', ...args);
+        };
+        
+        console.warn = (...args) => {
+            originalWarn.apply(console, args);
+            captureConsole('warn', ...args);
+        };
+        
+        function clearConsole() {
+            document.getElementById('consoleOutput').textContent = '';
+        }
+        
+        function testJavaScriptLoading() {
+            const output = document.getElementById('jsLoadingOutput');
+            output.innerHTML = '<p class="info">Testing JavaScript loading...</p>';
+            
+            try {
+                // Test if basic JavaScript is working
+                const testVar = 'JavaScript is working';
+                console.log('JavaScript test:', testVar);
+                
+                // Test localStorage
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('test', 'working');
+                    const testValue = localStorage.getItem('test');
+                    console.log('localStorage test:', testValue);
+                    
+                    if (testValue === 'working') {
+                        output.innerHTML = '<p class="success">✅ JavaScript and localStorage are working correctly!</p>';
+                    } else {
+                        output.innerHTML = '<p class="error">❌ localStorage test failed</p>';
+                    }
+                } else {
+                    output.innerHTML = '<p class="error">❌ localStorage is not available</p>';
+                }
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ JavaScript error: ${error.message}</p>`;
+                console.error('JavaScript test error:', error);
+            }
+        }
+        
+        function testAuthentication() {
+            const output = document.getElementById('authOutput');
+            output.innerHTML = '<p class="info">Testing authentication...</p>';
+            
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                console.log('Current user:', currentUser);
+                
+                if (currentUser) {
+                    output.innerHTML = `
+                        <p class="success">✅ User is logged in!</p>
+                        <p><strong>Name:</strong> ${currentUser.name}</p>
+                        <p><strong>ID:</strong> ${currentUser.id}</p>
+                        <p><strong>Role:</strong> ${currentUser.role || 'User'}</p>
+                    `;
+                } else {
+                    output.innerHTML = '<p class="warning">⚠️ No user is currently logged in</p>';
+                }
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Authentication test error: ${error.message}</p>`;
+                console.error('Authentication test error:', error);
+            }
+        }
+        
+        function createTestUser() {
+            const output = document.getElementById('authOutput');
+            output.innerHTML = '<p class="info">Creating test user...</p>';
+            
+            try {
+                const testUser = {
+                    id: 'test-user-' + Date.now(),
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    role: 'User',
+                    createdAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                console.log('Test user created:', testUser);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Test user created and logged in!</p>
+                    <p><strong>Name:</strong> ${testUser.name}</p>
+                    <p><strong>ID:</strong> ${testUser.id}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Error creating test user: ${error.message}</p>`;
+                console.error('Create test user error:', error);
+            }
+        }
+        
+        function loginTestUser() {
+            const output = document.getElementById('authOutput');
+            output.innerHTML = '<p class="info">Logging in test user...</p>';
+            
+            try {
+                // Simulate login process
+                const testUser = {
+                    id: 'test-user-login',
+                    name: 'Test User Login',
+                    email: 'testlogin@example.com',
+                    role: 'User',
+                    createdAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                console.log('Test user logged in:', testUser);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Test user logged in successfully!</p>
+                    <p><strong>Name:</strong> ${testUser.name}</p>
+                    <p><strong>ID:</strong> ${testUser.id}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Error logging in test user: ${error.message}</p>`;
+                console.error('Login test user error:', error);
+            }
+        }
+        
+        function testArticleStorage() {
+            const output = document.getElementById('articleOutput');
+            output.innerHTML = '<p class="info">Testing article storage...</p>';
+            
+            try {
+                const articles = JSON.parse(localStorage.getItem('articles')) || [];
+                console.log('Current articles:', articles);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Article storage is working!</p>
+                    <p><strong>Total articles:</strong> ${articles.length}</p>
+                    ${articles.length > 0 ? `<p><strong>Latest article:</strong> ${articles[articles.length - 1].title}</p>` : ''}
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Article storage test error: ${error.message}</p>`;
+                console.error('Article storage test error:', error);
+            }
+        }
+        
+        function addTestArticle() {
+            const output = document.getElementById('articleOutput');
+            output.innerHTML = '<p class="info">Adding test article...</p>';
+            
+            try {
+                const testArticle = {
+                    title: "Test Biomedical Engineering Article",
+                    summary: "This is a comprehensive test article about biomedical engineering innovations. The research focuses on developing new medical devices and technologies that can improve patient outcomes.",
+                    image: "https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology",
+                    source: "test.com",
+                    date: "2024",
+                    url: "https://test.com/biomedical-engineering-article",
+                    category: "Biomedical Engineering",
+                    ticker: 1,
+                    userId: "test-user",
+                    userName: "Test User",
+                    dateAdded: new Date().toISOString()
+                };
+                
+                const articles = JSON.parse(localStorage.getItem('articles')) || [];
+                articles.push(testArticle);
+                localStorage.setItem('articles', JSON.stringify(articles));
+                
+                console.log('Test article added:', testArticle);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Test article added successfully!</p>
+                    <p><strong>Title:</strong> ${testArticle.title}</p>
+                    <p><strong>Total articles now:</strong> ${articles.length}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Error adding test article: ${error.message}</p>`;
+                console.error('Add test article error:', error);
+            }
+        }
+        
+        function testLikeDislike() {
+            const output = document.getElementById('articleOutput');
+            output.innerHTML = '<p class="info">Testing like/dislike functionality...</p>';
+            
+            try {
+                const userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
+                const userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
+                
+                console.log('User likes:', userLikes);
+                console.log('User dislikes:', userDislikes);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Like/dislike storage is working!</p>
+                    <p><strong>Liked articles:</strong> ${Object.keys(userLikes).length}</p>
+                    <p><strong>Disliked articles:</strong> ${Object.keys(userDislikes).length}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Like/dislike test error: ${error.message}</p>`;
+                console.error('Like/dislike test error:', error);
+            }
+        }
+        
+        function testComments() {
+            const output = document.getElementById('articleOutput');
+            output.innerHTML = '<p class="info">Testing comments functionality...</p>';
+            
+            try {
+                const articleComments = JSON.parse(localStorage.getItem('articleComments')) || {};
+                
+                console.log('Article comments:', articleComments);
+                
+                output.innerHTML = `
+                    <p class="success">✅ Comments storage is working!</p>
+                    <p><strong>Articles with comments:</strong> ${Object.keys(articleComments).length}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Comments test error: ${error.message}</p>`;
+                console.error('Comments test error:', error);
+            }
+        }
+        
+        function testUrlAnalysis() {
+            const output = document.getElementById('urlAnalysisOutput');
+            const url = document.getElementById('testUrlInput').value.trim();
+            
+            if (!url) {
+                output.innerHTML = '<p class="error">❌ Please enter a URL to test</p>';
+                return;
+            }
+            
+            output.innerHTML = '<p class="info">Testing URL analysis...</p>';
+            
+            try {
+                // Test URL validation
+                const urlObj = new URL(url);
+                console.log('URL validation passed:', urlObj.hostname);
+                
+                // Simulate analysis process
+                setTimeout(() => {
+                    output.innerHTML = `
+                        <p class="success">✅ URL analysis test completed!</p>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Domain:</strong> ${urlObj.hostname}</p>
+                        <p><strong>Protocol:</strong> ${urlObj.protocol}</p>
+                        <p class="info">Note: This is a simulation. Real analysis would extract content from the URL.</p>
+                    `;
+                }, 2000);
+                
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ URL analysis error: ${error.message}</p>`;
+                console.error('URL analysis error:', error);
+            }
+        }
+        
+        function testNavigation() {
+            const output = document.getElementById('navigationOutput');
+            output.innerHTML = '<p class="info">Testing navigation...</p>';
+            
+            try {
+                const testLinks = [
+                    { name: 'Homepage', url: 'index.html' },
+                    { name: 'Articles', url: 'articles.html' },
+                    { name: 'Login', url: 'login.html' },
+                    { name: 'Test Abstract', url: 'test-abstract.html' }
+                ];
+                
+                let linksHtml = '<p class="success">✅ Navigation links:</p><ul>';
+                testLinks.forEach(link => {
+                    linksHtml += `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`;
+                });
+                linksHtml += '</ul>';
+                
+                output.innerHTML = linksHtml;
+                
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Navigation test error: ${error.message}</p>`;
+                console.error('Navigation test error:', error);
+            }
+        }
+        
+        function testReadFullAbstract() {
+            const output = document.getElementById('navigationOutput');
+            output.innerHTML = '<p class="info">Testing Read Full Abstract links...</p>';
+            
+            try {
+                const articles = JSON.parse(localStorage.getItem('articles')) || [];
+                
+                if (articles.length === 0) {
+                    output.innerHTML = '<p class="warning">⚠️ No articles found. Add a test article first.</p>';
+                    return;
+                }
+                
+                let linksHtml = '<p class="success">✅ Read Full Abstract test links:</p><ul>';
+                articles.forEach((article, index) => {
+                    const testUrl = `article-detail.html?url=${encodeURIComponent(article.url)}`;
+                    linksHtml += `<li><a href="${testUrl}" target="_blank">Test: ${article.title}</a></li>`;
+                });
+                linksHtml += '</ul>';
+                
+                output.innerHTML = linksHtml;
+                
+            } catch (error) {
+                output.innerHTML = `<p class="error">❌ Read Full Abstract test error: ${error.message}</p>`;
+                console.error('Read Full Abstract test error:', error);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 BMECom Debug Page Loaded');
+            console.log('Testing basic functionality...');
+            
+            // Auto-run basic tests
+            setTimeout(() => {
+                testJavaScriptLoading();
+                testAuthentication();
+                testArticleStorage();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 
