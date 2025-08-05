@@ -223,17 +223,20 @@ async function createArticleDataWithAI(url) {
     // Try to get AI-generated title and abstract
     let title = 'Biomedical Engineering Article';
     let summary = '';
+    let image = '';
     
     try {
-        // Try multiple AI services
+        // First, try to extract image from the article
+        image = await extractImageFromArticle(url);
+        
+        // Try multiple AI services for content generation
         const aiResults = await Promise.any([
+            generateWithCursorAI(url),
             generateWithOpenAI(url),
             generateWithAnthropic(url),
             generateWithGoogle(url),
             generateWithCohere(url),
-            generateWithHuggingFace(url),
-            generateWithPerplexity(url),
-            generateWithCursorAI(url)
+            generateWithPerplexity(url)
         ]);
         
         if (aiResults) {
@@ -254,11 +257,16 @@ async function createArticleDataWithAI(url) {
         summary = generateFallbackSummary(domain);
     }
     
+    // If no image found, generate AI image
+    if (!image) {
+        image = await generateAIImage(title, summary);
+    }
+    
     return {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         title: title,
         summary: summary,
-        image: `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology&t=${Date.now()}`,
+        image: image,
         source: domain,
         date: new Date().getFullYear().toString(),
         url: url,
@@ -271,7 +279,114 @@ async function createArticleDataWithAI(url) {
     };
 }
 
+// Extract image from article
+async function extractImageFromArticle(url) {
+    try {
+        // Use a CORS proxy to fetch the article content
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        if (data.contents) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.contents, 'text/html');
+            
+            // Look for images in the article
+            const images = doc.querySelectorAll('img');
+            for (let img of images) {
+                const src = img.src || img.getAttribute('data-src');
+                if (src && (src.includes('http') || src.startsWith('//'))) {
+                    // Make sure it's a valid image URL
+                    const fullSrc = src.startsWith('//') ? 'https:' + src : src;
+                    if (fullSrc.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                        console.log('🖼️ Found image in article:', fullSrc);
+                        return fullSrc;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.log('❌ Failed to extract image from article:', error.message);
+    }
+    return '';
+}
+
+// Generate AI image
+async function generateAIImage(title, summary) {
+    try {
+        // Try OpenAI DALL-E first
+        if (AI_CONFIG.openai.enabled && AI_CONFIG.openai.apiKey) {
+            const response = await fetch('https://api.openai.com/v1/images/generations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AI_CONFIG.openai.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'dall-e-3',
+                    prompt: `Create a professional biomedical engineering image related to: ${title}. Style: scientific, medical, professional, clean design.`,
+                    n: 1,
+                    size: '1024x1024'
+                })
+            });
+            
+            const data = await response.json();
+            if (data.data && data.data[0]) {
+                console.log('🎨 Generated AI image with DALL-E');
+                return data.data[0].url;
+            }
+        }
+        
+        // Fallback to Unsplash
+        const searchTerm = encodeURIComponent(title.split(' ').slice(0, 3).join(' '));
+        return `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology,${searchTerm}&t=${Date.now()}`;
+        
+    } catch (error) {
+        console.log('❌ Failed to generate AI image:', error.message);
+        // Fallback to Unsplash
+        const searchTerm = encodeURIComponent(title.split(' ').slice(0, 3).join(' '));
+        return `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology,${searchTerm}&t=${Date.now()}`;
+    }
+}
+
 // AI Generation Functions
+async function generateWithCursorAI(url) {
+    if (!AI_CONFIG.cursor_ai.enabled || !AI_CONFIG.cursor_ai.apiKey) return null;
+    
+    try {
+        const response = await fetch('https://api.cursor.sh/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${AI_CONFIG.cursor_ai.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4',
+                messages: [{
+                    role: 'system',
+                    content: 'You are a biomedical engineering expert. Analyze the article at the given URL and provide a unique title and comprehensive abstract (300-500 words) that accurately reflects the specific content and findings of that article. Focus on the actual research, methodology, and results. Make it specific to the article, not generic.'
+                }, {
+                    role: 'user',
+                    content: `Please analyze this biomedical engineering article: ${url}\n\nProvide:\n1. A specific, descriptive title (not generic)\n2. A detailed abstract that captures the unique aspects of this research`
+                }],
+                max_tokens: 1000
+            })
+        });
+        
+        const data = await response.json();
+        if (data.choices && data.choices[0]) {
+            const content = data.choices[0].message.content;
+            const lines = content.split('\n');
+            const title = lines.find(line => line.includes('Title:') || line.includes('1.'))?.replace(/^.*?[:.]\s*/, '') || '';
+            const summary = lines.slice(lines.findIndex(line => line.includes('Abstract:') || line.includes('2.')) + 1).join('\n').trim();
+            return { title, summary };
+        }
+    } catch (error) {
+        console.error('Cursor AI error:', error);
+    }
+    return null;
+}
+
 async function generateWithOpenAI(url) {
     if (!AI_CONFIG.openai.enabled || !AI_CONFIG.openai.apiKey) return null;
     
@@ -286,7 +401,7 @@ async function generateWithOpenAI(url) {
                 model: 'gpt-4',
                 messages: [{
                     role: 'system',
-                    content: 'You are a biomedical engineering expert. Analyze the article at the given URL and provide a unique title and comprehensive abstract (300-500 words) that accurately reflects the specific content and findings of that article. Focus on the actual research, methodology, and results.'
+                    content: 'You are a biomedical engineering expert. Analyze the article at the given URL and provide a unique title and comprehensive abstract (300-500 words) that accurately reflects the specific content and findings of that article. Focus on the actual research, methodology, and results. Make it specific to the article, not generic.'
                 }, {
                     role: 'user',
                     content: `Please analyze this biomedical engineering article: ${url}\n\nProvide:\n1. A specific, descriptive title (not generic)\n2. A detailed abstract that captures the unique aspects of this research`
@@ -325,7 +440,7 @@ async function generateWithAnthropic(url) {
                 max_tokens: 1000,
                 messages: [{
                     role: 'user',
-                    content: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings.`
+                    content: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings. Make it specific to the article, not generic.`
                 }]
             })
         });
@@ -356,7 +471,7 @@ async function generateWithGoogle(url) {
             body: JSON.stringify({
                 contents: [{
                     parts: [{
-                        text: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings.`
+                        text: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings. Make it specific to the article, not generic.`
                     }]
                 }]
             })
@@ -388,7 +503,7 @@ async function generateWithCohere(url) {
             },
             body: JSON.stringify({
                 model: 'command',
-                prompt: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings.`,
+                prompt: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings. Make it specific to the article, not generic.`,
                 max_tokens: 1000
             })
         });
@@ -407,35 +522,6 @@ async function generateWithCohere(url) {
     return null;
 }
 
-async function generateWithHuggingFace(url) {
-    if (!AI_CONFIG.huggingface.enabled || !AI_CONFIG.huggingface.apiKey) return null;
-    
-    try {
-        const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AI_CONFIG.huggingface.apiKey}`
-            },
-            body: JSON.stringify({
-                inputs: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract.`
-            })
-        });
-        
-        const data = await response.json();
-        if (data && data[0]) {
-            const content = data[0].generated_text;
-            const lines = content.split('\n');
-            const title = lines.find(line => line.includes('Title:') || line.includes('1.'))?.replace(/^.*?[:.]\s*/, '') || '';
-            const summary = lines.slice(lines.findIndex(line => line.includes('Abstract:') || line.includes('2.')) + 1).join('\n').trim();
-            return { title, summary };
-        }
-    } catch (error) {
-        console.error('Hugging Face error:', error);
-    }
-    return null;
-}
-
 async function generateWithPerplexity(url) {
     if (!AI_CONFIG.perplexity.enabled || !AI_CONFIG.perplexity.apiKey) return null;
     
@@ -450,7 +536,7 @@ async function generateWithPerplexity(url) {
                 model: 'mixtral-8x7b-instruct',
                 messages: [{
                     role: 'user',
-                    content: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings.`
+                    content: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings. Make it specific to the article, not generic.`
                 }],
                 max_tokens: 1000
             })
@@ -466,40 +552,6 @@ async function generateWithPerplexity(url) {
         }
     } catch (error) {
         console.error('Perplexity error:', error);
-    }
-    return null;
-}
-
-async function generateWithCursorAI(url) {
-    if (!AI_CONFIG.cursor_ai.enabled || !AI_CONFIG.cursor_ai.apiKey) return null;
-    
-    try {
-        const response = await fetch('https://api.cursor.sh/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AI_CONFIG.cursor_ai.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4',
-                messages: [{
-                    role: 'user',
-                    content: `Analyze this biomedical engineering article: ${url}\n\nProvide a unique title and detailed abstract (300-500 words) that captures the specific research and findings.`
-                }],
-                max_tokens: 1000
-            })
-        });
-        
-        const data = await response.json();
-        if (data.choices && data.choices[0]) {
-            const content = data.choices[0].message.content;
-            const lines = content.split('\n');
-            const title = lines.find(line => line.includes('Title:') || line.includes('1.'))?.replace(/^.*?[:.]\s*/, '') || '';
-            const summary = lines.slice(lines.findIndex(line => line.includes('Abstract:') || line.includes('2.')) + 1).join('\n').trim();
-            return { title, summary };
-        }
-    } catch (error) {
-        console.error('Cursor AI error:', error);
     }
     return null;
 }
@@ -523,52 +575,6 @@ function generateFallbackTitle(url) {
 
 function generateFallbackSummary(domain) {
     return `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The comprehensive analysis encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. The research team employed state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems. These findings represent a significant milestone in the field of biomedical engineering, contributing to the advancement of medical science and healthcare delivery.`;
-}
-
-// Rewrite all existing articles with AI
-async function rewriteAllArticlesWithAI() {
-    console.log('🔄 Rewriting all articles with AI...');
-    
-    if (!currentUser) {
-        showMessage('Please log in to rewrite articles', 'error');
-        return;
-    }
-    
-    showMessage('Rewriting all articles with AI... This may take a while.', 'success');
-    
-    for (let i = 0; i < articles.length; i++) {
-        const article = articles[i];
-        console.log(`🔄 Rewriting article ${i + 1}/${articles.length}: ${article.title}`);
-        
-        try {
-            const aiResults = await Promise.any([
-                generateWithOpenAI(article.url),
-                generateWithAnthropic(article.url),
-                generateWithGoogle(article.url),
-                generateWithCohere(article.url),
-                generateWithHuggingFace(article.url),
-                generateWithPerplexity(article.url),
-                generateWithCursorAI(article.url)
-            ]);
-            
-            if (aiResults && aiResults.title && aiResults.summary) {
-                articles[i].title = aiResults.title;
-                articles[i].summary = aiResults.summary;
-                console.log(`✅ Rewritten: ${aiResults.title}`);
-            }
-        } catch (error) {
-            console.error(`❌ Failed to rewrite article ${i + 1}:`, error);
-        }
-        
-        // Update progress
-        showMessage(`Rewriting articles... ${i + 1}/${articles.length} complete`, 'success');
-    }
-    
-    // Save updated articles
-    localStorage.setItem('articles', JSON.stringify(articles));
-    displayArticles();
-    
-    showMessage('All articles have been rewritten with AI-generated content!', 'success');
 }
 
 // Display articles
