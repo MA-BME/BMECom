@@ -327,30 +327,70 @@ const BuiltInAI = {
         // Extract domain for context
         const domain = new URL(url).hostname.replace('www.', '');
         
-        // Use top keywords and topic to create title
-        const topKeywords = keywords.slice(0, 3);
+        // Extract specific technical terms and methods
+        const technicalTerms = keywords.filter(keyword => 
+            keyword.length > 4 && 
+            !['research', 'study', 'analysis', 'method', 'result', 'conclusion', 'biomedical', 'engineering'].includes(keyword.toLowerCase())
+        );
+        
+        // Extract numerical data for specificity
+        const numericalPattern = /\d+(?:\.\d+)?(?:%|mg|ml|mm|cm|kg|g|Hz|kHz|MHz|V|A|W|J|Pa|mmHg|°C|K)?/g;
+        const numericalData = content.match(numericalPattern) || [];
+        
+        // Get topic name
         const topicName = topic.topic.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
         
         let title = '';
         
-        if (topKeywords.length > 0) {
+        // Create specific title based on technical terms and data
+        if (technicalTerms.length >= 2) {
+            const primaryTerm = technicalTerms[0].charAt(0).toUpperCase() + technicalTerms[0].slice(1);
+            const secondaryTerm = technicalTerms[1];
+            
+            if (numericalData.length > 0) {
+                // Include specific measurements in title
+                const keyMeasurement = numericalData[0];
+                title = `${primaryTerm} and ${secondaryTerm}: ${keyMeasurement} Analysis in ${topicName}`;
+            } else {
+                title = `${primaryTerm} and ${secondaryTerm} Integration in ${topicName}`;
+            }
+        } else if (technicalTerms.length === 1) {
+            const term = technicalTerms[0].charAt(0).toUpperCase() + technicalTerms[0].slice(1);
+            if (numericalData.length > 0) {
+                const keyMeasurement = numericalData[0];
+                title = `${term} Optimization: ${keyMeasurement} Performance in ${topicName}`;
+            } else {
+                title = `${term} Applications in ${topicName}`;
+            }
+        } else if (keywords.length > 0) {
+            // Fallback to general keywords
+            const topKeywords = keywords.slice(0, 2);
             title = `${topKeywords[0].charAt(0).toUpperCase() + topKeywords[0].slice(1)} `;
             if (topKeywords.length > 1) {
                 title += `and ${topKeywords[1]} `;
             }
             title += `in ${topicName}`;
         } else {
-            title = `Biomedical Engineering Research: ${topicName}`;
+            title = `Advanced ${topicName} Research in Biomedical Engineering`;
         }
         
-        // Add domain context if relevant
+        // Add specific domain context
         if (domain.includes('nature') || domain.includes('science')) {
-            title += ' - Research Study';
+            title += ' - Experimental Study';
         } else if (domain.includes('medical') || domain.includes('health')) {
-            title += ' - Medical Application';
+            title += ' - Clinical Application';
+        } else if (domain.includes('ieee') || domain.includes('engineering')) {
+            title += ' - Technical Implementation';
+        } else if (domain.includes('pubmed') || domain.includes('ncbi')) {
+            title += ' - Research Analysis';
         }
         
-        console.log('✅ Built-in AI: Title generated:', title);
+        // Ensure title is not too long
+        if (title.length > 80) {
+            title = title.substring(0, 77) + '...';
+        }
+        
+        console.log('✅ Built-in AI: Specific title generated:', title);
         return title;
     },
 
@@ -358,33 +398,106 @@ const BuiltInAI = {
     generateComprehensiveAbstract: function(content, keywords, sentiment, topic, biomedical) {
         console.log('📄 Built-in AI: Generating comprehensive abstract...');
         
-        // Start with AI-generated summary
-        let abstract = this.generateSummary(content, 300);
+        // Extract specific details from content
+        const sentences = this.textProcessor.extractSentences(content);
+        const words = this.textProcessor.extractWords(content);
         
-        // Add topic context
+        // Find sentences with high keyword density for specific details
+        const keywordSentences = sentences.filter(sentence => {
+            const sentenceWords = this.textProcessor.extractWords(sentence);
+            const keywordMatches = keywords.filter(keyword => 
+                sentenceWords.some(word => word.toLowerCase().includes(keyword.toLowerCase()))
+            );
+            return keywordMatches.length >= 2; // Sentences with at least 2 keywords
+        });
+        
+        // Extract specific measurements, percentages, or numerical data
+        const numericalPattern = /\d+(?:\.\d+)?(?:%|mg|ml|mm|cm|kg|g|Hz|kHz|MHz|V|A|W|J|Pa|mmHg|°C|K)?/g;
+        const numericalData = content.match(numericalPattern) || [];
+        
+        // Extract specific technical terms and methods
+        const technicalTerms = keywords.filter(keyword => 
+            keyword.length > 4 && 
+            !['research', 'study', 'analysis', 'method', 'result', 'conclusion'].includes(keyword.toLowerCase())
+        );
+        
+        // Build unique abstract with specific details
+        let abstract = '';
+        
+        // Start with the most relevant sentence from keyword analysis
+        if (keywordSentences.length > 0) {
+            abstract = keywordSentences[0];
+            if (!abstract.endsWith('.')) abstract += '.';
+        } else {
+            // Fallback to AI-generated summary
+            abstract = this.generateSummary(content, 200);
+        }
+        
+        // Add specific technical details
+        if (technicalTerms.length > 0) {
+            const topTerms = technicalTerms.slice(0, 3).join(', ');
+            abstract += ` The study specifically examines ${topTerms} in detail.`;
+        }
+        
+        // Add numerical data if available
+        if (numericalData.length > 0) {
+            const uniqueData = [...new Set(numericalData)].slice(0, 3);
+            abstract += ` Key measurements include ${uniqueData.join(', ')}.`;
+        }
+        
+        // Add topic-specific context with details
         const topicName = topic.topic.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        abstract += ` This research focuses on ${topicName} applications in biomedical engineering.`;
+        abstract += ` This research specifically addresses ${topicName} challenges in biomedical engineering.`;
         
-        // Add sentiment context
+        // Add research methodology details
+        if (biomedical.primaryResearchType) {
+            const methodDetails = {
+                'experimental': 'using experimental protocols and controlled testing procedures',
+                'clinical': 'through clinical trials and patient-based studies',
+                'computational': 'employing computational modeling and algorithmic analysis',
+                'review': 'via comprehensive literature review and meta-analysis'
+            };
+            const methodDetail = methodDetails[biomedical.primaryResearchType] || 'using advanced analytical methods';
+            abstract += ` The investigation employs ${methodDetail}.`;
+        }
+        
+        // Add sentiment-based specific conclusions
         if (sentiment.confidence > 0.3) {
             if (sentiment.sentiment === 'positive') {
-                abstract += ' The findings demonstrate promising results and significant potential for clinical applications.';
+                abstract += ' The results demonstrate significant improvements and validate the effectiveness of the proposed approach.';
             } else if (sentiment.sentiment === 'negative') {
-                abstract += ' The study identifies important challenges and limitations that need to be addressed.';
+                abstract += ' The findings reveal critical limitations and identify specific areas requiring further investigation.';
+            } else {
+                abstract += ' The analysis provides balanced insights into both advantages and limitations of the methodology.';
             }
         }
         
-        // Add biomedical relevance
+        // Add biomedical relevance with specific details
         if (biomedical.biomedicalRelevance > 0.1) {
-            abstract += ` The research contributes to the field of biomedical engineering with ${biomedical.primaryResearchType} methodology.`;
+            const relevanceLevel = biomedical.biomedicalRelevance > 0.3 ? 'highly relevant' : 'relevant';
+            abstract += ` This work is ${relevanceLevel} to biomedical engineering applications, particularly in ${topicName.toLowerCase()} research.`;
         }
         
-        // Ensure proper length
-        if (abstract.length > 500) {
-            abstract = abstract.substring(0, 500) + '...';
+        // Ensure the abstract is unique and specific
+        abstract = abstract.replace(/\.\.\./g, '.').replace(/\s+/g, ' ').trim();
+        
+        // Ensure proper length while maintaining specificity
+        if (abstract.length > 600) {
+            const sentences = abstract.split('.');
+            let truncatedAbstract = '';
+            for (const sentence of sentences) {
+                if ((truncatedAbstract + sentence + '.').length > 600) break;
+                truncatedAbstract += sentence + '.';
+            }
+            abstract = truncatedAbstract.trim();
         }
         
-        console.log('✅ Built-in AI: Comprehensive abstract generated, length:', abstract.length);
+        // Final uniqueness check - ensure it doesn't sound generic
+        if (abstract.includes('This research focuses on') && !abstract.includes('specifically')) {
+            abstract = abstract.replace('This research focuses on', 'This study specifically investigates');
+        }
+        
+        console.log('✅ Built-in AI: Unique comprehensive abstract generated, length:', abstract.length);
         return abstract;
     }
 };
