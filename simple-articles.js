@@ -8,6 +8,11 @@ let currentUser = null;
 let userLikes = new Set();
 let userDislikes = new Set();
 
+// Comments tracking
+let articleComments = JSON.parse(localStorage.getItem('articleComments')) || {};
+let commentLikes = JSON.parse(localStorage.getItem('commentLikes')) || {};
+let commentDislikes = JSON.parse(localStorage.getItem('commentDislikes')) || {};
+
 // Built-in AI Configuration
 const BUILT_IN_AI_CONFIG = {
     enabled: true,
@@ -1606,6 +1611,11 @@ function createArticleCard(article, index) {
     // Check if user can delete this article (own article or moderator)
     const canDelete = currentUser && (article.userId === currentUser.id || currentUser.role === 'moderator');
     
+    // Get comment count and most liked comment
+    const articleCommentsList = articleComments[article.id] || [];
+    const commentCount = articleCommentsList.length;
+    const mostLikedComment = getMostLikedComment(article.id);
+    
     card.innerHTML = `
         <div class="article-image">
             <img src="${article.image}" alt="${article.title}" loading="lazy" 
@@ -1646,6 +1656,56 @@ function createArticleCard(article, index) {
                 <a href="abstract-viewer.html?url=${encodeURIComponent(article.url)}" class="read-more-btn">
                     Read Full Abstract →
                 </a>
+            </div>
+            
+            <!-- Most Liked Comment Preview -->
+            ${mostLikedComment ? `
+                <div class="most-liked-comment">
+                    <div class="most-liked-header">
+                        <span class="most-liked-label">Most Liked Comment</span>
+                        <span class="most-liked-likes">${mostLikedComment.likes} likes</span>
+                    </div>
+                    <div class="most-liked-author">${mostLikedComment.author}</div>
+                    <div class="most-liked-text">${mostLikedComment.text.substring(0, 100)}${mostLikedComment.text.length > 100 ? '...' : ''}</div>
+                    <div class="most-liked-meta">
+                        <span class="most-liked-time">${getTimeAgo(mostLikedComment.timestamp)}</span>
+                        <button class="view-all-comments-btn" onclick="toggleComments('${article.id}')">View All Comments (${commentCount})</button>
+                    </div>
+                </div>
+            ` : commentCount > 0 ? `
+                <div class="show-comments-btn-container">
+                    <button class="show-comments-btn" onclick="toggleComments('${article.id}')">
+                        View Comments (${commentCount})
+                    </button>
+                </div>
+            ` : ''}
+            
+            <!-- Comments Section -->
+            <div id="comments-section-${article.id}" class="comments-section" style="display: none;">
+                <div class="comments-header">
+                    <h4>Comments (${commentCount})</h4>
+                    <button id="toggle-comments-${article.id}" class="toggle-comments-btn" onclick="toggleComments('${article.id}')">
+                        Hide Comments
+                    </button>
+                </div>
+                
+                ${currentUser ? `
+                    <div class="add-comment-form">
+                        <textarea id="comment-text-${article.id}" class="comment-textarea" placeholder="Write a comment..."></textarea>
+                        <button class="add-comment-btn" onclick="addComment('${article.id}', document.getElementById('comment-text-${article.id}').value)">
+                            Add Comment
+                        </button>
+                    </div>
+                ` : `
+                    <div class="add-comment-form">
+                        <textarea class="comment-textarea" disabled placeholder="Please log in to add comments"></textarea>
+                        <button class="add-comment-btn" disabled>Add Comment</button>
+                    </div>
+                `}
+                
+                <div id="comments-${article.id}" class="comments-container">
+                    <!-- Comments will be loaded here -->
+                </div>
             </div>
         </div>
     `;
@@ -2051,4 +2111,562 @@ window.deleteAllArticlesNow = function() {
     }
 };
 
-console.log('💡 To delete all articles from console, run: deleteAllArticlesNow()'); 
+console.log('💡 To delete all articles from console, run: deleteAllArticlesNow()');
+
+// ===== COMMENT SYSTEM FUNCTIONS =====
+
+// Add a comment to an article
+function addComment(articleId, commentText) {
+    if (!currentUser) {
+        showMessage('Please log in to add comments', 'error');
+        return;
+    }
+    
+    if (!commentText.trim()) {
+        showMessage('Please enter a comment', 'error');
+        return;
+    }
+    
+    // Filter curse words
+    const filteredText = filterCurseWords(commentText);
+    
+    const comment = {
+        id: Date.now().toString(),
+        author: currentUser.name,
+        authorId: currentUser.id,
+        text: filteredText,
+        timestamp: new Date().toISOString(),
+        likes: 0,
+        dislikes: 0,
+        replies: []
+    };
+    
+    // Initialize comments array for this article if it doesn't exist
+    if (!articleComments[articleId]) {
+        articleComments[articleId] = [];
+    }
+    
+    // Add the comment
+    articleComments[articleId].push(comment);
+    
+    // Save to localStorage
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    
+    showMessage('Comment added successfully!', 'success');
+    displayArticles(); // Refresh to show the new comment
+}
+
+// Like a comment
+function likeComment(articleId, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to like comments', 'error');
+        return;
+    }
+    
+    const commentKey = `${articleId}_${commentId}`;
+    const userCommentLikes = JSON.parse(localStorage.getItem(`userCommentLikes_${currentUser.id}`)) || {};
+    const userCommentDislikes = JSON.parse(localStorage.getItem(`userCommentDislikes_${currentUser.id}`)) || {};
+    
+    // Find the comment
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    
+    // Check if user already liked this comment
+    if (userCommentLikes[commentKey]) {
+        // Unlike
+        comment.likes--;
+        delete userCommentLikes[commentKey];
+    } else {
+        // Like
+        comment.likes++;
+        userCommentLikes[commentKey] = true;
+        
+        // Remove dislike if exists
+        if (userCommentDislikes[commentKey]) {
+            comment.dislikes--;
+            delete userCommentDislikes[commentKey];
+        }
+    }
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    localStorage.setItem(`userCommentLikes_${currentUser.id}`, JSON.stringify(userCommentLikes));
+    localStorage.setItem(`userCommentDislikes_${currentUser.id}`, JSON.stringify(userCommentDislikes));
+    
+    displayArticles(); // Refresh to show updated likes
+}
+
+// Dislike a comment
+function dislikeComment(articleId, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to dislike comments', 'error');
+        return;
+    }
+    
+    const commentKey = `${articleId}_${commentId}`;
+    const userCommentLikes = JSON.parse(localStorage.getItem(`userCommentLikes_${currentUser.id}`)) || {};
+    const userCommentDislikes = JSON.parse(localStorage.getItem(`userCommentDislikes_${currentUser.id}`)) || {};
+    
+    // Find the comment
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    
+    // Check if user already disliked this comment
+    if (userCommentDislikes[commentKey]) {
+        // Remove dislike
+        comment.dislikes--;
+        delete userCommentDislikes[commentKey];
+    } else {
+        // Dislike
+        comment.dislikes++;
+        userCommentDislikes[commentKey] = true;
+        
+        // Remove like if exists
+        if (userCommentLikes[commentKey]) {
+            comment.likes--;
+            delete userCommentLikes[commentKey];
+        }
+    }
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    localStorage.setItem(`userCommentLikes_${currentUser.id}`, JSON.stringify(userCommentLikes));
+    localStorage.setItem(`userCommentDislikes_${currentUser.id}`, JSON.stringify(userCommentDislikes));
+    
+    displayArticles(); // Refresh to show updated dislikes
+}
+
+// Delete a comment
+function deleteComment(articleId, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to delete comments', 'error');
+        return;
+    }
+    
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    
+    // Check if user is the author or a moderator
+    if (comment.authorId !== currentUser.id && 
+        currentUser.role !== 'moderator' && 
+        currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own comments', 'error');
+        return;
+    }
+    
+    // Remove the comment
+    articleCommentsList.splice(commentIndex, 1);
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    
+    showMessage('Comment deleted successfully!', 'success');
+    displayArticles(); // Refresh to show updated comments
+}
+
+// Reply to a comment
+function replyToComment(articleId, commentId, replyText) {
+    if (!currentUser) {
+        showMessage('Please log in to reply to comments', 'error');
+        return;
+    }
+    
+    if (!replyText.trim()) {
+        showMessage('Please enter a reply', 'error');
+        return;
+    }
+    
+    // Filter curse words
+    const filteredText = filterCurseWords(replyText);
+    
+    const reply = {
+        id: Date.now().toString(),
+        author: currentUser.name,
+        authorId: currentUser.id,
+        text: filteredText,
+        timestamp: new Date().toISOString(),
+        likes: 0,
+        dislikes: 0
+    };
+    
+    // Find the comment and add reply
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    if (!articleCommentsList[commentIndex].replies) {
+        articleCommentsList[commentIndex].replies = [];
+    }
+    
+    articleCommentsList[commentIndex].replies.push(reply);
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    
+    showMessage('Reply added successfully!', 'success');
+    displayArticles(); // Refresh to show the new reply
+}
+
+// Get the most liked comment for an article
+function getMostLikedComment(articleId) {
+    const articleCommentsList = articleComments[articleId] || [];
+    
+    if (articleCommentsList.length === 0) return null;
+    
+    // Find the comment with the most likes
+    let mostLikedComment = articleCommentsList[0];
+    
+    articleCommentsList.forEach(comment => {
+        if (comment.likes > mostLikedComment.likes) {
+            mostLikedComment = comment;
+        }
+    });
+    
+    // Only return if the comment has at least 1 like
+    return mostLikedComment.likes > 0 ? mostLikedComment : null;
+}
+
+// Display comments for an article
+function displayComments(articleId) {
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentsContainer = document.getElementById(`comments-${articleId}`);
+    
+    if (!commentsContainer) return;
+    
+    if (articleCommentsList.length === 0) {
+        commentsContainer.innerHTML = `
+            <div class="no-comments">
+                <p>No comments yet. Be the first to comment!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort comments by likes (descending)
+    const sortedComments = [...articleCommentsList].sort((a, b) => b.likes - a.likes);
+    
+    let commentsHTML = '';
+    
+    sortedComments.forEach(comment => {
+        const commentKey = `${articleId}_${comment.id}`;
+        const userCommentLikes = JSON.parse(localStorage.getItem(`userCommentLikes_${currentUser?.id}`)) || {};
+        const userCommentDislikes = JSON.parse(localStorage.getItem(`userCommentDislikes_${currentUser?.id}`)) || {};
+        
+        const isLiked = userCommentLikes[commentKey];
+        const isDisliked = userCommentDislikes[commentKey];
+        const canDelete = currentUser && (comment.authorId === currentUser.id || 
+                        currentUser.role === 'moderator' || currentUser.role === 'Moderator');
+        
+        const timeAgo = getTimeAgo(comment.timestamp);
+        
+        commentsHTML += `
+            <div class="comment">
+                <div class="comment-header">
+                    <span class="comment-author">${comment.author}</span>
+                    <div>
+                        <span class="comment-time">${timeAgo}</span>
+                        ${canDelete ? `<button class="delete-comment-btn" onclick="deleteComment('${articleId}', '${comment.id}')">Delete</button>` : ''}
+                    </div>
+                </div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-actions">
+                    <button class="comment-like-btn ${isLiked ? 'liked' : ''}" onclick="likeComment('${articleId}', '${comment.id}')">
+                        👍 <span class="comment-like-count">${comment.likes}</span>
+                    </button>
+                    <button class="comment-dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeComment('${articleId}', '${comment.id}')">
+                        👎 <span class="comment-dislike-count">${comment.dislikes}</span>
+                    </button>
+                    <button class="reply-btn" onclick="showReplyForm('${articleId}', '${comment.id}')">Reply</button>
+                </div>
+                <div id="reply-form-${comment.id}" style="display: none;" class="reply-form">
+                    <textarea class="reply-textarea" id="reply-text-${comment.id}" placeholder="Write a reply..."></textarea>
+                    <div class="reply-actions">
+                        <button class="submit-reply-btn" onclick="submitReply('${articleId}', '${comment.id}')">Submit</button>
+                        <button class="cancel-reply-btn" onclick="hideReplyForm('${comment.id}')">Cancel</button>
+                    </div>
+                </div>
+                ${comment.replies && comment.replies.length > 0 ? `
+                    <div class="comment-replies">
+                        ${comment.replies.map(reply => {
+                            const replyKey = `${articleId}_${reply.id}`;
+                            const replyIsLiked = userCommentLikes[replyKey];
+                            const replyIsDisliked = userCommentDislikes[replyKey];
+                            const replyCanDelete = currentUser && (reply.authorId === currentUser.id || 
+                                                currentUser.role === 'moderator' || currentUser.role === 'Moderator');
+                            const replyTimeAgo = getTimeAgo(reply.timestamp);
+                            
+                            return `
+                                <div class="comment">
+                                    <div class="comment-header">
+                                        <span class="comment-author">${reply.author}</span>
+                                        <div>
+                                            <span class="comment-time">${replyTimeAgo}</span>
+                                            ${replyCanDelete ? `<button class="delete-comment-btn" onclick="deleteReply('${articleId}', '${comment.id}', '${reply.id}')">Delete</button>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="comment-text">${reply.text}</div>
+                                    <div class="comment-actions">
+                                        <button class="comment-like-btn ${replyIsLiked ? 'liked' : ''}" onclick="likeReply('${articleId}', '${comment.id}', '${reply.id}')">
+                                            👍 <span class="comment-like-count">${reply.likes}</span>
+                                        </button>
+                                        <button class="comment-dislike-btn ${replyIsDisliked ? 'disliked' : ''}" onclick="dislikeReply('${articleId}', '${comment.id}', '${reply.id}')">
+                                            👎 <span class="comment-dislike-count">${reply.dislikes}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    commentsContainer.innerHTML = commentsHTML;
+}
+
+// Show reply form
+function showReplyForm(articleId, commentId) {
+    if (!currentUser) {
+        showMessage('Please log in to reply to comments', 'error');
+        return;
+    }
+    
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (replyForm) {
+        replyForm.style.display = 'block';
+        document.getElementById(`reply-text-${commentId}`).focus();
+    }
+}
+
+// Hide reply form
+function hideReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (replyForm) {
+        replyForm.style.display = 'none';
+        document.getElementById(`reply-text-${commentId}`).value = '';
+    }
+}
+
+// Submit reply
+function submitReply(articleId, commentId) {
+    const replyText = document.getElementById(`reply-text-${commentId}`).value;
+    replyToComment(articleId, commentId, replyText);
+    hideReplyForm(commentId);
+}
+
+// Delete reply
+function deleteReply(articleId, commentId, replyId) {
+    if (!currentUser) {
+        showMessage('Please log in to delete replies', 'error');
+        return;
+    }
+    
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    const replyIndex = comment.replies.findIndex(r => r.id === replyId);
+    
+    if (replyIndex === -1) return;
+    
+    const reply = comment.replies[replyIndex];
+    
+    // Check if user is the author or a moderator
+    if (reply.authorId !== currentUser.id && 
+        currentUser.role !== 'moderator' && 
+        currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own replies', 'error');
+        return;
+    }
+    
+    // Remove the reply
+    comment.replies.splice(replyIndex, 1);
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    
+    showMessage('Reply deleted successfully!', 'success');
+    displayArticles(); // Refresh to show updated comments
+}
+
+// Like a reply
+function likeReply(articleId, commentId, replyId) {
+    if (!currentUser) {
+        showMessage('Please log in to like replies', 'error');
+        return;
+    }
+    
+    const replyKey = `${articleId}_${replyId}`;
+    const userCommentLikes = JSON.parse(localStorage.getItem(`userCommentLikes_${currentUser.id}`)) || {};
+    const userCommentDislikes = JSON.parse(localStorage.getItem(`userCommentDislikes_${currentUser.id}`)) || {};
+    
+    // Find the reply
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    const replyIndex = comment.replies.findIndex(r => r.id === replyId);
+    
+    if (replyIndex === -1) return;
+    
+    const reply = comment.replies[replyIndex];
+    
+    // Check if user already liked this reply
+    if (userCommentLikes[replyKey]) {
+        // Unlike
+        reply.likes--;
+        delete userCommentLikes[replyKey];
+    } else {
+        // Like
+        reply.likes++;
+        userCommentLikes[replyKey] = true;
+        
+        // Remove dislike if exists
+        if (userCommentDislikes[replyKey]) {
+            reply.dislikes--;
+            delete userCommentDislikes[replyKey];
+        }
+    }
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    localStorage.setItem(`userCommentLikes_${currentUser.id}`, JSON.stringify(userCommentLikes));
+    localStorage.setItem(`userCommentDislikes_${currentUser.id}`, JSON.stringify(userCommentDislikes));
+    
+    displayArticles(); // Refresh to show updated likes
+}
+
+// Dislike a reply
+function dislikeReply(articleId, commentId, replyId) {
+    if (!currentUser) {
+        showMessage('Please log in to dislike replies', 'error');
+        return;
+    }
+    
+    const replyKey = `${articleId}_${replyId}`;
+    const userCommentLikes = JSON.parse(localStorage.getItem(`userCommentLikes_${currentUser.id}`)) || {};
+    const userCommentDislikes = JSON.parse(localStorage.getItem(`userCommentDislikes_${currentUser.id}`)) || {};
+    
+    // Find the reply
+    const articleCommentsList = articleComments[articleId] || [];
+    const commentIndex = articleCommentsList.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) return;
+    
+    const comment = articleCommentsList[commentIndex];
+    const replyIndex = comment.replies.findIndex(r => r.id === replyId);
+    
+    if (replyIndex === -1) return;
+    
+    const reply = comment.replies[replyIndex];
+    
+    // Check if user already disliked this reply
+    if (userCommentDislikes[replyKey]) {
+        // Remove dislike
+        reply.dislikes--;
+        delete userCommentDislikes[replyKey];
+    } else {
+        // Dislike
+        reply.dislikes++;
+        userCommentDislikes[replyKey] = true;
+        
+        // Remove like if exists
+        if (userCommentLikes[replyKey]) {
+            reply.likes--;
+            delete userCommentLikes[replyKey];
+        }
+    }
+    
+    // Save changes
+    localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    localStorage.setItem(`userCommentLikes_${currentUser.id}`, JSON.stringify(userCommentLikes));
+    localStorage.setItem(`userCommentDislikes_${currentUser.id}`, JSON.stringify(userCommentDislikes));
+    
+    displayArticles(); // Refresh to show updated dislikes
+}
+
+// Toggle comments visibility
+function toggleComments(articleId) {
+    const commentsSection = document.getElementById(`comments-section-${articleId}`);
+    const toggleBtn = document.getElementById(`toggle-comments-${articleId}`);
+    
+    if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
+        commentsSection.style.display = 'block';
+        toggleBtn.textContent = 'Hide Comments';
+        displayComments(articleId);
+    } else {
+        commentsSection.style.display = 'none';
+        toggleBtn.textContent = 'Show Comments';
+    }
+}
+
+// Filter curse words
+function filterCurseWords(text) {
+    const curseWords = [
+        'fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap', 'piss', 'dick', 'cock', 'pussy', 'cunt',
+        'fucking', 'shitting', 'bitching', 'asshole', 'damnit', 'hellish', 'crappy', 'pissing', 'dickhead', 'cocky',
+        'fucker', 'shitter', 'bitchy', 'asshat', 'damned', 'hellish', 'crapper', 'pisser', 'dickish', 'cockish',
+        'motherfucker', 'bullshit', 'horseshit', 'dumbass', 'jackass', 'smartass', 'badass', 'hardass', 'fatass',
+        'shitty', 'fucky', 'bitchy', 'asshole', 'damned', 'hellish', 'crappy', 'pissy', 'dicky', 'cocky'
+    ];
+    
+    let filteredText = text;
+    curseWords.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        filteredText = filteredText.replace(regex, '*'.repeat(word.length));
+    });
+    
+    return filteredText;
+}
+
+// Get time ago string
+function getTimeAgo(timestamp) {
+    const now = new Date();
+    const commentTime = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - commentTime) / 1000);
+    
+    if (diffInSeconds < 60) {
+        return 'just now';
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+}
+
+// Make functions globally available
+window.addComment = addComment;
+window.likeComment = likeComment;
+window.dislikeComment = dislikeComment;
+window.deleteComment = deleteComment;
+window.replyToComment = replyToComment;
+window.showReplyForm = showReplyForm;
+window.hideReplyForm = hideReplyForm;
+window.submitReply = submitReply;
+window.deleteReply = deleteReply;
+window.likeReply = likeReply;
+window.dislikeReply = dislikeReply;
+window.toggleComments = toggleComments;
