@@ -26,8 +26,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function loadData() {
     try {
         articles = JSON.parse(localStorage.getItem('articles') || '[]');
-        currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        
+        // Fix currentUser loading
+        const userData = localStorage.getItem('currentUser');
+        if (userData && userData !== 'null' && userData !== 'undefined') {
+            currentUser = JSON.parse(userData);
+            console.log('👤 Current user loaded:', currentUser.name);
+        } else {
+            currentUser = null;
+            console.log('❌ No current user found');
+        }
+        
         console.log('📊 Loaded', articles.length, 'articles');
+        console.log('🔐 Authentication status:', currentUser ? 'Logged in as ' + currentUser.name : 'Not logged in');
     } catch (error) {
         console.error('Error loading data:', error);
         articles = [];
@@ -37,6 +48,9 @@ function loadData() {
 
 // Setup UI based on login status
 function setupUI() {
+    console.log('🎨 Setting up UI...');
+    console.log('🔐 Current user for UI:', currentUser);
+    
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
     const loginLink = document.getElementById('loginLink');
@@ -44,7 +58,17 @@ function setupUI() {
     const urlInputSection = document.getElementById('urlInputSection');
     const loginRequiredSection = document.getElementById('loginRequiredSection');
     
+    console.log('📋 Found UI elements:', {
+        userInfo: !!userInfo,
+        userName: !!userName,
+        loginLink: !!loginLink,
+        logoutLink: !!logoutLink,
+        urlInputSection: !!urlInputSection,
+        loginRequiredSection: !!loginRequiredSection
+    });
+    
     if (currentUser) {
+        console.log('✅ User is logged in, showing authenticated UI');
         // User is logged in
         if (userInfo) userInfo.style.display = 'block';
         if (userName) userName.textContent = currentUser.name;
@@ -53,6 +77,7 @@ function setupUI() {
         if (urlInputSection) urlInputSection.style.display = 'block';
         if (loginRequiredSection) loginRequiredSection.style.display = 'none';
     } else {
+        console.log('❌ User is not logged in, showing login UI');
         // User is not logged in
         if (userInfo) userInfo.style.display = 'none';
         if (loginLink) loginLink.style.display = 'inline';
@@ -94,6 +119,9 @@ function setupEventListeners() {
 
 // Handle URL submission
 function handleUrlSubmission() {
+    console.log('📝 Handling URL submission...');
+    console.log('🔐 Current user:', currentUser);
+    
     const urlInput = document.getElementById('url1');
     const url = urlInput.value.trim();
     
@@ -103,9 +131,12 @@ function handleUrlSubmission() {
     }
     
     if (!currentUser) {
+        console.log('❌ No current user - showing login error');
         showMessage('Please log in to add articles', 'error');
         return;
     }
+    
+    console.log('✅ User authenticated, proceeding with article creation...');
     
     // Check if URL already exists
     if (articles.find(article => article.url === url)) {
