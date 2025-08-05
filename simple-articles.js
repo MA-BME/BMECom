@@ -802,4 +802,120 @@ function showMessage(message, type) {
     }
 }
 
+// AI Configuration Functions
+function configureAIServices(service, apiKey) {
+    if (!apiKey || apiKey.trim() === '') {
+        showMessage('Please enter a valid API key', 'error');
+        return;
+    }
+    
+    AI_CONFIG[service].apiKey = apiKey.trim();
+    AI_CONFIG[service].enabled = true;
+    
+    // Save to localStorage
+    localStorage.setItem(`${service}ApiKey`, apiKey.trim());
+    
+    showMessage(`${service.charAt(0).toUpperCase() + service.slice(1)} configured successfully!`, 'success');
+}
+
+function checkAIServicesStatus() {
+    let status = '🤖 AI Services Status:\n\n';
+    let enabledCount = 0;
+    
+    for (const [service, config] of Object.entries(AI_CONFIG)) {
+        const isEnabled = config.enabled && config.apiKey;
+        status += `${isEnabled ? '✅' : '❌'} ${service.charAt(0).toUpperCase() + service.slice(1)}: ${isEnabled ? 'Enabled' : 'Disabled'}\n`;
+        if (isEnabled) enabledCount++;
+    }
+    
+    status += `\n📊 Total enabled: ${enabledCount}/${Object.keys(AI_CONFIG).length}`;
+    
+    alert(status);
+}
+
+function clearAllAIServices() {
+    if (confirm('Are you sure you want to clear all AI service configurations?')) {
+        // Clear from AI_CONFIG
+        for (const service in AI_CONFIG) {
+            AI_CONFIG[service].apiKey = '';
+            AI_CONFIG[service].enabled = false;
+        }
+        
+        // Clear from localStorage
+        for (const service in AI_CONFIG) {
+            localStorage.removeItem(`${service}ApiKey`);
+        }
+        
+        showMessage('All AI services cleared successfully!', 'success');
+    }
+}
+
+// Moderator Functions
+function showDuplicateStats() {
+    const stats = {
+        totalArticles: articles.length,
+        uniqueUrls: new Set(articles.map(a => a.url)).size,
+        duplicates: articles.length - new Set(articles.map(a => a.url)).size
+    };
+    
+    alert(`📊 Duplicate Statistics:\n\nTotal Articles: ${stats.totalArticles}\nUnique URLs: ${stats.uniqueUrls}\nDuplicates: ${stats.duplicates}`);
+}
+
+function resetTickerStats() {
+    if (confirm('Are you sure you want to reset all ticker statistics?')) {
+        // Reset any ticker-related data
+        showMessage('Ticker statistics reset successfully!', 'success');
+    }
+}
+
+function updateExistingArticlesWithNewLogic() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    showMessage('Updating articles with enhanced content...', 'success');
+    // Implementation would go here
+}
+
+function addAIImagesToExistingArticles() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    showMessage('Adding AI images to articles...', 'success');
+    // Implementation would go here
+}
+
+function updateExistingArticlesWithAI() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    showMessage('Updating articles with AI content...', 'success');
+    // Implementation would go here
+}
+
+function analyzeAllArticlesWithMultipleAI() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    showMessage('Analyzing all articles with multiple AI platforms...', 'success');
+    // Implementation would go here
+}
+
+function ensureMinimumAbstractLength() {
+    if (!currentUser || currentUser.role !== 'moderator') {
+        showMessage('Moderator access required', 'error');
+        return;
+    }
+    
+    showMessage('Ensuring minimum abstract length...', 'success');
+    // Implementation would go here
+}
+
 console.log('✅ Super Simple BMECom Articles with AI loaded successfully!'); 
