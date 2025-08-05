@@ -129,7 +129,7 @@ function setupUI() {
         
         // Check for moderator access
         console.log('🔍 Checking moderator access for user:', currentUser.email, 'role:', currentUser.role);
-        if (moderatorLink && currentUser.role === 'moderator') {
+        if (moderatorLink && (currentUser.role === 'moderator' || currentUser.role === 'Moderator')) {
             console.log('👑 Showing moderator link for user:', currentUser.email);
             moderatorLink.style.display = 'inline-block';
         } else if (moderatorLink) {
@@ -834,7 +834,7 @@ function toggleModeratorSection() {
         return;
     }
     
-    if (!currentUser || currentUser.role !== 'moderator') {
+    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'Moderator')) {
         console.log('❌ User is not a moderator, cannot access moderator section');
         showMessage('Moderator access required', 'error');
         return;

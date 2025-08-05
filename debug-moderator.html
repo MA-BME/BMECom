@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Moderator Access - BMECom</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #e0f2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+        
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: left;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .debug-data {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Moderator Access</h1>
+        
+        <div id="status"></div>
+        
+        <button class="btn" onclick="checkModeratorAccess()">🔍 Check Moderator Access</button>
+        <button class="btn" onclick="fixModeratorRole()">🔧 Fix Moderator Role</button>
+        <button class="btn" onclick="createModeratorAccount()">👑 Create Moderator Account</button>
+        <a href="articles.html" class="btn">📰 Go to Articles</a>
+        <a href="login.html" class="btn">🔐 Go to Login</a>
+        
+        <div id="debugInfo"></div>
+    </div>
+
+    <script>
+        function checkModeratorAccess() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                let debugInfo = '<div class="info"><strong>🔍 Debug Information:</strong></div>';
+                
+                // Current user info
+                debugInfo += '<div class="debug-data">';
+                debugInfo += '<strong>Current User:</strong>\n';
+                if (currentUser) {
+                    debugInfo += `ID: ${currentUser.id}\n`;
+                    debugInfo += `Name: ${currentUser.name}\n`;
+                    debugInfo += `Email: ${currentUser.email}\n`;
+                    debugInfo += `Role: "${currentUser.role}" (type: ${typeof currentUser.role})\n`;
+                    debugInfo += `Is Moderator: ${currentUser.role === 'moderator' || currentUser.role === 'Moderator'}\n`;
+                } else {
+                    debugInfo += 'No user logged in\n';
+                }
+                debugInfo += '</div>';
+                
+                // All users info
+                debugInfo += '<div class="debug-data">';
+                debugInfo += '<strong>All Users:</strong>\n';
+                if (users.length === 0) {
+                    debugInfo += 'No users found\n';
+                } else {
+                    users.forEach((user, index) => {
+                        debugInfo += `${index + 1}. ${user.name} (${user.email})\n`;
+                        debugInfo += `   Role: "${user.role}" (type: ${typeof user.role})\n`;
+                        debugInfo += `   Is Moderator: ${user.role === 'moderator' || user.role === 'Moderator'}\n\n`;
+                    });
+                }
+                debugInfo += '</div>';
+                
+                // Moderator access check
+                debugInfo += '<div class="debug-data">';
+                debugInfo += '<strong>Moderator Access Check:</strong>\n';
+                if (currentUser) {
+                    const isModerator = currentUser.role === 'moderator' || currentUser.role === 'Moderator';
+                    debugInfo += `User logged in: ✅\n`;
+                    debugInfo += `Role check: ${isModerator ? '✅' : '❌'}\n`;
+                    debugInfo += `Role value: "${currentUser.role}"\n`;
+                    debugInfo += `Expected: "moderator" or "Moderator"\n`;
+                    debugInfo += `Result: ${isModerator ? 'CAN ACCESS' : 'CANNOT ACCESS'}\n`;
+                } else {
+                    debugInfo += `User logged in: ❌\n`;
+                    debugInfo += `Result: CANNOT ACCESS (not logged in)\n`;
+                }
+                debugInfo += '</div>';
+                
+                document.getElementById('debugInfo').innerHTML = debugInfo;
+                
+            } catch (error) {
+                showStatus('Error checking moderator access: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function fixModeratorRole() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                if (!currentUser) {
+                    showStatus('No user is currently logged in', 'error');
+                    return;
+                }
+                
+                // Find the user in the users array
+                const userIndex = users.findIndex(u => u.id === currentUser.id);
+                if (userIndex === -1) {
+                    showStatus('Current user not found in users list', 'error');
+                    return;
+                }
+                
+                // Fix the role to be 'moderator' (lowercase)
+                users[userIndex].role = 'moderator';
+                currentUser.role = 'moderator';
+                
+                // Save back to localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                showStatus('✅ Moderator role fixed! User role is now "moderator"', 'success');
+                
+                // Refresh debug info
+                setTimeout(() => {
+                    checkModeratorAccess();
+                }, 1000);
+                
+            } catch (error) {
+                showStatus('Error fixing moderator role: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function createModeratorAccount() {
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                // Check if Mendel's account already exists
+                const existingMendel = users.find(user => user.email === 'mendel@bmecom.com');
+                
+                if (existingMendel) {
+                    // Update existing account
+                    existingMendel.role = 'moderator';
+                    existingMendel.name = 'Mendel Aizikovitch';
+                    existingMendel.password = '123';
+                    localStorage.setItem('users', JSON.stringify(users));
+                    showStatus('✅ Mendel\'s moderator account updated with role "moderator"', 'success');
+                } else {
+                    // Create new account
+                    const moderatorAccount = {
+                        id: 'moderator_' + Date.now(),
+                        name: 'Mendel Aizikovitch',
+                        email: 'mendel@bmecom.com',
+                        password: '123',
+                        role: 'moderator',
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    users.push(moderatorAccount);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    showStatus('✅ Mendel\'s moderator account created with role "moderator"', 'success');
+                }
+                
+                // Refresh debug info
+                setTimeout(() => {
+                    checkModeratorAccess();
+                }, 1000);
+                
+            } catch (error) {
+                showStatus('Error creating moderator account: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        // Auto-check on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkModeratorAccess();
+        });
+    </script>
+</body>
+</html> 
