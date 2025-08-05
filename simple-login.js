@@ -113,13 +113,14 @@ function handleLogin() {
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
-        console.log('✅ Login successful for user:', user.name);
+        console.log('✅ Login successful for user:', user.name, 'Role:', user.role || 'User');
         
-        // Login successful
+        // Login successful - preserve all user data including role
         localStorage.setItem('currentUser', JSON.stringify({
             id: user.id,
             name: user.name,
-            email: user.email
+            email: user.email,
+            role: user.role || 'User'  // Preserve the role!
         }));
         
         showMessage('Login successful! Redirecting...', 'success');
