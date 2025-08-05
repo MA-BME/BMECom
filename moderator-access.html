@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Access - BMECom</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .moderator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .moderator-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .moderator-header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .moderator-header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .moderator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .moderator-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .moderator-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+        
+        .moderator-card h3 {
+            color: #374151;
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .moderator-card p {
+            color: #6b7280;
+            margin: 0 0 20px 0;
+            line-height: 1.6;
+        }
+        
+        .moderator-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .moderator-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .moderator-btn.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .moderator-btn.danger:hover {
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .moderator-btn.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .moderator-btn.success:hover {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .articles-list {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        
+        .article-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+        }
+        
+        .article-info {
+            flex: 1;
+        }
+        
+        .article-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        
+        .article-meta {
+            font-size: 0.9em;
+            color: #6b7280;
+        }
+        
+        .article-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .access-denied {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .access-denied h2 {
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+        
+        .access-denied p {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+        
+        .back-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #10b981;
+        }
+        
+        .status-offline {
+            background: #ef4444;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="moderator-container">
+        <div class="moderator-header">
+            <h1>👑 Moderator Access Panel</h1>
+            <p>Advanced management tools for BMECom moderators</p>
+            <div id="userStatus"></div>
+        </div>
+        
+        <div id="accessDenied" class="access-denied" style="display: none;">
+            <h2>🚫 Access Denied</h2>
+            <p>You must be logged in as a moderator to access this page.</p>
+            <a href="login.html" class="back-btn">Go to Login</a>
+            <a href="articles.html" class="back-btn" style="margin-left: 10px;">Go to Articles</a>
+        </div>
+        
+        <div id="moderatorContent" style="display: none;">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalArticles">0</div>
+                    <div class="stat-label">Total Articles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="moderatorCount">0</div>
+                    <div class="stat-label">Moderators</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="duplicateCount">0</div>
+                    <div class="stat-label">Duplicates</div>
+                </div>
+            </div>
+            
+            <!-- Moderator Tools -->
+            <div class="moderator-grid">
+                <div class="moderator-card">
+                    <h3>🗑️ Article Management</h3>
+                    <p>Delete individual articles or clear all articles from the system.</p>
+                    <button class="moderator-btn danger" onclick="deleteAllArticles()">Delete ALL Articles</button>
+                    <button class="moderator-btn" onclick="showArticleList()">View All Articles</button>
+                    <button class="moderator-btn" onclick="showDuplicateStats()">Show Duplicates</button>
+                </div>
+                
+                <div class="moderator-card">
+                    <h3>🤖 AI Management</h3>
+                    <p>Configure and manage AI services for content generation.</p>
+                    <button class="moderator-btn" onclick="checkAIServicesStatus()">Check AI Status</button>
+                    <button class="moderator-btn" onclick="clearAllAIServices()">Clear AI Config</button>
+                    <button class="moderator-btn success" onclick="updateAllArticlesWithAI()">Update with AI</button>
+                </div>
+                
+                <div class="moderator-card">
+                    <h3>👥 User Management</h3>
+                    <p>Manage user accounts and permissions.</p>
+                    <button class="moderator-btn" onclick="showAllUsers()">View All Users</button>
+                    <button class="moderator-btn" onclick="createModeratorAccount()">Create Moderator</button>
+                    <button class="moderator-btn" onclick="resetUserData()">Reset User Data</button>
+                </div>
+                
+                <div class="moderator-card">
+                    <h3>🔧 System Tools</h3>
+                    <p>System maintenance and debugging tools.</p>
+                    <button class="moderator-btn" onclick="resetTickerStats()">Reset Stats</button>
+                    <button class="moderator-btn" onclick="exportData()">Export Data</button>
+                    <button class="moderator-btn" onclick="importData()">Import Data</button>
+                </div>
+            </div>
+            
+            <!-- Articles List -->
+            <div id="articlesList" class="articles-list" style="display: none;">
+                <h3>📰 All Articles</h3>
+                <div id="articlesContainer"></div>
+            </div>
+            
+            <!-- Users List -->
+            <div id="usersList" class="articles-list" style="display: none;">
+                <h3>👥 All Users</h3>
+                <div id="usersContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="moderator-access.js"></script>
+</body>
+</html> 

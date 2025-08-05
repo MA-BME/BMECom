@@ -1,0 +1,5 @@
+[33mfe7a9e9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix moderator access case sensitivity and add debug page
+[33m673b8ea[m Fix moderator login - preserve user role and create setup page
+[33mcc5281c[m Fix moderator access - add missing moderator section visibility logic to simple-articles.js
+[33m00e624c[m ADDED: Delete all articles functionality - Added deleteAllArticles() function for moderators - Added 'Delete ALL Articles' button in moderator section - Added global deleteAllArticlesNow() function for console access - Includes confirmation dialogs and proper cleanup of likes/dislikes - Can be accessed via moderator panel or browser console
+[33m60a1460[m FIXED: Added missing AI configuration functions and cache busting - Added configureAIServices, checkAIServicesStatus, clearAllAIServices functions - Added moderator functions for article management - Added cache-busting parameter to script tag to force browser refresh - All AI integration features now fully functional

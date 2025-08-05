@@ -786,7 +786,7 @@ function deleteArticle(articleId) {
     }
     
     // Check if user can delete this article
-    if (article.userId !== currentUser.id && currentUser.role !== 'moderator') {
+    if (article.userId !== currentUser.id && currentUser.role !== 'moderator' && currentUser.role !== 'Moderator') {
         showMessage('You can only delete your own articles', 'error');
         return;
     }
@@ -928,7 +928,7 @@ function showDuplicateStats() {
 }
 
 function deleteAllArticles() {
-    if (!currentUser || currentUser.role !== 'moderator') {
+    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'Moderator')) {
         showMessage('Moderator access required to delete all articles', 'error');
         return;
     }
