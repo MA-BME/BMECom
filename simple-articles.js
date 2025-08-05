@@ -12,7 +12,7 @@ let articleComments = JSON.parse(localStorage.getItem('articleComments')) || {};
 // DOM elements
 const articlesGrid = document.getElementById('articlesGrid');
 const urlForm = document.getElementById('urlForm');
-const urlInput = document.getElementById('urlInput');
+    const urlInput = document.getElementById('url1');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const messageContainer = document.getElementById('messageContainer');
 const loadingContainer = document.getElementById('loadingContainer');
@@ -77,6 +77,12 @@ async function handleUrlSubmission(e) {
         return;
     }
     
+    // Basic URL validation
+    if (!url.includes('.') || url.length < 10) {
+        showMessage('Please enter a valid URL (e.g., https://example.com/article)', 'error');
+        return;
+    }
+    
     // Check if user is logged in
     if (!currentUser) {
         showMessage('Please log in to add articles', 'error');
@@ -106,7 +112,19 @@ async function handleUrlSubmission(e) {
         
     } catch (error) {
         console.error('Error adding article:', error);
-        showMessage('Failed to add article: ' + error.message, 'error');
+        let errorMessage = 'Failed to add article';
+        
+        if (error.message.includes('Invalid URL')) {
+            errorMessage = 'Please enter a valid URL (e.g., https://example.com/article)';
+        } else if (error.message.includes('can not read URL')) {
+            errorMessage = 'Unable to read the article content. Please check if the URL is accessible and try again.';
+        } else if (error.message.includes('Failed to extract')) {
+            errorMessage = 'Unable to extract article data. Please try a different URL or check if the site is accessible.';
+        } else {
+            errorMessage = 'Failed to add article: ' + error.message;
+        }
+        
+        showMessage(errorMessage, 'error');
     } finally {
         hideLoading();
         analyzeBtn.disabled = false;
@@ -116,6 +134,11 @@ async function handleUrlSubmission(e) {
 // Extract article data from URL
 async function extractArticleData(url) {
     try {
+        // Validate URL format
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            throw new Error('Invalid URL - must start with http:// or https://');
+        }
+        
         const urlObj = new URL(url);
         const domain = urlObj.hostname;
         
