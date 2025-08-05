@@ -1,204 +1,175 @@
-// Simplified BMECom Articles JavaScript - Working Version
+// Super Simple BMECom Articles - Guaranteed to Work
 
-console.log('🔧 Loading Simplified BMECom Articles...');
+console.log('🔧 Loading Super Simple BMECom Articles...');
 
 // Global variables
-let articles = JSON.parse(localStorage.getItem('articles')) || [];
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-let userLikes = JSON.parse(localStorage.getItem('userLikes')) || {};
-let userDislikes = JSON.parse(localStorage.getItem('userDislikes')) || {};
-let articleComments = JSON.parse(localStorage.getItem('articleComments')) || {};
+let articles = [];
+let currentUser = null;
 
-// DOM elements
-const articlesGrid = document.getElementById('articlesGrid');
-const urlForm = document.getElementById('urlForm');
-    const urlInput = document.getElementById('url1');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const messageContainer = document.getElementById('messageContainer');
-const loadingContainer = document.getElementById('loadingContainer');
-const userInfo = document.getElementById('userInfo');
-const userName = document.getElementById('userName');
-const loginLink = document.getElementById('loginLink');
-const logoutLink = document.getElementById('logoutLink');
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Initializing BMECom Articles...');
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Page loaded, setting up articles...');
     
-    // Check authentication
-    checkAuthStatus();
+    // Load data
+    loadData();
     
-    // Load articles
-    loadArticles();
+    // Setup UI
+    setupUI();
     
     // Setup event listeners
     setupEventListeners();
     
-    console.log('✅ BMECom Articles initialized successfully!');
+    console.log('✅ Articles setup complete!');
 });
+
+// Load data from localStorage
+function loadData() {
+    try {
+        articles = JSON.parse(localStorage.getItem('articles') || '[]');
+        currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        console.log('📊 Loaded', articles.length, 'articles');
+    } catch (error) {
+        console.error('Error loading data:', error);
+        articles = [];
+        currentUser = null;
+    }
+}
+
+// Setup UI based on login status
+function setupUI() {
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    const loginLink = document.getElementById('loginLink');
+    const logoutLink = document.getElementById('logoutLink');
+    const urlInputSection = document.getElementById('urlInputSection');
+    const loginRequiredSection = document.getElementById('loginRequiredSection');
+    
+    if (currentUser) {
+        // User is logged in
+        if (userInfo) userInfo.style.display = 'block';
+        if (userName) userName.textContent = currentUser.name;
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'inline';
+        if (urlInputSection) urlInputSection.style.display = 'block';
+        if (loginRequiredSection) loginRequiredSection.style.display = 'none';
+    } else {
+        // User is not logged in
+        if (userInfo) userInfo.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'inline';
+        if (logoutLink) logoutLink.style.display = 'none';
+        if (urlInputSection) urlInputSection.style.display = 'none';
+        if (loginRequiredSection) loginRequiredSection.style.display = 'block';
+    }
+    
+    // Display articles
+    displayArticles();
+}
 
 // Setup event listeners
 function setupEventListeners() {
-    // URL form submission
+    // URL form
+    const urlForm = document.getElementById('urlForm');
     if (urlForm) {
-        urlForm.addEventListener('submit', handleUrlSubmission);
+        urlForm.onsubmit = function(e) {
+            e.preventDefault();
+            handleUrlSubmission();
+        };
     }
     
     // Login/logout links
+    const loginLink = document.getElementById('loginLink');
     if (loginLink) {
-        loginLink.addEventListener('click', () => {
+        loginLink.onclick = function() {
             window.location.href = 'login.html';
-        });
+        };
     }
     
+    const logoutLink = document.getElementById('logoutLink');
     if (logoutLink) {
-        logoutLink.addEventListener('click', handleLogout);
-    }
-    
-    // Mobile navigation
-    const navToggle = document.querySelector('.nav-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (navToggle && navMenu) {
-        navToggle.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            navToggle.classList.toggle('active');
-        });
+        logoutLink.onclick = function() {
+            handleLogout();
+        };
     }
 }
 
 // Handle URL submission
-async function handleUrlSubmission(e) {
-    e.preventDefault();
-    
+function handleUrlSubmission() {
+    const urlInput = document.getElementById('url1');
     const url = urlInput.value.trim();
+    
     if (!url) {
         showMessage('Please enter a URL', 'error');
         return;
     }
     
-    // Basic URL validation
-    if (!url.includes('.') || url.length < 10) {
-        showMessage('Please enter a valid URL (e.g., https://example.com/article)', 'error');
-        return;
-    }
-    
-    // Check if user is logged in
     if (!currentUser) {
         showMessage('Please log in to add articles', 'error');
         return;
     }
     
     // Check if URL already exists
-    if (isUrlAlreadyAdded(url)) {
+    if (articles.find(article => article.url === url)) {
         showMessage('This article has already been added', 'error');
         return;
     }
     
-    try {
-        showLoading();
-        analyzeBtn.disabled = true;
-        
-        // Extract article data
-        const articleData = await extractArticleData(url);
-        
-        // Add article
-        addArticle(articleData);
-        
-        // Clear form
-        urlInput.value = '';
-        
-        showMessage('Article added successfully!', 'success');
-        
-    } catch (error) {
-        console.error('Error adding article:', error);
-        let errorMessage = 'Failed to add article';
-        
-        if (error.message.includes('Invalid URL')) {
-            errorMessage = 'Please enter a valid URL (e.g., https://example.com/article)';
-        } else if (error.message.includes('can not read URL')) {
-            errorMessage = 'Unable to read the article content. Please check if the URL is accessible and try again.';
-        } else if (error.message.includes('Failed to extract')) {
-            errorMessage = 'Unable to extract article data. Please try a different URL or check if the site is accessible.';
-        } else {
-            errorMessage = 'Failed to add article: ' + error.message;
-        }
-        
-        showMessage(errorMessage, 'error');
-    } finally {
-        hideLoading();
-        analyzeBtn.disabled = false;
-    }
-}
-
-// Extract article data from URL
-async function extractArticleData(url) {
-    try {
-        // Validate URL format
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            throw new Error('Invalid URL - must start with http:// or https://');
-        }
-        
-        const urlObj = new URL(url);
-        const domain = urlObj.hostname;
-        
-        // Generate title from URL
-        const urlPath = url.split('/').slice(3).join(' ');
-        const urlWords = urlPath
-            .replace(/[^a-zA-Z0-9\s]/g, ' ')
-            .split(' ')
-            .filter(word => word.length > 2)
-            .slice(0, 5);
-        
-        let title = 'Biomedical Engineering Article';
-        if (urlWords.length > 0) {
-            title = urlWords.map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ');
-        }
-        
-        // Generate summary
-        const summary = `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The comprehensive analysis encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. The research team employed state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems. These findings represent a significant milestone in the field of biomedical engineering, contributing to the advancement of medical science and healthcare delivery.`;
-        
-        // Generate image
-        const image = `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology&t=${Date.now()}`;
-        
-        return {
-            title,
-            summary,
-            image,
-            source: domain,
-            date: new Date().getFullYear().toString(),
-            url,
-            category: 'Biomedical Engineering',
-            ticker: 1,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            dateAdded: new Date().toISOString(),
-            likes: 0,
-            dislikes: 0
-        };
-        
-    } catch (error) {
-        throw new Error('Invalid URL');
-    }
-}
-
-// Add article to storage
-function addArticle(articleData) {
+    // Create article data
+    const articleData = createArticleData(url);
+    
+    // Add article
     articles.push(articleData);
     localStorage.setItem('articles', JSON.stringify(articles));
+    
+    // Clear form
+    urlInput.value = '';
+    
+    // Update display
     displayArticles();
+    
+    showMessage('Article added successfully!', 'success');
 }
 
-// Load articles from storage
-function loadArticles() {
-    articles = JSON.parse(localStorage.getItem('articles')) || [];
-    displayArticles();
+// Create article data from URL
+function createArticleData(url) {
+    const domain = new URL(url).hostname;
+    
+    // Generate title from URL
+    const urlPath = url.split('/').slice(3).join(' ');
+    const urlWords = urlPath
+        .replace(/[^a-zA-Z0-9\s]/g, ' ')
+        .split(' ')
+        .filter(word => word.length > 2)
+        .slice(0, 5);
+    
+    let title = 'Biomedical Engineering Article';
+    if (urlWords.length > 0) {
+        title = urlWords.map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        ).join(' ');
+    }
+    
+    // Generate summary
+    const summary = `This biomedical engineering research article from ${domain} explores cutting-edge developments in medical technology and healthcare innovation. The study presents novel approaches to addressing complex challenges in healthcare delivery through advanced engineering solutions. The research demonstrates significant advances in diagnostic tools, therapeutic interventions, and patient monitoring systems. Scientists utilized innovative methodologies to address complex challenges in healthcare delivery, resulting in breakthrough technologies that enhance both clinical outcomes and patient experiences. The comprehensive analysis encompasses various aspects of biomedical engineering including device development, therapeutic applications, and clinical implementation strategies. The research team employed state-of-the-art experimental techniques and computational modeling to advance our understanding of biological systems and medical device interactions. Results indicate substantial improvements in treatment efficacy and patient safety, with promising applications in personalized medicine and targeted therapeutic delivery systems. These findings represent a significant milestone in the field of biomedical engineering, contributing to the advancement of medical science and healthcare delivery.`;
+    
+    return {
+        title: title,
+        summary: summary,
+        image: `https://source.unsplash.com/800x400/?biomedical,engineering,medical,technology&t=${Date.now()}`,
+        source: domain,
+        date: new Date().getFullYear().toString(),
+        url: url,
+        category: 'Biomedical Engineering',
+        userId: currentUser.id,
+        userName: currentUser.name,
+        dateAdded: new Date().toISOString(),
+        likes: 0,
+        dislikes: 0
+    };
 }
 
 // Display articles
 function displayArticles() {
+    const articlesGrid = document.getElementById('articlesGrid');
     if (!articlesGrid) return;
     
     if (articles.length === 0) {
@@ -229,10 +200,6 @@ function createArticleCard(article, index) {
     const card = document.createElement('div');
     card.className = 'article-card';
     
-    const isLiked = isArticleLikedByUser(article.url);
-    const isDisliked = isArticleDislikedByUser(article.url);
-    const commentCount = articleComments[article.url] ? articleComments[article.url].length : 0;
-    
     card.innerHTML = `
         <div class="article-image">
             <img src="${article.image}" alt="${article.title}" loading="lazy" 
@@ -253,10 +220,10 @@ function createArticleCard(article, index) {
             
             <div class="article-actions">
                 <div class="like-dislike-buttons">
-                    <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="likeArticle(${index})">
+                    <button class="like-btn" onclick="likeArticle(${index})">
                         👍 ${article.likes || 0}
                     </button>
-                    <button class="dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="dislikeArticle(${index})">
+                    <button class="dislike-btn" onclick="dislikeArticle(${index})">
                         👎 ${article.dislikes || 0}
                     </button>
                 </div>
@@ -264,12 +231,6 @@ function createArticleCard(article, index) {
                 <a href="abstract-viewer.html?url=${encodeURIComponent(article.url)}" class="read-more-btn">
                     Read Full Abstract →
                 </a>
-            </div>
-            
-            <div class="comments-section">
-                <button onclick="showComments(${index})" class="show-comments-btn">
-                    💬 Comments (${commentCount})
-                </button>
             </div>
         </div>
     `;
@@ -284,31 +245,8 @@ function likeArticle(index) {
         return;
     }
     
-    const article = articles[index];
-    const normalizedUrl = normalizeUrl(article.url);
-    
-    if (userLikes[normalizedUrl]) {
-        // Unlike
-        delete userLikes[normalizedUrl];
-        article.likes = Math.max(0, (article.likes || 0) - 1);
-    } else {
-        // Like
-        userLikes[normalizedUrl] = true;
-        article.likes = (article.likes || 0) + 1;
-        
-        // Remove dislike if exists
-        if (userDislikes[normalizedUrl]) {
-            delete userDislikes[normalizedUrl];
-            article.dislikes = Math.max(0, (article.dislikes || 0) - 1);
-        }
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('userLikes', JSON.stringify(userLikes));
-    localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+    articles[index].likes = (articles[index].likes || 0) + 1;
     localStorage.setItem('articles', JSON.stringify(articles));
-    
-    // Refresh display
     displayArticles();
 }
 
@@ -319,189 +257,28 @@ function dislikeArticle(index) {
         return;
     }
     
-    const article = articles[index];
-    const normalizedUrl = normalizeUrl(article.url);
-    
-    if (userDislikes[normalizedUrl]) {
-        // Remove dislike
-        delete userDislikes[normalizedUrl];
-        article.dislikes = Math.max(0, (article.dislikes || 0) - 1);
-    } else {
-        // Dislike
-        userDislikes[normalizedUrl] = true;
-        article.dislikes = (article.dislikes || 0) + 1;
-        
-        // Remove like if exists
-        if (userLikes[normalizedUrl]) {
-            delete userLikes[normalizedUrl];
-            article.likes = Math.max(0, (article.likes || 0) - 1);
-        }
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('userLikes', JSON.stringify(userLikes));
-    localStorage.setItem('userDislikes', JSON.stringify(userDislikes));
+    articles[index].dislikes = (articles[index].dislikes || 0) + 1;
     localStorage.setItem('articles', JSON.stringify(articles));
-    
-    // Refresh display
     displayArticles();
 }
 
-// Show comments
-function showComments(index) {
-    const article = articles[index];
-    const comments = articleComments[article.url] || [];
-    
-    let commentsHtml = `
-        <div class="comments-modal">
-            <div class="comments-content">
-                <h3>Comments for: ${article.title}</h3>
-                <div class="comments-list">
-    `;
-    
-    if (comments.length === 0) {
-        commentsHtml += '<p>No comments yet. Be the first to comment!</p>';
-    } else {
-        comments.forEach(comment => {
-            commentsHtml += `
-                <div class="comment">
-                    <strong>${comment.userName}</strong>
-                    <span class="comment-date">${new Date(comment.date).toLocaleDateString()}</span>
-                    <p>${comment.text}</p>
-                </div>
-            `;
-        });
-    }
-    
-    commentsHtml += `
-                </div>
-                ${currentUser ? `
-                    <div class="add-comment">
-                        <textarea id="commentText" placeholder="Write a comment..."></textarea>
-                        <button onclick="addComment(${index})">Add Comment</button>
-                    </div>
-                ` : '<p>Please log in to add comments</p>'}
-                <button onclick="closeComments()" class="close-btn">Close</button>
-            </div>
-        </div>
-    `;
-    
-    // Create modal
-    const modal = document.createElement('div');
-    modal.innerHTML = commentsHtml;
-    modal.id = 'commentsModal';
-    document.body.appendChild(modal);
-}
-
-// Add comment
-function addComment(index) {
-    if (!currentUser) {
-        showMessage('Please log in to add comments', 'error');
-        return;
-    }
-    
-    const commentText = document.getElementById('commentText').value.trim();
-    if (!commentText) {
-        showMessage('Please enter a comment', 'error');
-        return;
-    }
-    
-    const article = articles[index];
-    const comment = {
-        id: Date.now(),
-        text: commentText,
-        userName: currentUser.name,
-        date: new Date().toISOString()
-    };
-    
-    if (!articleComments[article.url]) {
-        articleComments[article.url] = [];
-    }
-    articleComments[article.url].push(comment);
-    
-    localStorage.setItem('articleComments', JSON.stringify(articleComments));
-    
-    // Refresh comments
-    closeComments();
-    showComments(index);
-}
-
-// Close comments
-function closeComments() {
-    const modal = document.getElementById('commentsModal');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-// Utility functions
-function normalizeUrl(url) {
-    try {
-        const urlObj = new URL(url);
-        let normalized = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
-        normalized = normalized.replace(/\/$/, '');
-        return normalized.toLowerCase();
-    } catch (error) {
-        return url.toLowerCase();
-    }
-}
-
-function isUrlAlreadyAdded(url) {
-    const normalizedUrl = normalizeUrl(url);
-    return articles.some(article => normalizeUrl(article.url) === normalizedUrl);
-}
-
-function isArticleLikedByUser(articleUrl) {
-    return !!userLikes[normalizeUrl(articleUrl)];
-}
-
-function isArticleDislikedByUser(articleUrl) {
-    return !!userDislikes[normalizeUrl(articleUrl)];
-}
-
-function checkAuthStatus() {
-    if (currentUser) {
-        updateUIForLoggedInUser();
-    } else {
-        updateUIForLoggedOutUser();
-    }
-}
-
-function updateUIForLoggedInUser() {
-    if (userInfo) userInfo.style.display = 'block';
-    if (userName) userName.textContent = currentUser.name;
-    if (loginLink) loginLink.style.display = 'none';
-    if (logoutLink) logoutLink.style.display = 'inline';
-}
-
-function updateUIForLoggedOutUser() {
-    if (userInfo) userInfo.style.display = 'none';
-    if (loginLink) loginLink.style.display = 'inline';
-    if (logoutLink) logoutLink.style.display = 'none';
-}
-
+// Handle logout
 function handleLogout() {
     localStorage.removeItem('currentUser');
     currentUser = null;
-    checkAuthStatus();
+    setupUI();
     showMessage('Logged out successfully', 'success');
 }
 
-function showMessage(message, type = 'success') {
-    if (!messageContainer) return;
-    
-    messageContainer.innerHTML = `<div class="${type}-message">${message}</div>`;
-    setTimeout(() => messageContainer.innerHTML = '', 5000);
+// Show message
+function showMessage(message, type) {
+    const messageContainer = document.getElementById('messageContainer');
+    if (messageContainer) {
+        messageContainer.innerHTML = '<div class="' + type + '-message">' + message + '</div>';
+        setTimeout(function() {
+            messageContainer.innerHTML = '';
+        }, 5000);
+    }
 }
 
-function showLoading() {
-    if (loadingContainer) loadingContainer.style.display = 'block';
-    if (articlesGrid) articlesGrid.style.display = 'none';
-}
-
-function hideLoading() {
-    if (loadingContainer) loadingContainer.style.display = 'none';
-    if (articlesGrid) articlesGrid.style.display = 'grid';
-}
-
-console.log('✅ Simplified BMECom Articles loaded successfully!'); 
+console.log('✅ Super Simple BMECom Articles loaded successfully!'); 
