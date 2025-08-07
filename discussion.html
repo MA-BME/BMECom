@@ -52,8 +52,6 @@
             75% { transform: translateX(5px); }
         }
         
-
-        
         .new-conversation-form {
             display: flex;
             flex-direction: column;
@@ -403,6 +401,7 @@
             color: #1f2937;
         }
         
+        /* New Expanding Bar Styles */
         .start-conversation-bar {
             background: white;
             padding: 1rem 1.5rem;
@@ -412,12 +411,23 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid #e5e7eb;
+            overflow: hidden;
         }
         
         .start-conversation-bar:hover {
             border-color: #2563eb;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
-            transform: translateY(-2px);
+        }
+        
+        .start-conversation-bar.expanded {
+            padding: 2rem;
+            max-height: 500px;
+        }
+        
+        .start-conversation-bar.invalid {
+            animation: shake 0.5s ease-in-out;
+            border: 2px solid #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
         }
         
         .start-conversation-content {
@@ -435,6 +445,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .start-conversation-bar.expanded .plus-icon {
+            transform: rotate(45deg);
         }
         
         .start-text {
@@ -443,45 +458,15 @@
             color: #1f2937;
         }
         
-        .conversation-bubble {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: #2563eb;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transition: all 0.3s ease;
-            z-index: 1000;
+        .expanded-form {
+            display: none;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
         }
         
-        .conversation-bubble:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-        
-        .conversation-bubble.expanded {
-            width: 400px;
-            height: auto;
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-        
-        .conversation-bubble.invalid {
-            animation: shake 0.5s ease-in-out;
-            background: #ef4444;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
-        
-        .plus-sign {
-            font-size: 2rem;
-            color: white;
-            font-weight: bold;
+        .start-conversation-bar.expanded .expanded-form {
+            display: block;
         }
     </style>
 </head>
@@ -524,54 +509,40 @@
                     <p>Welcome, <span id="userNameDiscussion"></span>! You can create conversations and participate in discussions.</p>
                 </div>
 
-
-
-                <!-- New Conversation Section (for logged in users) -->
-                <div id="newConversationSection" class="new-conversation-section" style="display: none;">
-                    <h3 style="margin-bottom: 2rem; color: #1f2937;">Start a New Conversation</h3>
-                    <form class="new-conversation-form" id="newConversationForm">
-                        <div class="form-group">
-                            <label>Select Topics (Choose one or more):</label>
-                            <div class="topic-selection">
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="A">
-                                    <span>Topic A</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="B">
-                                    <span>Topic B</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="C">
-                                    <span>Topic C</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="conversationName">Conversation Name:</label>
-                            <input type="text" id="conversationName" class="conversation-name-input" placeholder="Enter conversation name" required>
-                        </div>
-                        <button type="submit" class="create-conversation-btn" id="createConversationBtn">
-                            Create Conversation
-                        </button>
-                    </form>
-                </div>
-
-                
-
-                <!-- Start Conversation Bar -->
-                <div class="start-conversation-bar" onclick="handleStartConversationClick()">
+                <!-- Start Conversation Bar (Always Visible) -->
+                <div class="start-conversation-bar" id="startConversationBar" onclick="handleStartConversationClick()">
                     <div class="start-conversation-content">
                         <span class="plus-icon">+</span>
                         <span class="start-text">Start Conversation</span>
                     </div>
-                </div>
-                
-                <!-- Debug Button (temporary) -->
-                <div style="text-align: center; margin: 1rem 0;">
-                    <button onclick="testBubble()" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Test Bubble (Debug)
-                    </button>
+                    <div class="expanded-form" id="expandedForm">
+                        <form class="new-conversation-form" id="newConversationForm">
+                            <div class="form-group">
+                                <label>Select Topics (Choose one or more):</label>
+                                <div class="topic-selection">
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="A">
+                                        <span>Topic A</span>
+                                    </label>
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="B">
+                                        <span>Topic B</span>
+                                    </label>
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="C">
+                                        <span>Topic C</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="conversationName">Conversation Name:</label>
+                                <input type="text" id="conversationName" class="conversation-name-input" placeholder="Enter conversation name" required>
+                            </div>
+                            <button type="submit" class="create-conversation-btn" id="createConversationBtn">
+                                Create Conversation
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Conversations Section -->
@@ -579,43 +550,13 @@
                     <div class="conversations-header">
                         <h2 class="conversations-title">Active Conversations</h2>
                     </div>
-                    <div id="conversationsContainer">
-                        <div class="no-conversations">
-                            <h3>No conversations yet</h3>
-                            <p>Be the first to start a conversation!</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Floating Conversation Bubble (for logged in users) -->
-                <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
-                    <div id="plusSign" class="plus-sign">+</div>
-                    <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
-                        <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
-                        <div class="form-group">
-                            <label style="color: white;">Select Topics:</label>
-                            <div class="topic-selection">
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="A">
-                                    <span>Topic A</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="B">
-                                    <span>Topic B</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="C">
-                                    <span>Topic C</span>
-                                </label>
+                    <div class="conversations-container">
+                        <div id="conversationsContainer">
+                            <div class="no-conversations">
+                                <h3>No conversations yet</h3>
+                                <p>Be the first to start a conversation!</p>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="conversationNameBubble" style="color: white;">Name:</label>
-                            <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
-                        </div>
-                        <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
-                            Create
-                        </button>
                     </div>
                 </div>
 
@@ -658,6 +599,6 @@
     </footer>
 
     <script src="auth.js"></script>
-    <script src="discussion.js?v=1.8"></script>
+    <script src="discussion.js?v=1.9"></script>
 </body>
 </html>

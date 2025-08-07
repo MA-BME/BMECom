@@ -71,23 +71,11 @@ function setupEventListeners() {
     if (newConversationForm) {
         newConversationForm.addEventListener('submit', handleCreateConversation);
     }
-
-    // Logout functionality
-    const logoutLink = document.getElementById('logoutLink');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            logout();
-        });
-    }
 }
-
-
 
 // Check authentication status
 function checkAuthStatus() {
     const currentUser = getCurrentUser();
-    const conversationBubble = document.getElementById('conversationBubble');
     const userInfoDiscussion = document.getElementById('userInfoDiscussion');
     const userNameDiscussion = document.getElementById('userNameDiscussion');
 
@@ -95,131 +83,36 @@ function checkAuthStatus() {
 
     if (currentUser) {
         // User is logged in
-        if (conversationBubble) {
-            console.log('User logged in, showing bubble');
-            conversationBubble.style.display = 'flex';
-            conversationBubble.style.visibility = 'visible';
-            conversationBubble.style.opacity = '1';
-            conversationBubble.style.zIndex = '1000';
-            
-            // Ensure bubble starts in collapsed state
-            conversationBubble.classList.remove('expanded');
-            const form = document.getElementById('newConversationFormBubble');
-            const plusSign = document.getElementById('plusSign');
-            if (form) {
-                form.style.display = 'none';
-                form.style.visibility = 'hidden';
-            }
-            if (plusSign) {
-                plusSign.style.display = 'block';
-                plusSign.style.visibility = 'visible';
-            }
-        }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
             if (userNameDiscussion) userNameDiscussion.textContent = currentUser.name;
         }
     } else {
         // User is not logged in
-        console.log('User not logged in, hiding bubble');
-        if (conversationBubble) {
-            conversationBubble.style.display = 'none';
-            conversationBubble.style.visibility = 'hidden';
-        }
+        console.log('User not logged in');
         if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
     }
 }
 
-// Toggle conversation bubble
-function toggleConversationBubble() {
-    const bubble = document.getElementById('conversationBubble');
-    const form = document.getElementById('newConversationFormBubble');
-    const plusSign = document.getElementById('plusSign');
+// Toggle the expanding bar
+function toggleExpandingBar() {
+    const bar = document.getElementById('startConversationBar');
+    const expandedForm = document.getElementById('expandedForm');
     
-    if (!bubble || !form || !plusSign) {
-        console.error('Bubble elements not found');
+    if (!bar || !expandedForm) {
+        console.error('Bar elements not found');
         return;
     }
     
-    if (bubble.classList.contains('expanded')) {
+    if (bar.classList.contains('expanded')) {
         // Collapse
-        bubble.classList.remove('expanded');
-        form.style.display = 'none';
-        plusSign.style.display = 'block';
-        console.log('Bubble collapsed');
+        bar.classList.remove('expanded');
+        console.log('Bar collapsed');
     } else {
         // Expand
-        bubble.classList.add('expanded');
-        form.style.display = 'flex';
-        plusSign.style.display = 'none';
-        console.log('Bubble expanded');
+        bar.classList.add('expanded');
+        console.log('Bar expanded');
     }
-}
-
-// Handle creating conversation from bubble
-function handleCreateConversationFromBubble() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        showAuthRequiredMessage('create_conversation');
-        return;
-    }
-    
-    const selectedTopics = Array.from(document.querySelectorAll('#conversationBubble input[name="topics"]:checked'))
-        .map(checkbox => checkbox.value);
-
-    if (selectedTopics.length === 0) {
-        showMessage('Please select at least one topic', 'error');
-        // Add red animation to the bubble
-        const bubble = document.getElementById('conversationBubble');
-        bubble.classList.add('invalid');
-        setTimeout(() => bubble.classList.remove('invalid'), 1000);
-        return;
-    }
-
-    const conversationName = document.getElementById('conversationNameBubble').value.trim();
-    if (!conversationName) {
-        showMessage('Please enter a conversation name', 'error');
-        // Add red animation to the bubble
-        const bubble = document.getElementById('conversationBubble');
-        bubble.classList.add('invalid');
-        setTimeout(() => bubble.classList.remove('invalid'), 1000);
-        return;
-    }
-
-    // Create new conversation
-    const newConversation = {
-        id: Date.now().toString(),
-        name: conversationName,
-        topics: selectedTopics,
-        author: currentUser.name,
-        timestamp: new Date().toISOString(),
-        messageCount: 0
-    };
-
-    conversations.unshift(newConversation);
-    conversationMessages[newConversation.id] = [];
-
-    // Save data first
-    saveData();
-    
-    // Display conversations to make sure it's visible
-    displayConversations();
-
-    // Reset form but DON'T collapse the bubble yet
-    document.getElementById('conversationNameBubble').value = '';
-    document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    document.querySelectorAll('#conversationBubble .topic-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-
-    showMessage('Conversation created successfully!', 'success');
-    
-    // Wait a moment for the user to see the success, then collapse
-    setTimeout(() => {
-        toggleConversationBubble();
-    }, 2000);
 }
 
 // Handle start conversation click
@@ -235,105 +128,81 @@ function handleStartConversationClick() {
     
     console.log('User logged in:', currentUser.name);
     
-    // Show and expand the conversation bubble
-    const conversationBubble = document.getElementById('conversationBubble');
-    console.log('Bubble element found:', !!conversationBubble);
-    
-    if (conversationBubble) {
-        // Force bubble to be visible
-        conversationBubble.style.display = 'flex';
-        conversationBubble.style.visibility = 'visible';
-        conversationBubble.style.opacity = '1';
-        conversationBubble.style.zIndex = '1000';
-        
-        // Ensure it's in expanded state
-        conversationBubble.classList.add('expanded');
-        const form = document.getElementById('newConversationFormBubble');
-        const plusSign = document.getElementById('plusSign');
-        
-        console.log('Form element found:', !!form);
-        console.log('Plus sign element found:', !!plusSign);
-        
-        if (form) {
-            form.style.display = 'flex';
-            form.style.visibility = 'visible';
-            form.style.opacity = '1';
-        }
-        if (plusSign) {
-            plusSign.style.display = 'none';
-        }
-        
-        console.log('Bubble should now be visible and expanded');
-        console.log('Bubble display:', conversationBubble.style.display);
-        console.log('Bubble expanded class:', conversationBubble.classList.contains('expanded'));
-    } else {
-        console.error('Conversation bubble element not found');
-    }
+    // Toggle the expanding bar
+    toggleExpandingBar();
 }
 
-// Handle creating a new conversation
+// Handle create conversation from form
 function handleCreateConversation(e) {
     e.preventDefault();
-
+    
     const currentUser = getCurrentUser();
     if (!currentUser) {
         showAuthRequiredMessage('create_conversation');
         return;
     }
-
-    const selectedTopics = Array.from(document.querySelectorAll('input[name="topics"]:checked'))
-        .map(checkbox => checkbox.value);
-
-    if (selectedTopics.length === 0) {
-        showMessage('Please select at least one topic', 'error');
-        // Add red animation to the form
-        const form = document.getElementById('newConversationForm');
-        form.classList.add('invalid');
-        setTimeout(() => form.classList.remove('invalid'), 1000);
-        return;
-    }
-
+    
+    const selectedTopics = document.querySelectorAll('input[name="topics"]:checked');
     const conversationName = document.getElementById('conversationName').value.trim();
-    if (!conversationName) {
-        showMessage('Please enter a conversation name', 'error');
-        // Add red animation to the form
-        const form = document.getElementById('newConversationForm');
-        form.classList.add('invalid');
-        setTimeout(() => form.classList.remove('invalid'), 1000);
+    
+    // Validation
+    if (selectedTopics.length === 0) {
+        showValidationError('Please select at least one topic.');
         return;
     }
-
-    // Create new conversation
-    const newConversation = {
+    
+    if (!conversationName) {
+        showValidationError('Please enter a conversation name.');
+        return;
+    }
+    
+    // Create conversation object
+    const conversation = {
         id: Date.now().toString(),
         name: conversationName,
-        topics: selectedTopics,
+        topics: Array.from(selectedTopics).map(topic => topic.value),
         author: currentUser.name,
         timestamp: new Date().toISOString(),
         messageCount: 0
     };
-
-    conversations.unshift(newConversation);
-    conversationMessages[newConversation.id] = [];
-
-    // Save data first
+    
+    // Add to conversations array
+    conversations.unshift(conversation);
+    
+    // Initialize empty messages array for this conversation
+    conversationMessages[conversation.id] = [];
+    
+    // Save to localStorage
     saveData();
     
-    // Display conversations to make sure it's visible
-    displayConversations();
-
-    // Reset form but DON'T collapse the bubble yet
+    // Reset form and collapse bar
     document.getElementById('newConversationForm').reset();
     document.querySelectorAll('.topic-option').forEach(option => {
         option.classList.remove('selected');
     });
-
+    
+    // Collapse the expanding bar
+    const bar = document.getElementById('startConversationBar');
+    if (bar) {
+        bar.classList.remove('expanded');
+    }
+    
     showMessage('Conversation created successfully!', 'success');
     
-    // Wait a moment for the user to see the success, then collapse
-    setTimeout(() => {
-        toggleConversationBubble();
-    }, 2000);
+    // Refresh display
+    displayConversations();
+}
+
+// Show validation error
+function showValidationError(message) {
+    const bar = document.getElementById('startConversationBar');
+    if (bar) {
+        bar.classList.add('invalid');
+        setTimeout(() => {
+            bar.classList.remove('invalid');
+        }, 1000);
+    }
+    showMessage(message, 'error');
 }
 
 // Display conversations
@@ -826,38 +695,34 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-
-
-// Test function for debugging bubble
-function testBubble() {
-    console.log('=== BUBBLE DEBUG TEST ===');
+// Test function for debugging bar
+function testBar() {
+    console.log('=== BAR DEBUG TEST ===');
     
-    const bubble = document.getElementById('conversationBubble');
-    const form = document.getElementById('newConversationFormBubble');
-    const plusSign = document.getElementById('plusSign');
+    const bar = document.getElementById('startConversationBar');
+    const expandedForm = document.getElementById('expandedForm');
     
-    console.log('Bubble element:', bubble);
-    console.log('Form element:', form);
-    console.log('Plus sign element:', plusSign);
+    console.log('Bar element:', bar);
+    console.log('Expanded form element:', expandedForm);
     
-    if (bubble) {
-        console.log('Bubble display:', bubble.style.display);
-        console.log('Bubble visibility:', bubble.style.visibility);
-        console.log('Bubble opacity:', bubble.style.opacity);
-        console.log('Bubble expanded:', bubble.classList.contains('expanded'));
-        console.log('Bubble position:', bubble.style.position);
-        console.log('Bubble z-index:', bubble.style.zIndex);
+    if (bar) {
+        console.log('Bar display:', bar.style.display);
+        console.log('Bar visibility:', bar.style.visibility);
+        console.log('Bar opacity:', bar.style.opacity);
+        console.log('Bar expanded:', bar.classList.contains('expanded'));
+        console.log('Bar position:', bar.style.position);
+        console.log('Bar z-index:', bar.style.zIndex);
         
-        // Force show the bubble
-        bubble.style.display = 'flex';
-        bubble.style.visibility = 'visible';
-        bubble.style.opacity = '1';
-        bubble.style.zIndex = '1000';
-        bubble.style.position = 'fixed';
-        bubble.style.bottom = '30px';
-        bubble.style.right = '30px';
+        // Force show the bar
+        bar.style.display = 'flex';
+        bar.style.visibility = 'visible';
+        bar.style.opacity = '1';
+        bar.style.zIndex = '1000';
+        bar.style.position = 'fixed';
+        bar.style.bottom = '30px';
+        bar.style.right = '30px';
         
-        console.log('Bubble should now be visible');
+        console.log('Bar should now be visible');
     }
     
     const currentUser = getCurrentUser();
