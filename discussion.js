@@ -72,136 +72,56 @@ function setupEventListeners() {
     }
 }
 
-// Toggle conversation bubble
-function toggleConversationBubble() {
-    const bubble = document.getElementById('conversationBubble');
-    const form = document.getElementById('newConversationFormBubble');
-    const plusSign = document.getElementById('plusSign');
-    
-    if (bubble.classList.contains('expanded')) {
-        // Collapse
-        bubble.classList.remove('expanded');
-        form.style.display = 'none';
-        plusSign.style.display = 'block';
-    } else {
-        // Expand
-        bubble.classList.add('expanded');
-        form.style.display = 'flex';
-        plusSign.style.display = 'none';
-    }
-}
 
-// Handle creating conversation from bubble
-function handleCreateConversationFromBubble() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        showAuthRequiredMessage('create_conversation');
-        return;
-    }
-
-    const selectedTopics = Array.from(document.querySelectorAll('#conversationBubble input[name="topics"]:checked'))
-        .map(checkbox => checkbox.value);
-
-    if (selectedTopics.length === 0) {
-        showMessage('Please select at least one topic', 'error');
-        // Add red animation to the bubble
-        const bubble = document.getElementById('conversationBubble');
-        bubble.classList.add('invalid');
-        setTimeout(() => bubble.classList.remove('invalid'), 1000);
-        return;
-    }
-
-    const conversationName = document.getElementById('conversationNameBubble').value.trim();
-    if (!conversationName) {
-        showMessage('Please enter a conversation name', 'error');
-        // Add red animation to the bubble
-        const bubble = document.getElementById('conversationBubble');
-        bubble.classList.add('invalid');
-        setTimeout(() => bubble.classList.remove('invalid'), 1000);
-        return;
-    }
-
-    // Create new conversation
-    const newConversation = {
-        id: Date.now().toString(),
-        name: conversationName,
-        topics: selectedTopics,
-        author: currentUser.name,
-        timestamp: new Date().toISOString(),
-        messageCount: 0
-    };
-
-    conversations.unshift(newConversation);
-    conversationMessages[newConversation.id] = [];
-
-    saveData();
-    displayConversations();
-
-    // Reset form and collapse the bubble
-    document.getElementById('conversationNameBubble').value = '';
-    document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    document.querySelectorAll('#conversationBubble .topic-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Collapse the conversation bubble back to + sign
-    toggleConversationBubble();
-
-    showMessage('Conversation created successfully!', 'success');
-}
-
-// Handle start conversation click
-function handleStartConversationClick() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        showAuthRequiredMessage('create_conversation');
-        return;
-    }
-    
-    // Show and expand the conversation bubble
-    const conversationBubble = document.getElementById('conversationBubble');
-    if (conversationBubble) {
-        conversationBubble.style.display = 'flex';
-        // Ensure it's in expanded state
-        conversationBubble.classList.add('expanded');
-        const form = document.getElementById('newConversationFormBubble');
-        const plusSign = document.getElementById('plusSign');
-        if (form) form.style.display = 'flex';
-        if (plusSign) plusSign.style.display = 'none';
-    }
-}
 
 // Check authentication status
 function checkAuthStatus() {
     const currentUser = getCurrentUser();
-    const newConversationSection = document.getElementById('newConversationSection');
-    const conversationBubble = document.getElementById('conversationBubble');
     const userInfoDiscussion = document.getElementById('userInfoDiscussion');
     const userNameDiscussion = document.getElementById('userNameDiscussion');
 
     if (currentUser) {
         // User is logged in
-        if (newConversationSection) newConversationSection.style.display = 'none';
-        if (conversationBubble) {
-            conversationBubble.style.display = 'none'; // Start hidden
-            // Reset bubble to collapsed state
-            conversationBubble.classList.remove('expanded');
-            const form = document.getElementById('newConversationFormBubble');
-            const plusSign = document.getElementById('plusSign');
-            if (form) form.style.display = 'none';
-            if (plusSign) plusSign.style.display = 'block';
-        }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
             if (userNameDiscussion) userNameDiscussion.textContent = currentUser.name;
         }
     } else {
         // User is not logged in
-        if (newConversationSection) newConversationSection.style.display = 'none';
-        if (conversationBubble) conversationBubble.style.display = 'none';
         if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
+    }
+}
+
+// Switch between tabs
+function switchTab(tabName) {
+    const currentUser = getCurrentUser();
+    
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => content.classList.remove('active'));
+    
+    // Remove active class from all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => button.classList.remove('active'));
+    
+    // Show selected tab content
+    const selectedTab = document.getElementById(tabName + 'Tab');
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Add active class to clicked button
+    const clickedButton = event.target.closest('.tab-button');
+    if (clickedButton) {
+        clickedButton.classList.add('active');
+    }
+    
+    // If trying to access create tab without being logged in, show auth message
+    if (tabName === 'create' && !currentUser) {
+        showAuthRequiredMessage('create_conversation');
+        // Switch back to conversations tab
+        switchTab('conversations');
+        return;
     }
 }
 
@@ -253,14 +173,14 @@ function handleCreateConversation(e) {
     saveData();
     displayConversations();
 
-    // Reset form and collapse the bubble
+    // Reset form and switch back to conversations tab
     document.getElementById('newConversationForm').reset();
     document.querySelectorAll('.topic-option').forEach(option => {
         option.classList.remove('selected');
     });
     
-    // Collapse the conversation bubble back to + sign
-    toggleConversationBubble();
+    // Switch back to conversations tab
+    switchTab('conversations');
 
     showMessage('Conversation created successfully!', 'success');
 }

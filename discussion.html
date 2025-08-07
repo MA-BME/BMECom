@@ -52,46 +52,7 @@
             75% { transform: translateX(5px); }
         }
         
-        .conversation-bubble {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: #2563eb;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .conversation-bubble:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-        
-        .conversation-bubble.expanded {
-            width: 400px;
-            height: auto;
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-        
-        .conversation-bubble.invalid {
-            animation: shake 0.5s ease-in-out;
-            background: #ef4444;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
-        
-        .plus-sign {
-            font-size: 2rem;
-            color: white;
-            font-weight: bold;
-        }
+
         
         .new-conversation-form {
             display: flex;
@@ -442,44 +403,63 @@
             color: #1f2937;
         }
         
-        .start-conversation-bar {
-            background: white;
+        .tab-navigation {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
             padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .tab-button:hover {
+            color: #2563eb;
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .tab-button.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .tab-icon {
+            font-size: 1.2rem;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .create-conversation-section {
+            background: white;
+            padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid #e5e7eb;
         }
         
-        .start-conversation-bar:hover {
-            border-color: #2563eb;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
-            transform: translateY(-2px);
-        }
-        
-        .start-conversation-content {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .plus-icon {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #2563eb;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .start-text {
-            font-size: 1.1rem;
-            font-weight: 600;
+        .create-conversation-title {
             color: #1f2937;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
         }
     </style>
 </head>
@@ -555,56 +535,63 @@
                     </form>
                 </div>
 
-                <!-- Floating Conversation Bubble (for logged in users) -->
-                <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
-                    <div id="plusSign" class="plus-sign">+</div>
-                    <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
-                        <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
-                        <div class="form-group">
-                            <label style="color: white;">Select Topics:</label>
-                            <div class="topic-selection">
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="A">
-                                    <span>Topic A</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="B">
-                                    <span>Topic B</span>
-                                </label>
-                                <label class="topic-option">
-                                    <input type="checkbox" name="topics" value="C">
-                                    <span>Topic C</span>
-                                </label>
+                
+
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button class="tab-button active" onclick="switchTab('conversations')">
+                        <span class="tab-icon">💬</span>
+                        Active Conversations
+                    </button>
+                    <button class="tab-button" onclick="switchTab('create')">
+                        <span class="tab-icon">+</span>
+                        Start Conversation
+                    </button>
+                </div>
+
+                <!-- Conversations Tab -->
+                <div id="conversationsTab" class="tab-content active">
+                    <div class="conversations-section">
+                        <div class="conversations-header">
+                            <h2 class="conversations-title">Active Conversations</h2>
+                        </div>
+                        <div id="conversationsContainer">
+                            <div class="no-conversations">
+                                <h3>No conversations yet</h3>
+                                <p>Be the first to start a conversation!</p>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="conversationNameBubble" style="color: white;">Name:</label>
-                            <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
-                        </div>
-                        <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
-                            Create
-                        </button>
                     </div>
                 </div>
 
-                <!-- Start Conversation Bar -->
-                <div class="start-conversation-bar" onclick="handleStartConversationClick()">
-                    <div class="start-conversation-content">
-                        <span class="plus-icon">+</span>
-                        <span class="start-text">Start Conversation</span>
-                    </div>
-                </div>
-
-                <!-- Conversations Section -->
-                <div class="conversations-section">
-                    <div class="conversations-header">
-                        <h2 class="conversations-title">Active Conversations</h2>
-                    </div>
-                    <div id="conversationsContainer">
-                        <div class="no-conversations">
-                            <h3>No conversations yet</h3>
-                            <p>Be the first to start a conversation!</p>
-                        </div>
+                <!-- Create Conversation Tab -->
+                <div id="createTab" class="tab-content">
+                    <div class="create-conversation-section">
+                        <h2 class="create-conversation-title">Start New Conversation</h2>
+                        <form id="newConversationForm" class="new-conversation-form" onsubmit="handleCreateConversation(event)">
+                            <div class="form-group">
+                                <label for="conversationName">Conversation Name:</label>
+                                <input type="text" id="conversationName" class="conversation-name-input" placeholder="Enter conversation name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Topics:</label>
+                                <div class="topic-selection">
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="A">
+                                        <span>Topic A</span>
+                                    </label>
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="B">
+                                        <span>Topic B</span>
+                                    </label>
+                                    <label class="topic-option">
+                                        <input type="checkbox" name="topics" value="C">
+                                        <span>Topic C</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="create-conversation-btn">Create Conversation</button>
+                        </form>
                     </div>
                 </div>
 
@@ -647,6 +634,6 @@
     </footer>
 
     <script src="auth.js"></script>
-    <script src="discussion.js?v=1.3"></script>
+    <script src="discussion.js?v=1.4"></script>
 </body>
 </html>
