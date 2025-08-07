@@ -402,9 +402,16 @@
         }
         
         /* New Expanding Bar Styles */
+        .expanded-form {
+            display: block;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
         .start-conversation-bar {
             background: white;
-            padding: 1rem 1.5rem;
+            padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             margin-bottom: 2rem;
@@ -446,6 +453,7 @@
             align-items: center;
             justify-content: center;
             transition: transform 0.3s ease;
+            transform: rotate(45deg);
         }
         
         .start-conversation-bar.expanded .plus-icon {
@@ -456,13 +464,6 @@
             font-size: 1.1rem;
             font-weight: 600;
             color: #1f2937;
-        }
-        
-        .expanded-form {
-            display: none;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #e5e7eb;
         }
         
         .start-conversation-bar.expanded .expanded-form {
@@ -510,7 +511,7 @@
                 </div>
 
                 <!-- Start Conversation Bar (Always Visible) -->
-                <div class="start-conversation-bar" id="startConversationBar" onclick="handleStartConversationClick()">
+                <div class="start-conversation-bar expanded" id="startConversationBar" onclick="handleStartConversationClick()">
                     <div class="start-conversation-content">
                         <span class="plus-icon">+</span>
                         <span class="start-text">Start Conversation</span>
