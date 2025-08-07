@@ -441,6 +441,46 @@
             margin-bottom: 1rem;
             color: #1f2937;
         }
+        
+        .start-conversation-bar {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .start-conversation-bar:hover {
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .start-conversation-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .plus-icon {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2563eb;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .start-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
     </style>
 </head>
 <body>
@@ -547,6 +587,14 @@
                     </div>
                 </div>
 
+                <!-- Start Conversation Bar -->
+                <div class="start-conversation-bar" onclick="handleStartConversationClick()">
+                    <div class="start-conversation-content">
+                        <span class="plus-icon">+</span>
+                        <span class="start-text">Start Conversation</span>
+                    </div>
+                </div>
+
                 <!-- Conversations Section -->
                 <div class="conversations-section">
                     <div class="conversations-header">
@@ -599,6 +647,6 @@
     </footer>
 
     <script src="auth.js"></script>
-    <script src="discussion.js?v=1.1"></script>
+    <script src="discussion.js?v=1.2"></script>
 </body>
 </html>

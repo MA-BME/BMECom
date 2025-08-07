@@ -152,6 +152,22 @@ function handleCreateConversationFromBubble() {
     showMessage('Conversation created successfully!', 'success');
 }
 
+// Handle start conversation click
+function handleStartConversationClick() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showAuthRequiredMessage('create_conversation');
+        return;
+    }
+    
+    // Show the conversation bubble
+    const conversationBubble = document.getElementById('conversationBubble');
+    if (conversationBubble) {
+        conversationBubble.style.display = 'flex';
+        toggleConversationBubble();
+    }
+}
+
 // Check authentication status
 function checkAuthStatus() {
     const currentUser = getCurrentUser();
@@ -163,7 +179,7 @@ function checkAuthStatus() {
     if (currentUser) {
         // User is logged in
         if (newConversationSection) newConversationSection.style.display = 'none';
-        if (conversationBubble) conversationBubble.style.display = 'flex';
+        if (conversationBubble) conversationBubble.style.display = 'none'; // Start hidden
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
             if (userNameDiscussion) userNameDiscussion.textContent = currentUser.name;
