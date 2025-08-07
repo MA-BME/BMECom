@@ -160,11 +160,16 @@ function handleStartConversationClick() {
         return;
     }
     
-    // Show the conversation bubble
+    // Show and expand the conversation bubble
     const conversationBubble = document.getElementById('conversationBubble');
     if (conversationBubble) {
         conversationBubble.style.display = 'flex';
-        toggleConversationBubble();
+        // Ensure it's in expanded state
+        conversationBubble.classList.add('expanded');
+        const form = document.getElementById('newConversationFormBubble');
+        const plusSign = document.getElementById('plusSign');
+        if (form) form.style.display = 'flex';
+        if (plusSign) plusSign.style.display = 'none';
     }
 }
 
@@ -179,7 +184,15 @@ function checkAuthStatus() {
     if (currentUser) {
         // User is logged in
         if (newConversationSection) newConversationSection.style.display = 'none';
-        if (conversationBubble) conversationBubble.style.display = 'none'; // Start hidden
+        if (conversationBubble) {
+            conversationBubble.style.display = 'none'; // Start hidden
+            // Reset bubble to collapsed state
+            conversationBubble.classList.remove('expanded');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            if (form) form.style.display = 'none';
+            if (plusSign) plusSign.style.display = 'block';
+        }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
             if (userNameDiscussion) userNameDiscussion.textContent = currentUser.name;
