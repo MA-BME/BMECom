@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discussion Forum Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+        }
+        .success {
+            background: #efe;
+            color: #0c0;
+            border: 1px solid #cfc;
+        }
+        .conversation-bubble {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .conversation-bubble.expanded {
+            width: 400px;
+            height: auto;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .plus-sign {
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+        }
+        .new-conversation-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .topic-selection {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .topic-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .conversation-name-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        .create-conversation-btn {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+        .start-conversation-bar {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #e5e7eb;
+        }
+        .start-conversation-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .plus-icon {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2563eb;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .start-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <h1>Discussion Forum Test Page</h1>
+    
+    <!-- Authentication Test Section -->
+    <div class="test-section">
+        <h2>Authentication Test</h2>
+        <button class="test-button" onclick="testAuth()">Test Authentication Status</button>
+        <button class="test-button" onclick="createTestUser()">Create Test User</button>
+        <button class="test-button" onclick="loginTestUser()">Login Test User</button>
+        <button class="test-button" onclick="logoutUser()">Logout</button>
+        <div id="authDebug" class="debug-info"></div>
+    </div>
+
+    <!-- Conversation Bubble Test Section -->
+    <div class="test-section">
+        <h2>Conversation Bubble Test</h2>
+        <button class="test-button" onclick="testBubbleVisibility()">Test Bubble Visibility</button>
+        <button class="test-button" onclick="showBubble()">Show Bubble</button>
+        <button class="test-button" onclick="hideBubble()">Hide Bubble</button>
+        <button class="test-button" onclick="expandBubble()">Expand Bubble</button>
+        <button class="test-button" onclick="collapseBubble()">Collapse Bubble</button>
+        <div id="bubbleDebug" class="debug-info"></div>
+    </div>
+
+    <!-- Start Conversation Bar Test -->
+    <div class="test-section">
+        <h2>Start Conversation Bar Test</h2>
+        <div class="start-conversation-bar" onclick="testStartConversationClick()">
+            <div class="start-conversation-content">
+                <span class="plus-icon">+</span>
+                <span class="start-text">Start Conversation (Test)</span>
+            </div>
+        </div>
+        <div id="startBarDebug" class="debug-info"></div>
+    </div>
+
+    <!-- Floating Conversation Bubble -->
+    <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
+        <div id="plusSign" class="plus-sign">+</div>
+        <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
+            <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
+            <div class="form-group">
+                <label style="color: white;">Select Topics:</label>
+                <div class="topic-selection">
+                    <label class="topic-option">
+                        <input type="checkbox" name="topics" value="A">
+                        <span>Topic A</span>
+                    </label>
+                    <label class="topic-option">
+                        <input type="checkbox" name="topics" value="B">
+                        <span>Topic B</span>
+                    </label>
+                    <label class="topic-option">
+                        <input type="checkbox" name="topics" value="C">
+                        <span>Topic C</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="conversationNameBubble" style="color: white;">Name:</label>
+                <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
+            </div>
+            <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
+                Create
+            </button>
+        </div>
+    </div>
+
+    <!-- Function Test Section -->
+    <div class="test-section">
+        <h2>Function Test</h2>
+        <button class="test-button" onclick="testHandleStartConversationClick()">Test handleStartConversationClick</button>
+        <button class="test-button" onclick="testToggleConversationBubble()">Test toggleConversationBubble</button>
+        <button class="test-button" onclick="testCheckAuthStatus()">Test checkAuthStatus</button>
+        <div id="functionDebug" class="debug-info"></div>
+    </div>
+
+    <!-- Global Variables Test -->
+    <div class="test-section">
+        <h2>Global Variables Test</h2>
+        <button class="test-button" onclick="testGlobalVariables()">Test Global Variables</button>
+        <div id="globalDebug" class="debug-info"></div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        // Test functions
+        function logDebug(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            element.innerHTML += `[${timestamp}] ${message}\n`;
+            element.className = `debug-info ${className}`;
+        }
+
+        function testAuth() {
+            try {
+                const currentUser = getCurrentUser();
+                logDebug('authDebug', `Current User: ${JSON.stringify(currentUser, null, 2)}`);
+                logDebug('authDebug', `Is Authenticated: ${isAuthenticated()}`);
+            } catch (error) {
+                logDebug('authDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function createTestUser() {
+            try {
+                const testUser = {
+                    name: 'TestUser',
+                    email: 'test@example.com',
+                    role: 'User'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                logDebug('authDebug', 'Test user created successfully', 'success');
+                testAuth();
+            } catch (error) {
+                logDebug('authDebug', `Error creating test user: ${error.message}`, 'error');
+            }
+        }
+
+        function loginTestUser() {
+            try {
+                const testUser = JSON.parse(localStorage.getItem('currentUser'));
+                if (testUser) {
+                    logDebug('authDebug', 'Test user logged in', 'success');
+                    testAuth();
+                } else {
+                    logDebug('authDebug', 'No test user found', 'error');
+                }
+            } catch (error) {
+                logDebug('authDebug', `Error logging in: ${error.message}`, 'error');
+            }
+        }
+
+        function logoutUser() {
+            try {
+                localStorage.removeItem('currentUser');
+                logDebug('authDebug', 'User logged out', 'success');
+                testAuth();
+            } catch (error) {
+                logDebug('authDebug', `Error logging out: ${error.message}`, 'error');
+            }
+        }
+
+        function testBubbleVisibility() {
+            const bubble = document.getElementById('conversationBubble');
+            const display = bubble.style.display;
+            const expanded = bubble.classList.contains('expanded');
+            logDebug('bubbleDebug', `Bubble display: ${display}`);
+            logDebug('bubbleDebug', `Bubble expanded: ${expanded}`);
+        }
+
+        function showBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            bubble.style.display = 'flex';
+            logDebug('bubbleDebug', 'Bubble shown', 'success');
+        }
+
+        function hideBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            bubble.style.display = 'none';
+            logDebug('bubbleDebug', 'Bubble hidden', 'success');
+        }
+
+        function expandBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            
+            bubble.classList.add('expanded');
+            form.style.display = 'flex';
+            plusSign.style.display = 'none';
+            logDebug('bubbleDebug', 'Bubble expanded', 'success');
+        }
+
+        function collapseBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            
+            bubble.classList.remove('expanded');
+            form.style.display = 'none';
+            plusSign.style.display = 'block';
+            logDebug('bubbleDebug', 'Bubble collapsed', 'success');
+        }
+
+        function testStartConversationClick() {
+            try {
+                logDebug('startBarDebug', 'Start conversation bar clicked');
+                handleStartConversationClick();
+            } catch (error) {
+                logDebug('startBarDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testHandleStartConversationClick() {
+            try {
+                const currentUser = getCurrentUser();
+                logDebug('functionDebug', `Current user: ${JSON.stringify(currentUser)}`);
+                
+                if (!currentUser) {
+                    logDebug('functionDebug', 'No user logged in - should show auth message', 'error');
+                    return;
+                }
+                
+                const conversationBubble = document.getElementById('conversationBubble');
+                if (conversationBubble) {
+                    conversationBubble.style.display = 'flex';
+                    conversationBubble.classList.add('expanded');
+                    const form = document.getElementById('newConversationFormBubble');
+                    const plusSign = document.getElementById('plusSign');
+                    if (form) form.style.display = 'flex';
+                    if (plusSign) plusSign.style.display = 'none';
+                    logDebug('functionDebug', 'Bubble should be visible and expanded', 'success');
+                }
+            } catch (error) {
+                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testToggleConversationBubble() {
+            try {
+                const bubble = document.getElementById('conversationBubble');
+                const isExpanded = bubble.classList.contains('expanded');
+                logDebug('functionDebug', `Bubble expanded before toggle: ${isExpanded}`);
+                
+                toggleConversationBubble();
+                
+                const isExpandedAfter = bubble.classList.contains('expanded');
+                logDebug('functionDebug', `Bubble expanded after toggle: ${isExpandedAfter}`);
+            } catch (error) {
+                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testCheckAuthStatus() {
+            try {
+                logDebug('functionDebug', 'Testing checkAuthStatus...');
+                checkAuthStatus();
+                logDebug('functionDebug', 'checkAuthStatus completed');
+            } catch (error) {
+                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testGlobalVariables() {
+            try {
+                logDebug('globalDebug', 'Testing global variables...');
+                
+                // Test if functions exist
+                const functions = ['getCurrentUser', 'isAuthenticated', 'showAuthRequiredMessage', 'showGlobalMessage'];
+                functions.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        logDebug('globalDebug', `✓ ${func} function exists`);
+                    } else {
+                        logDebug('globalDebug', `✗ ${func} function missing`, 'error');
+                    }
+                });
+                
+                // Test localStorage
+                const conversations = localStorage.getItem('conversations');
+                const conversationMessages = localStorage.getItem('conversationMessages');
+                logDebug('globalDebug', `Conversations in localStorage: ${conversations ? 'exists' : 'missing'}`);
+                logDebug('globalDebug', `Conversation messages in localStorage: ${conversationMessages ? 'exists' : 'missing'}`);
+                
+            } catch (error) {
+                logDebug('globalDebug', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Toggle conversation bubble function (simplified)
+        function toggleConversationBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            
+            if (bubble.classList.contains('expanded')) {
+                // Collapse
+                bubble.classList.remove('expanded');
+                form.style.display = 'none';
+                plusSign.style.display = 'block';
+            } else {
+                // Expand
+                bubble.classList.add('expanded');
+                form.style.display = 'flex';
+                plusSign.style.display = 'none';
+            }
+        }
+
+        // Handle start conversation click (simplified)
+        function handleStartConversationClick() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                if (typeof showAuthRequiredMessage === 'function') {
+                    showAuthRequiredMessage('create_conversation');
+                } else {
+                    alert('You must be logged in to create conversations.');
+                }
+                return;
+            }
+            
+            // Show and expand the conversation bubble
+            const conversationBubble = document.getElementById('conversationBubble');
+            if (conversationBubble) {
+                conversationBubble.style.display = 'flex';
+                // Ensure it's in expanded state
+                conversationBubble.classList.add('expanded');
+                const form = document.getElementById('newConversationFormBubble');
+                const plusSign = document.getElementById('plusSign');
+                if (form) form.style.display = 'flex';
+                if (plusSign) plusSign.style.display = 'none';
+            }
+        }
+
+        // Handle creating conversation from bubble (simplified)
+        function handleCreateConversationFromBubble() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert('You must be logged in to create conversations.');
+                return;
+            }
+
+            const selectedTopics = Array.from(document.querySelectorAll('#conversationBubble input[name="topics"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (selectedTopics.length === 0) {
+                alert('Please select at least one topic');
+                return;
+            }
+
+            const conversationName = document.getElementById('conversationNameBubble').value.trim();
+            if (!conversationName) {
+                alert('Please enter a conversation name');
+                return;
+            }
+
+            // Create new conversation
+            const newConversation = {
+                id: Date.now().toString(),
+                name: conversationName,
+                topics: selectedTopics,
+                author: currentUser.name,
+                timestamp: new Date().toISOString(),
+                messageCount: 0
+            };
+
+            // Load existing conversations
+            let conversations = [];
+            try {
+                const conversationsData = localStorage.getItem('conversations');
+                if (conversationsData) {
+                    conversations = JSON.parse(conversationsData);
+                }
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+            }
+
+            conversations.unshift(newConversation);
+            localStorage.setItem('conversations', JSON.stringify(conversations));
+
+            // Reset form and collapse the bubble
+            document.getElementById('conversationNameBubble').value = '';
+            document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Collapse the conversation bubble back to + sign
+            toggleConversationBubble();
+
+            alert('Conversation created successfully!');
+        }
+
+        // Check authentication status (simplified)
+        function checkAuthStatus() {
+            const currentUser = getCurrentUser();
+            const conversationBubble = document.getElementById('conversationBubble');
+
+            if (currentUser) {
+                // User is logged in
+                if (conversationBubble) {
+                    conversationBubble.style.display = 'none'; // Start hidden
+                    // Reset bubble to collapsed state
+                    conversationBubble.classList.remove('expanded');
+                    const form = document.getElementById('newConversationFormBubble');
+                    const plusSign = document.getElementById('plusSign');
+                    if (form) form.style.display = 'none';
+                    if (plusSign) plusSign.style.display = 'block';
+                }
+            } else {
+                // User is not logged in
+                if (conversationBubble) conversationBubble.style.display = 'none';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logDebug('authDebug', 'Page loaded - testing initial state');
+            testAuth();
+            testGlobalVariables();
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html>
