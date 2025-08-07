@@ -34,9 +34,16 @@ function updateNavigation() {
     const userNameElement = document.getElementById('userName');
 
     if (currentUser) {
-        // User is logged in
-        if (loginLink) loginLink.style.display = 'none';
-        if (logoutLink) logoutLink.style.display = 'inline';
+        // User is logged in - show logout option
+        if (loginLink) {
+            loginLink.textContent = 'Logout';
+            loginLink.href = '#';
+            loginLink.onclick = function(e) {
+                e.preventDefault();
+                logout();
+            };
+        }
+        if (logoutLink) logoutLink.style.display = 'none';
         if (moderatorLink && currentUser.role === 'Moderator') {
             moderatorLink.style.display = 'inline';
         }
@@ -45,8 +52,12 @@ function updateNavigation() {
             userNameElement.style.display = 'inline';
         }
     } else {
-        // User is not logged in
-        if (loginLink) loginLink.style.display = 'inline';
+        // User is not logged in - show login option
+        if (loginLink) {
+            loginLink.textContent = 'Login';
+            loginLink.href = 'login.html';
+            loginLink.onclick = null;
+        }
         if (logoutLink) logoutLink.style.display = 'none';
         if (moderatorLink) moderatorLink.style.display = 'none';
         if (userNameElement) userNameElement.style.display = 'none';
@@ -77,6 +88,23 @@ function isAuthenticated() {
 // Get current user
 function getCurrentUser() {
     return currentUser;
+}
+
+// Show authentication required message
+function showAuthRequiredMessage(action) {
+    const messages = {
+        'add_article': 'You must be logged in to add articles.',
+        'comment': 'You must be logged in to add comments.',
+        'like': 'You must be logged in to like articles.',
+        'dislike': 'You must be logged in to dislike articles.',
+        'delete': 'You must be logged in to delete content.',
+        'send_message': 'You must be logged in to send messages.',
+        'create_conversation': 'You must be logged in to create conversations.',
+        'moderate': 'You must be logged in as a moderator to perform this action.'
+    };
+    
+    const message = messages[action] || 'You must be logged in to perform this action.';
+    showGlobalMessage(message, 'error');
 }
 
 // Show global message
@@ -146,16 +174,5 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-// Setup logout event listener
-document.addEventListener('DOMContentLoaded', function() {
-    const logoutLink = document.getElementById('logoutLink');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            logout();
-        });
-    }
-});
 
 console.log('✅ Global authentication system loaded!');

@@ -1725,8 +1725,9 @@ function createArticleCard(article, index) {
 
 // Like article
 function likeArticle(articleId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to like articles', 'error');
+        showAuthRequiredMessage('like');
         return;
     }
     
@@ -1763,8 +1764,9 @@ function likeArticle(articleId) {
 
 // Dislike article
 function dislikeArticle(articleId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to dislike articles', 'error');
+        showAuthRequiredMessage('dislike');
         return;
     }
     
@@ -1801,8 +1803,9 @@ function dislikeArticle(articleId) {
 
 // Delete article
 function deleteArticle(articleId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to delete articles', 'error');
+        showAuthRequiredMessage('delete');
         return;
     }
     
@@ -2127,13 +2130,14 @@ console.log('💡 To delete all articles from console, run: deleteAllArticlesNow
 
 // Add a comment to an article
 function addComment(articleId, commentText) {
+    const currentUser = getCurrentUser();
     console.log('🔧 Adding comment for article:', articleId);
     console.log('👤 Current user:', currentUser);
     console.log('📝 Comment text:', commentText);
     
     if (!currentUser) {
         console.log('❌ No current user found');
-        showMessage('Please log in to add comments', 'error');
+        showAuthRequiredMessage('comment');
         return;
     }
     
@@ -2181,8 +2185,9 @@ function addComment(articleId, commentText) {
 
 // Like a comment
 function likeComment(articleId, commentId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to like comments', 'error');
+        showAuthRequiredMessage('like');
         return;
     }
     
@@ -2225,8 +2230,9 @@ function likeComment(articleId, commentId) {
 
 // Dislike a comment
 function dislikeComment(articleId, commentId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to dislike comments', 'error');
+        showAuthRequiredMessage('dislike');
         return;
     }
     
@@ -2269,8 +2275,9 @@ function dislikeComment(articleId, commentId) {
 
 // Delete a comment
 function deleteComment(articleId, commentId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to delete comments', 'error');
+        showAuthRequiredMessage('delete');
         return;
     }
     
@@ -2301,8 +2308,9 @@ function deleteComment(articleId, commentId) {
 
 // Reply to a comment
 function replyToComment(articleId, commentId, replyText) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please log in to reply to comments', 'error');
+        showAuthRequiredMessage('comment');
         return;
     }
     

@@ -95,7 +95,7 @@ function toggleConversationBubble() {
 function handleCreateConversationFromBubble() {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please login to create a conversation', 'error');
+        showAuthRequiredMessage('create_conversation');
         return;
     }
 
@@ -185,7 +185,7 @@ function handleCreateConversation(e) {
 
     const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please login to create a conversation', 'error');
+        showAuthRequiredMessage('create_conversation');
         return;
     }
 
@@ -417,7 +417,7 @@ function handleSendMessage(e, conversationId) {
 
     const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please login to send messages', 'error');
+        showAuthRequiredMessage('send_message');
         return;
     }
 
@@ -469,7 +469,7 @@ function handleSendReply(e, conversationId, parentMessageId) {
 
     const currentUser = getCurrentUser();
     if (!currentUser) {
-        showMessage('Please login to send replies', 'error');
+        showAuthRequiredMessage('send_message');
         return;
     }
 
