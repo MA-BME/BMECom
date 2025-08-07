@@ -232,7 +232,7 @@ function displayConversations() {
         ).join('');
 
         return `
-            <div class="conversation-card" onclick="toggleConversationDetail('${conversation.id}')">
+            <div class="conversation-card" onclick="openConversationDetail('${conversation.id}')">
                 <div class="conversation-header">
                     <div>
                         <div class="conversation-name">${escapeHtml(conversation.name)}</div>
@@ -246,9 +246,6 @@ function displayConversations() {
                         <span>📅 ${getTimeAgo(conversation.timestamp)}</span>
                     </div>
                 </div>
-                <div class="conversation-detail" id="conversation-${conversation.id}">
-                    ${createConversationDetailHTML(conversation)}
-                </div>
             </div>
         `;
     }).join('');
@@ -258,30 +255,7 @@ function displayConversations() {
     console.log('Container innerHTML length:', container.innerHTML.length);
 }
 
-// Create conversation detail HTML
-function createConversationDetailHTML(conversation) {
-    const messages = conversationMessages[conversation.id] || [];
-    const currentUser = getCurrentUser();
-    
-    return `
-        <div class="messages-container">
-            ${messages.length === 0 ? 
-                '<p style="text-align: center; color: #6b7280;">No messages yet. Be the first to comment!</p>' :
-                messages.map(message => createMessageHTML(message, conversation.id)).join('')
-            }
-        </div>
-        ${currentUser ? `
-            <form class="new-message-form" onsubmit="handleSendMessage(event, '${conversation.id}')">
-                <textarea class="message-input" name="messageContent" placeholder="Type your message..." required></textarea>
-                <button type="submit" class="send-message-btn">Send Message</button>
-            </form>
-        ` : `
-            <div style="text-align: center; padding: 1rem; color: #6b7280;">
-                <p>Please login to participate in this conversation.</p>
-            </div>
-        `}
-    `;
-}
+
 
 // Create message HTML
 function createMessageHTML(message, conversationId) {
@@ -350,20 +324,9 @@ function createReplyHTML(reply, conversationId, parentMessageId) {
     `;
 }
 
-// Toggle conversation detail
-function toggleConversationDetail(conversationId) {
-    const detailElement = document.getElementById(`conversation-${conversationId}`);
-    const isActive = detailElement.classList.contains('active');
-    
-    // Close all other conversation details
-    document.querySelectorAll('.conversation-detail').forEach(detail => {
-        detail.classList.remove('active');
-    });
-    
-    // Toggle current conversation detail
-    if (!isActive) {
-        detailElement.classList.add('active');
-    }
+// Open conversation detail page
+function openConversationDetail(conversationId) {
+    window.location.href = `conversation-detail.html?id=${conversationId}`;
 }
 
 // Handle sending a message
