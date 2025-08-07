@@ -276,24 +276,6 @@ function displayConversations() {
                 </div>
             </div>
         `;
-                <div class="conversation-header">
-                    <div>
-                        <div class="conversation-name">${escapeHtml(conversation.name)}</div>
-                        <div class="conversation-topics">${topicsHTML}</div>
-                    </div>
-                </div>
-                <div class="conversation-meta">
-                    <div class="conversation-stats">
-                        <span>👤 ${escapeHtml(conversation.author)}</span>
-                        <span>💬 ${messageCount} messages</span>
-                        <span>📅 ${getTimeAgo(conversation.timestamp)}</span>
-                    </div>
-                </div>
-                <div class="conversation-detail" id="conversation-${conversation.id}">
-                    ${createConversationDetailHTML(conversation)}
-                </div>
-            </div>
-        `;
     }).join('');
 
     container.innerHTML = conversationsHTML;
@@ -318,7 +300,7 @@ function createConversationDetailHTML(conversation) {
             </form>
         ` : `
             <div style="text-align: center; padding: 1rem; color: #6b7280;">
-                <p>Please <a href="login.html" style="color: #2563eb;">login</a> to participate in this conversation.</p>
+                <p>Please login to participate in this conversation.</p>
             </div>
         `}
     `;
