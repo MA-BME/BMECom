@@ -3,74 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comment Test</title>
+    <title>Comments Test - BMECom</title>
+    <link rel="stylesheet" href="styles.css?v=1.9">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
         .test-section {
-            border: 1px solid #ccc;
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
-            border-radius: 8px;
         }
-        .comment-textarea {
-            width: 100%;
-            min-height: 100px;
+        .test-result {
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .add-comment-btn {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .add-comment-btn:hover {
-            background: #1d4ed8;
-        }
-        .error {
-            color: red;
             margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
         }
-        .success {
-            color: green;
+        .test-success { background: #dcfce7; color: #166534; }
+        .test-error { background: #fef2f2; color: #dc2626; }
+        .test-info { background: #dbeafe; color: #1e40af; }
+        .debug-info {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 15px;
             margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.875rem;
         }
     </style>
 </head>
 <body>
-    <h1>Comment Functionality Test</h1>
-    
-    <div class="test-section">
-        <h2>Test 1: Basic Comment Form</h2>
-        <textarea id="test-comment" class="comment-textarea" placeholder="Write a comment..."></textarea>
-        <button onclick="testAddComment()" class="add-comment-btn">Add Comment</button>
-        <div id="test-result"></div>
-    </div>
-    
-    <div class="test-section">
-        <h2>Test 2: Check User Authentication</h2>
-        <button onclick="checkAuth()" class="add-comment-btn">Check Current User</button>
-        <div id="auth-result"></div>
-    </div>
-    
-    <div class="test-section">
-        <h2>Test 3: Check Local Storage</h2>
-        <button onclick="checkStorage()" class="add-comment-btn">Check Storage</button>
-        <div id="storage-result"></div>
+    <div class="container">
+        <h1>🔧 Comments System Debug Test</h1>
+        
+        <div class="test-section">
+            <h2>1. Authentication Status</h2>
+            <div id="auth-status" class="debug-info">Checking...</div>
+            <button onclick="checkAuthStatus()" class="btn btn-primary">Check Auth Status</button>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test Comment Addition</h2>
+            <div id="comment-test" class="debug-info">Ready to test...</div>
+            <textarea id="test-comment-text" placeholder="Enter a test comment..." style="width: 100%; height: 100px; margin: 10px 0;"></textarea>
+            <button onclick="testAddComment()" class="btn btn-primary">Test Add Comment</button>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Global Functions Check</h2>
+            <div id="functions-check" class="debug-info">Checking...</div>
+            <button onclick="checkGlobalFunctions()" class="btn btn-primary">Check Functions</button>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Local Storage Check</h2>
+            <div id="storage-check" class="debug-info">Checking...</div>
+            <button onclick="checkLocalStorage()" class="btn btn-primary">Check Storage</button>
+        </div>
+
+        <div class="test-section">
+            <h2>5. Create Test Article</h2>
+            <div id="article-test" class="debug-info">Ready to create test article...</div>
+            <button onclick="createTestArticle()" class="btn btn-primary">Create Test Article</button>
+        </div>
+
+        <div class="test-section">
+            <h2>6. Display Test Article</h2>
+            <div id="display-test" class="debug-info">Ready to display...</div>
+            <button onclick="displayTestArticle()" class="btn btn-primary">Display Test Article</button>
+        </div>
+
+        <div class="test-section">
+            <h2>7. Manual Login</h2>
+            <div id="manual-login" class="debug-info">Ready for manual login...</div>
+            <input type="text" id="test-email" placeholder="Enter email" style="width: 100%; margin: 5px 0;">
+            <input type="text" id="test-name" placeholder="Enter name" style="width: 100%; margin: 5px 0;">
+            <button onclick="manualLogin()" class="btn btn-primary">Manual Login</button>
+        </div>
     </div>
 
     <script>
         // Load the main articles.js to test its functions
-        function loadScript(src) {
+        async function loadScript(src) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = src;
@@ -80,60 +95,211 @@
             });
         }
 
-        async function initTest() {
+        // Initialize the test environment
+        async function initializeTest() {
             try {
-                await loadScript('articles.js');
+                await loadScript('simple-articles.js?v=3.4');
                 console.log('Articles.js loaded successfully');
+                
+                // Wait a moment for the script to fully load
+                setTimeout(() => {
+                    checkAuthStatus();
+                    checkGlobalFunctions();
+                    checkLocalStorage();
+                }, 500);
             } catch (error) {
                 console.error('Failed to load articles.js:', error);
+                document.getElementById('functions-check').innerHTML = '❌ Failed to load articles.js: ' + error.message;
             }
         }
 
-        function testAddComment() {
-            const commentText = document.getElementById('test-comment').value;
-            const resultDiv = document.getElementById('test-result');
-            
-            if (!commentText.trim()) {
-                resultDiv.innerHTML = '<div class="error">Please enter a comment.</div>';
-                return;
-            }
-            
-            // Check if currentUser exists
-            if (typeof currentUser === 'undefined' || !currentUser) {
-                resultDiv.innerHTML = '<div class="error">No user logged in. currentUser is: ' + JSON.stringify(currentUser) + '</div>';
-                return;
-            }
-            
-            // Check if addComment function exists
-            if (typeof addComment === 'undefined') {
-                resultDiv.innerHTML = '<div class="error">addComment function not found!</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="success">Comment text: "' + commentText + '"<br>Current user: ' + currentUser.name + '<br>addComment function exists: Yes</div>';
-        }
-
-        function checkAuth() {
-            const resultDiv = document.getElementById('auth-result');
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        function checkAuthStatus() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            const statusDiv = document.getElementById('auth-status');
             
             if (currentUser) {
-                resultDiv.innerHTML = '<div class="success">User logged in: ' + currentUser.name + ' (ID: ' + currentUser.id + ')</div>';
+                statusDiv.innerHTML = `
+                    ✅ <strong>Logged In</strong><br>
+                    Name: ${currentUser.name}<br>
+                    Email: ${currentUser.email}<br>
+                    ID: ${currentUser.id}<br>
+                    Role: ${currentUser.role || 'user'}
+                `;
+                statusDiv.className = 'debug-info test-success';
             } else {
-                resultDiv.innerHTML = '<div class="error">No user logged in</div>';
+                statusDiv.innerHTML = '❌ <strong>Not Logged In</strong><br>No current user found in localStorage';
+                statusDiv.className = 'debug-info test-error';
             }
         }
 
-        function checkStorage() {
-            const resultDiv = document.getElementById('storage-result');
-            const articles = JSON.parse(localStorage.getItem('articles')) || [];
-            const comments = JSON.parse(localStorage.getItem('articleComments')) || {};
+        function checkGlobalFunctions() {
+            const functionsDiv = document.getElementById('functions-check');
+            const requiredFunctions = ['addComment', 'likeComment', 'dislikeComment', 'toggleComments'];
+            let results = [];
             
-            resultDiv.innerHTML = '<div class="success">Articles in storage: ' + articles.length + '<br>Comments in storage: ' + Object.keys(comments).length + ' articles have comments</div>';
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    results.push(`✅ ${funcName} - Available`);
+                } else {
+                    results.push(`❌ ${funcName} - Missing`);
+                }
+            });
+            
+            functionsDiv.innerHTML = results.join('<br>');
+            functionsDiv.className = 'debug-info test-info';
+        }
+
+        function checkLocalStorage() {
+            const storageDiv = document.getElementById('storage-check');
+            const items = ['articles', 'currentUser', 'articleComments'];
+            let results = [];
+            
+            items.forEach(item => {
+                const data = localStorage.getItem(item);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) {
+                            results.push(`✅ ${item} - Array with ${parsed.length} items`);
+                        } else if (typeof parsed === 'object') {
+                            results.push(`✅ ${item} - Object with ${Object.keys(parsed).length} keys`);
+                        } else {
+                            results.push(`✅ ${item} - ${typeof parsed}`);
+                        }
+                    } catch (e) {
+                        results.push(`⚠️ ${item} - Invalid JSON`);
+                    }
+                } else {
+                    results.push(`❌ ${item} - Not found`);
+                }
+            });
+            
+            storageDiv.innerHTML = results.join('<br>');
+            storageDiv.className = 'debug-info test-info';
+        }
+
+        function createTestArticle() {
+            const testArticle = {
+                id: 'test-article-' + Date.now(),
+                title: 'Test Article for Comments',
+                summary: 'This is a test article to debug the comments system.',
+                url: 'https://example.com/test-article',
+                image: 'https://source.unsplash.com/800x400/?biomedical',
+                source: 'Test Source',
+                date: new Date().toLocaleDateString(),
+                userId: 'test-user',
+                likes: 0,
+                dislikes: 0
+            };
+            
+            let articles = JSON.parse(localStorage.getItem('articles') || '[]');
+            articles.push(testArticle);
+            localStorage.setItem('articles', JSON.stringify(articles));
+            
+            document.getElementById('article-test').innerHTML = `
+                ✅ Test article created!<br>
+                ID: ${testArticle.id}<br>
+                Title: ${testArticle.title}
+            `;
+            document.getElementById('article-test').className = 'debug-info test-success';
+        }
+
+        function displayTestArticle() {
+            const articles = JSON.parse(localStorage.getItem('articles') || '[]');
+            const testArticle = articles.find(a => a.id.startsWith('test-article-'));
+            
+            if (testArticle) {
+                // Create a simple display
+                const displayDiv = document.getElementById('display-test');
+                displayDiv.innerHTML = `
+                    <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px;">
+                        <h3>${testArticle.title}</h3>
+                        <p>${testArticle.summary}</p>
+                        <div style="margin: 10px 0;">
+                            <button onclick="testAddComment('${testArticle.id}')" class="btn btn-primary">Add Test Comment</button>
+                            <button onclick="toggleComments('${testArticle.id}')" class="btn btn-secondary">Toggle Comments</button>
+                        </div>
+                        <div id="comments-section-${testArticle.id}" style="display: none; border-top: 1px solid #eee; padding-top: 10px;">
+                            <h4>Comments</h4>
+                            <textarea id="comment-text-${testArticle.id}" placeholder="Write a comment..." style="width: 100%; height: 80px; margin: 10px 0;"></textarea>
+                            <button onclick="addComment('${testArticle.id}', document.getElementById('comment-text-${testArticle.id}').value)" class="btn btn-primary">Add Comment</button>
+                            <div id="comments-${testArticle.id}"></div>
+                        </div>
+                    </div>
+                `;
+                displayDiv.className = 'debug-info test-success';
+            } else {
+                document.getElementById('display-test').innerHTML = '❌ No test article found. Create one first.';
+                document.getElementById('display-test').className = 'debug-info test-error';
+            }
+        }
+
+        function testAddComment(articleId = null) {
+            const commentText = document.getElementById('test-comment-text').value;
+            if (!articleId) {
+                const articles = JSON.parse(localStorage.getItem('articles') || '[]');
+                const testArticle = articles.find(a => a.id.startsWith('test-article-'));
+                if (testArticle) {
+                    articleId = testArticle.id;
+                } else {
+                    document.getElementById('comment-test').innerHTML = '❌ No test article found. Create one first.';
+                    document.getElementById('comment-test').className = 'debug-info test-error';
+                    return;
+                }
+            }
+            
+            try {
+                if (typeof window.addComment === 'function') {
+                    window.addComment(articleId, commentText);
+                    document.getElementById('comment-test').innerHTML = `
+                        ✅ Comment function called successfully!<br>
+                        Article ID: ${articleId}<br>
+                        Comment: ${commentText}<br>
+                        Check the console for any errors.
+                    `;
+                    document.getElementById('comment-test').className = 'debug-info test-success';
+                } else {
+                    document.getElementById('comment-test').innerHTML = '❌ addComment function not available';
+                    document.getElementById('comment-test').className = 'debug-info test-error';
+                }
+            } catch (error) {
+                document.getElementById('comment-test').innerHTML = `❌ Error: ${error.message}`;
+                document.getElementById('comment-test').className = 'debug-info test-error';
+            }
+        }
+
+        function manualLogin() {
+            const email = document.getElementById('test-email').value;
+            const name = document.getElementById('test-name').value;
+            
+            if (!email || !name) {
+                document.getElementById('manual-login').innerHTML = '❌ Please enter both email and name';
+                document.getElementById('manual-login').className = 'debug-info test-error';
+                return;
+            }
+            
+            const testUser = {
+                id: 'test-user-' + Date.now(),
+                name: name,
+                email: email,
+                role: 'user'
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+            document.getElementById('manual-login').innerHTML = `
+                ✅ Manual login successful!<br>
+                Name: ${testUser.name}<br>
+                Email: ${testUser.email}<br>
+                ID: ${testUser.id}
+            `;
+            document.getElementById('manual-login').className = 'debug-info test-success';
+            
+            // Refresh auth status
+            checkAuthStatus();
         }
 
         // Initialize when page loads
-        window.addEventListener('load', initTest);
+        window.addEventListener('DOMContentLoaded', initializeTest);
     </script>
 </body>
 </html> 

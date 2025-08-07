@@ -4,176 +4,149 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Test User - BMECom</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #e0f2fe;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
             padding: 20px;
         }
-        
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 3rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
-        }
-        
-        h1 {
-            color: #1e3a8a;
-            margin-bottom: 1rem;
-        }
-        
-        .success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-            padding: 1rem;
+        .test-section {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
-            margin: 1rem 0;
+            padding: 20px;
+            margin: 20px 0;
         }
-        
-        .info {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #93c5fd;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-        
         .btn {
             background: #2563eb;
             color: white;
             padding: 12px 24px;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
             cursor: pointer;
+            margin: 10px 5px;
             text-decoration: none;
             display: inline-block;
-            margin: 0.5rem;
-            transition: all 0.3s ease;
         }
-        
         .btn:hover {
             background: #1d4ed8;
-            transform: translateY(-2px);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Create Test User Account</h1>
+        <h1>🔧 Create Test User Account</h1>
         
-        <div id="status"></div>
-        
-        <div class="info">
-            <strong>Test User Account Details:</strong><br>
-            Name: Test User<br>
-            Email: test@bmecom.com<br>
-            Password: test123<br>
-            Role: User
+        <div class="test-section">
+            <h2>Test User Account</h2>
+            <p>This will create a test user account that you can use to test the comments system.</p>
+            <p><strong>Email:</strong> test@bmecom.com</p>
+            <p><strong>Password:</strong> test123</p>
+            <button onclick="createTestUser()" class="btn">Create Test User</button>
+            <div id="status"></div>
         </div>
-        
-        <button class="btn" onclick="createTestUser()">Create Test User Account</button>
-        <button class="btn" onclick="checkExistingUsers()">Check Existing Users</button>
-        <a href="login.html" class="btn">Go to Login</a>
-        <a href="add-moderator-account.html" class="btn">Add Moderator Account</a>
-        
-        <div id="usersList" style="margin-top: 2rem; text-align: left;"></div>
+
+        <div class="test-section">
+            <h2>Quick Login</h2>
+            <p>After creating the test user, you can quickly login here:</p>
+            <button onclick="quickLogin()" class="btn">Quick Login as Test User</button>
+            <div id="login-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Navigation</h2>
+            <a href="articles.html" class="btn">Go to Articles</a>
+            <a href="login.html" class="btn">Go to Login</a>
+            <a href="test-comments.html" class="btn">Test Comments</a>
+        </div>
     </div>
 
     <script>
         function createTestUser() {
             try {
-                // Get existing users or create empty array
-                const users = JSON.parse(localStorage.getItem('users')) || [];
+                // Get existing users
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
                 
                 // Check if test user already exists
-                const existingTestUser = users.find(user => user.email === 'test@bmecom.com');
-                
-                if (existingTestUser) {
-                    showStatus('Test user account already exists!', 'info');
+                const existingUser = users.find(u => u.email === 'test@bmecom.com');
+                if (existingUser) {
+                    showStatus('Test user already exists!', 'success');
                     return;
                 }
                 
-                // Create test user account
+                // Create test user
                 const testUser = {
-                    id: 'test_' + Date.now(),
+                    id: 'test-user-' + Date.now(),
                     name: 'Test User',
                     email: 'test@bmecom.com',
                     password: 'test123',
-                    role: 'User',
-                    createdAt: new Date().toISOString()
+                    role: 'user'
                 };
                 
                 // Add to users array
                 users.push(testUser);
-                
-                // Save to localStorage
                 localStorage.setItem('users', JSON.stringify(users));
                 
                 showStatus('Test user account created successfully! You can now login with test@bmecom.com / test123', 'success');
-                
             } catch (error) {
                 showStatus('Error creating test user: ' + error.message, 'error');
-                console.error('Error:', error);
             }
         }
-        
-        function checkExistingUsers() {
+
+        function quickLogin() {
             try {
-                const users = JSON.parse(localStorage.getItem('users')) || [];
+                const testUser = {
+                    id: 'test-user-quick',
+                    name: 'Test User',
+                    email: 'test@bmecom.com',
+                    role: 'user'
+                };
                 
-                if (users.length === 0) {
-                    showStatus('No users found in the system.', 'info');
-                    return;
-                }
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                showLoginStatus('Quick login successful! You are now logged in as Test User', 'success');
                 
-                let userList = '<div class="info"><strong>Existing Users:</strong></div>';
-                users.forEach((user, index) => {
-                    const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
-                    const roleBadge = user.role === 'Moderator' ? 
-                        '<span style="background: #dc2626; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Moderator</span>' : 
-                        '<span style="background: #6b7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">User</span>';
-                    
-                    userList += `
-                        <div style="margin: 10px 0; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background: white;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <strong style="font-size: 1.1rem;">${user.name}</strong>
-                                ${roleBadge}
-                            </div>
-                            <div style="color: #6b7280; margin-bottom: 5px;">${user.email}</div>
-                            <div style="color: #9ca3af; font-size: 0.875rem;">Created: ${createdDate}</div>
-                        </div>
-                    `;
-                });
-                
-                document.getElementById('usersList').innerHTML = userList;
-                
+                // Redirect to articles page after a short delay
+                setTimeout(() => {
+                    window.location.href = 'articles.html';
+                }, 1500);
             } catch (error) {
-                showStatus('Error checking users: ' + error.message, 'error');
-                console.error('Error:', error);
+                showLoginStatus('Error during quick login: ' + error.message, 'error');
             }
         }
-        
+
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
         }
-        
-        // Auto-check for existing users on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            checkExistingUsers();
+
+        function showLoginStatus(message, type) {
+            const statusDiv = document.getElementById('login-status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        // Check if test user already exists on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const existingUser = users.find(u => u.email === 'test@bmecom.com');
+            if (existingUser) {
+                showStatus('Test user already exists! You can use test@bmecom.com / test123 to login', 'success');
+            }
         });
     </script>
 </body>
