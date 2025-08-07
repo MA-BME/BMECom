@@ -91,16 +91,29 @@ function checkAuthStatus() {
     const userInfoDiscussion = document.getElementById('userInfoDiscussion');
     const userNameDiscussion = document.getElementById('userNameDiscussion');
 
+    console.log('checkAuthStatus called, currentUser:', currentUser ? currentUser.name : 'none');
+
     if (currentUser) {
         // User is logged in
         if (conversationBubble) {
+            console.log('User logged in, showing bubble');
             conversationBubble.style.display = 'flex';
+            conversationBubble.style.visibility = 'visible';
+            conversationBubble.style.opacity = '1';
+            conversationBubble.style.zIndex = '1000';
+            
             // Ensure bubble starts in collapsed state
             conversationBubble.classList.remove('expanded');
             const form = document.getElementById('newConversationFormBubble');
             const plusSign = document.getElementById('plusSign');
-            if (form) form.style.display = 'none';
-            if (plusSign) plusSign.style.display = 'block';
+            if (form) {
+                form.style.display = 'none';
+                form.style.visibility = 'hidden';
+            }
+            if (plusSign) {
+                plusSign.style.display = 'block';
+                plusSign.style.visibility = 'visible';
+            }
         }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
@@ -108,7 +121,11 @@ function checkAuthStatus() {
         }
     } else {
         // User is not logged in
-        if (conversationBubble) conversationBubble.style.display = 'none';
+        console.log('User not logged in, hiding bubble');
+        if (conversationBubble) {
+            conversationBubble.style.display = 'none';
+            conversationBubble.style.visibility = 'hidden';
+        }
         if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
     }
 }
@@ -207,33 +224,48 @@ function handleCreateConversationFromBubble() {
 
 // Handle start conversation click
 function handleStartConversationClick() {
+    console.log('handleStartConversationClick called');
+    
     const currentUser = getCurrentUser();
     if (!currentUser) {
+        console.log('No user logged in, showing auth message');
         showAuthRequiredMessage('create_conversation');
         return;
     }
     
+    console.log('User logged in:', currentUser.name);
+    
     // Show and expand the conversation bubble
     const conversationBubble = document.getElementById('conversationBubble');
+    console.log('Bubble element found:', !!conversationBubble);
+    
     if (conversationBubble) {
-        // Make sure bubble is visible
+        // Force bubble to be visible
         conversationBubble.style.display = 'flex';
         conversationBubble.style.visibility = 'visible';
         conversationBubble.style.opacity = '1';
+        conversationBubble.style.zIndex = '1000';
         
         // Ensure it's in expanded state
         conversationBubble.classList.add('expanded');
         const form = document.getElementById('newConversationFormBubble');
         const plusSign = document.getElementById('plusSign');
+        
+        console.log('Form element found:', !!form);
+        console.log('Plus sign element found:', !!plusSign);
+        
         if (form) {
             form.style.display = 'flex';
             form.style.visibility = 'visible';
+            form.style.opacity = '1';
         }
         if (plusSign) {
             plusSign.style.display = 'none';
         }
         
         console.log('Bubble should now be visible and expanded');
+        console.log('Bubble display:', conversationBubble.style.display);
+        console.log('Bubble expanded class:', conversationBubble.classList.contains('expanded'));
     } else {
         console.error('Conversation bubble element not found');
     }
@@ -795,6 +827,42 @@ function showMessage(message, type = 'info') {
 }
 
 
+
+// Test function for debugging bubble
+function testBubble() {
+    console.log('=== BUBBLE DEBUG TEST ===');
+    
+    const bubble = document.getElementById('conversationBubble');
+    const form = document.getElementById('newConversationFormBubble');
+    const plusSign = document.getElementById('plusSign');
+    
+    console.log('Bubble element:', bubble);
+    console.log('Form element:', form);
+    console.log('Plus sign element:', plusSign);
+    
+    if (bubble) {
+        console.log('Bubble display:', bubble.style.display);
+        console.log('Bubble visibility:', bubble.style.visibility);
+        console.log('Bubble opacity:', bubble.style.opacity);
+        console.log('Bubble expanded:', bubble.classList.contains('expanded'));
+        console.log('Bubble position:', bubble.style.position);
+        console.log('Bubble z-index:', bubble.style.zIndex);
+        
+        // Force show the bubble
+        bubble.style.display = 'flex';
+        bubble.style.visibility = 'visible';
+        bubble.style.opacity = '1';
+        bubble.style.zIndex = '1000';
+        bubble.style.position = 'fixed';
+        bubble.style.bottom = '30px';
+        bubble.style.right = '30px';
+        
+        console.log('Bubble should now be visible');
+    }
+    
+    const currentUser = getCurrentUser();
+    console.log('Current user:', currentUser);
+}
 
 // Add CSS animations
 const style = document.createElement('style');
