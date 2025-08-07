@@ -79,60 +79,51 @@ function setupEventListeners() {
     }
 }
 
-// Check authentication status
-function checkAuthStatus() {
-    const loginLink = document.getElementById('loginLink');
-    const logoutLink = document.getElementById('logoutLink');
-    const moderatorLink = document.getElementById('moderatorLink');
-    const loginRequiredDiscussion = document.getElementById('loginRequiredDiscussion');
-    const newConversationSection = document.getElementById('newConversationSection');
-    const userInfoDiscussion = document.getElementById('userInfoDiscussion');
-    const userNameDiscussion = document.getElementById('userNameDiscussion');
-
-    if (currentUser) {
-        // User is logged in
-        if (loginLink) loginLink.style.display = 'none';
-        if (logoutLink) logoutLink.style.display = 'inline';
-        if (moderatorLink && currentUser.role === 'Moderator') {
-            moderatorLink.style.display = 'inline';
-        }
-        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'none';
-        if (newConversationSection) newConversationSection.style.display = 'block';
-        if (userInfoDiscussion) {
-            userInfoDiscussion.style.display = 'block';
-            if (userNameDiscussion) userNameDiscussion.textContent = currentUser.username;
-        }
+// Toggle conversation bubble
+function toggleConversationBubble() {
+    const bubble = document.getElementById('conversationBubble');
+    const form = document.getElementById('newConversationFormBubble');
+    const plusSign = document.getElementById('plusSign');
+    
+    if (bubble.classList.contains('expanded')) {
+        // Collapse
+        bubble.classList.remove('expanded');
+        form.style.display = 'none';
+        plusSign.style.display = 'block';
     } else {
-        // User is not logged in
-        if (loginLink) loginLink.style.display = 'inline';
-        if (logoutLink) logoutLink.style.display = 'none';
-        if (moderatorLink) moderatorLink.style.display = 'none';
-        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'block';
-        if (newConversationSection) newConversationSection.style.display = 'none';
-        if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
+        // Expand
+        bubble.classList.add('expanded');
+        form.style.display = 'flex';
+        plusSign.style.display = 'none';
     }
 }
 
-// Handle creating a new conversation
-function handleCreateConversation(e) {
-    e.preventDefault();
-
+// Handle creating conversation from bubble
+function handleCreateConversationFromBubble() {
     if (!currentUser) {
         showMessage('Please login to create a conversation', 'error');
         return;
     }
 
-    const selectedTopics = Array.from(document.querySelectorAll('input[name="topics"]:checked'))
+    const selectedTopics = Array.from(document.querySelectorAll('#conversationBubble input[name="topics"]:checked'))
         .map(checkbox => checkbox.value);
 
     if (selectedTopics.length === 0) {
         showMessage('Please select at least one topic', 'error');
+        // Add red animation to the bubble
+        const bubble = document.getElementById('conversationBubble');
+        bubble.classList.add('invalid');
+        setTimeout(() => bubble.classList.remove('invalid'), 1000);
         return;
     }
 
-    const conversationName = document.getElementById('conversationName').value.trim();
+    const conversationName = document.getElementById('conversationNameBubble').value.trim();
     if (!conversationName) {
         showMessage('Please enter a conversation name', 'error');
+        // Add red animation to the bubble
+        const bubble = document.getElementById('conversationBubble');
+        bubble.classList.add('invalid');
+        setTimeout(() => bubble.classList.remove('invalid'), 1000);
         return;
     }
 
@@ -152,11 +143,113 @@ function handleCreateConversation(e) {
     saveData();
     displayConversations();
 
-    // Reset form
+    // Reset form and collapse the bubble
+    document.getElementById('conversationNameBubble').value = '';
+    document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('#conversationBubble .topic-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Collapse the conversation bubble back to + sign
+    toggleConversationBubble();
+
+    showMessage('Conversation created successfully!', 'success');
+}
+
+// Check authentication status
+function checkAuthStatus() {
+    const loginLink = document.getElementById('loginLink');
+    const logoutLink = document.getElementById('logoutLink');
+    const moderatorLink = document.getElementById('moderatorLink');
+    const loginRequiredDiscussion = document.getElementById('loginRequiredDiscussion');
+    const newConversationSection = document.getElementById('newConversationSection');
+    const conversationBubble = document.getElementById('conversationBubble');
+    const userInfoDiscussion = document.getElementById('userInfoDiscussion');
+    const userNameDiscussion = document.getElementById('userNameDiscussion');
+
+    if (currentUser) {
+        // User is logged in
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'inline';
+        if (moderatorLink && currentUser.role === 'Moderator') {
+            moderatorLink.style.display = 'inline';
+        }
+        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'none';
+        if (newConversationSection) newConversationSection.style.display = 'none';
+        if (conversationBubble) conversationBubble.style.display = 'flex';
+        if (userInfoDiscussion) {
+            userInfoDiscussion.style.display = 'block';
+            if (userNameDiscussion) userNameDiscussion.textContent = currentUser.username;
+        }
+    } else {
+        // User is not logged in
+        if (loginLink) loginLink.style.display = 'inline';
+        if (logoutLink) logoutLink.style.display = 'none';
+        if (moderatorLink) moderatorLink.style.display = 'none';
+        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'block';
+        if (newConversationSection) newConversationSection.style.display = 'none';
+        if (conversationBubble) conversationBubble.style.display = 'none';
+        if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
+    }
+}
+
+// Handle creating a new conversation
+function handleCreateConversation(e) {
+    e.preventDefault();
+
+    if (!currentUser) {
+        showMessage('Please login to create a conversation', 'error');
+        return;
+    }
+
+    const selectedTopics = Array.from(document.querySelectorAll('input[name="topics"]:checked'))
+        .map(checkbox => checkbox.value);
+
+    if (selectedTopics.length === 0) {
+        showMessage('Please select at least one topic', 'error');
+        // Add red animation to the form
+        const form = document.getElementById('newConversationForm');
+        form.classList.add('invalid');
+        setTimeout(() => form.classList.remove('invalid'), 1000);
+        return;
+    }
+
+    const conversationName = document.getElementById('conversationName').value.trim();
+    if (!conversationName) {
+        showMessage('Please enter a conversation name', 'error');
+        // Add red animation to the form
+        const form = document.getElementById('newConversationForm');
+        form.classList.add('invalid');
+        setTimeout(() => form.classList.remove('invalid'), 1000);
+        return;
+    }
+
+    // Create new conversation
+    const newConversation = {
+        id: Date.now().toString(),
+        name: conversationName,
+        topics: selectedTopics,
+        author: currentUser.username,
+        timestamp: new Date().toISOString(),
+        messageCount: 0
+    };
+
+    conversations.unshift(newConversation);
+    conversationMessages[newConversation.id] = [];
+
+    saveData();
+    displayConversations();
+
+    // Reset form and collapse the bubble
     document.getElementById('newConversationForm').reset();
     document.querySelectorAll('.topic-option').forEach(option => {
         option.classList.remove('selected');
     });
+    
+    // Collapse the conversation bubble back to + sign
+    toggleConversationBubble();
 
     showMessage('Conversation created successfully!', 'success');
 }
@@ -183,6 +276,24 @@ function displayConversations() {
 
         return `
             <div class="conversation-card" onclick="toggleConversationDetail('${conversation.id}')">
+                <div class="conversation-header">
+                    <div>
+                        <div class="conversation-name">${escapeHtml(conversation.name)}</div>
+                        <div class="conversation-topics">${topicsHTML}</div>
+                    </div>
+                </div>
+                <div class="conversation-meta">
+                    <div class="conversation-stats">
+                        <span>👤 ${escapeHtml(conversation.author)}</span>
+                        <span>💬 ${messageCount} messages</span>
+                        <span>📅 ${getTimeAgo(conversation.timestamp)}</span>
+                    </div>
+                </div>
+                <div class="conversation-detail" id="conversation-${conversation.id}">
+                    ${createConversationDetailHTML(conversation)}
+                </div>
+            </div>
+        `;
                 <div class="conversation-header">
                     <div>
                         <div class="conversation-name">${escapeHtml(conversation.name)}</div>
@@ -314,6 +425,7 @@ function toggleConversationDetail(conversationId) {
 // Handle sending a message
 function handleSendMessage(e, conversationId) {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
 
     if (!currentUser) {
         showMessage('Please login to send messages', 'error');

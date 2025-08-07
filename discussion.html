@@ -37,6 +37,60 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             margin-bottom: 3rem;
+            transition: all 0.3s ease;
+        }
+        
+        .new-conversation-section.invalid {
+            animation: shake 0.5s ease-in-out;
+            border: 2px solid #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .conversation-bubble {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .conversation-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+        
+        .conversation-bubble.expanded {
+            width: 400px;
+            height: auto;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        
+        .conversation-bubble.invalid {
+            animation: shake 0.5s ease-in-out;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+        
+        .plus-sign {
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
         }
         
         .new-conversation-form {
@@ -498,6 +552,38 @@
                             Create Conversation
                         </button>
                     </form>
+                </div>
+
+                <!-- Floating Conversation Bubble (for logged in users) -->
+                <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
+                    <div id="plusSign" class="plus-sign">+</div>
+                    <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
+                        <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
+                        <div class="form-group">
+                            <label style="color: white;">Select Topics:</label>
+                            <div class="topic-selection">
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="A">
+                                    <span>Topic A</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="B">
+                                    <span>Topic B</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="C">
+                                    <span>Topic C</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="conversationNameBubble" style="color: white;">Name:</label>
+                            <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
+                        </div>
+                        <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
+                            Create
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Conversations Section -->
