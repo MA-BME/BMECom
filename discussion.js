@@ -738,8 +738,8 @@ function testBar() {
 }
 
 // Add CSS animations
-const style = document.createElement('style');
-style.textContent = `
+const discussionStyle = document.createElement('style');
+discussionStyle.textContent = `
     @keyframes slideIn {
         from {
             transform: translateX(100%);
@@ -762,4 +762,4 @@ style.textContent = `
         }
     }
 `;
-document.head.appendChild(style);
+document.head.appendChild(discussionStyle);
