@@ -168,6 +168,8 @@ function handleCreateConversation(e) {
     
     // Add to conversations array
     conversations.unshift(conversation);
+    console.log('Conversation added:', conversation);
+    console.log('Total conversations:', conversations.length);
     
     // Initialize empty messages array for this conversation
     conversationMessages[conversation.id] = [];
@@ -191,6 +193,7 @@ function handleCreateConversation(e) {
     
     // Refresh display
     displayConversations();
+    console.log('Display refreshed, conversations container should show:', conversations.length, 'conversations');
 }
 
 // Show validation error
@@ -208,6 +211,8 @@ function showValidationError(message) {
 // Display conversations
 function displayConversations() {
     const container = document.getElementById('conversationsContainer');
+    console.log('displayConversations called, conversations:', conversations.length);
+    console.log('Container element:', container);
 
     if (conversations.length === 0) {
         container.innerHTML = `
@@ -216,6 +221,7 @@ function displayConversations() {
                 <p>Be the first to start a conversation!</p>
             </div>
         `;
+        console.log('No conversations to display');
         return;
     }
 
@@ -248,6 +254,8 @@ function displayConversations() {
     }).join('');
 
     container.innerHTML = conversationsHTML;
+    console.log('Conversations HTML set, length:', conversationsHTML.length);
+    console.log('Container innerHTML length:', container.innerHTML.length);
 }
 
 // Create conversation detail HTML
