@@ -95,7 +95,12 @@ function checkAuthStatus() {
         // User is logged in
         if (conversationBubble) {
             conversationBubble.style.display = 'flex';
-            // Keep bubble in current state (don't reset to collapsed)
+            // Ensure bubble starts in collapsed state
+            conversationBubble.classList.remove('expanded');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            if (form) form.style.display = 'none';
+            if (plusSign) plusSign.style.display = 'block';
         }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
@@ -114,16 +119,23 @@ function toggleConversationBubble() {
     const form = document.getElementById('newConversationFormBubble');
     const plusSign = document.getElementById('plusSign');
     
+    if (!bubble || !form || !plusSign) {
+        console.error('Bubble elements not found');
+        return;
+    }
+    
     if (bubble.classList.contains('expanded')) {
         // Collapse
         bubble.classList.remove('expanded');
         form.style.display = 'none';
         plusSign.style.display = 'block';
+        console.log('Bubble collapsed');
     } else {
         // Expand
         bubble.classList.add('expanded');
         form.style.display = 'flex';
         plusSign.style.display = 'none';
+        console.log('Bubble expanded');
     }
 }
 
@@ -204,13 +216,26 @@ function handleStartConversationClick() {
     // Show and expand the conversation bubble
     const conversationBubble = document.getElementById('conversationBubble');
     if (conversationBubble) {
+        // Make sure bubble is visible
         conversationBubble.style.display = 'flex';
+        conversationBubble.style.visibility = 'visible';
+        conversationBubble.style.opacity = '1';
+        
         // Ensure it's in expanded state
         conversationBubble.classList.add('expanded');
         const form = document.getElementById('newConversationFormBubble');
         const plusSign = document.getElementById('plusSign');
-        if (form) form.style.display = 'flex';
-        if (plusSign) plusSign.style.display = 'none';
+        if (form) {
+            form.style.display = 'flex';
+            form.style.visibility = 'visible';
+        }
+        if (plusSign) {
+            plusSign.style.display = 'none';
+        }
+        
+        console.log('Bubble should now be visible and expanded');
+    } else {
+        console.error('Conversation bubble element not found');
     }
 }
 
