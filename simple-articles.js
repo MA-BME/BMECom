@@ -4,7 +4,6 @@ console.log('🔧 Loading Super Simple BMECom Articles with Built-in AI...');
 
 // Global variables
 let articles = [];
-let currentUser = null;
 let userLikes = new Set();
 let userDislikes = new Set();
 
@@ -583,13 +582,11 @@ function loadData() {
     try {
         articles = JSON.parse(localStorage.getItem('articles') || '[]');
         
-        // Fix currentUser loading
-        const userData = localStorage.getItem('currentUser');
-        if (userData && userData !== 'null' && userData !== 'undefined') {
-            currentUser = JSON.parse(userData);
+        // Load current user from global auth system
+        const currentUser = getCurrentUser();
+        if (currentUser) {
             console.log('👤 Current user loaded:', currentUser.name);
         } else {
-            currentUser = null;
             console.log('❌ No current user found');
         }
         
@@ -628,6 +625,7 @@ function loadData() {
 // Setup UI based on login status
 function setupUI() {
     console.log('🎨 Setting up UI...');
+    const currentUser = getCurrentUser();
     console.log('🔐 Current user for UI:', currentUser);
     
     const userInfo = document.getElementById('userInfo');
@@ -731,6 +729,7 @@ function setupEventListeners() {
 // Handle URL submission
 async function handleUrlSubmission() {
     console.log('📝 Handling URL submission...');
+    const currentUser = getCurrentUser();
     console.log('🔐 Current user:', currentUser);
     
     const urlInput = document.getElementById('url1');
@@ -783,6 +782,7 @@ async function handleUrlSubmission() {
 async function createArticleDataWithAI(url) {
     console.log('🤖 Creating article data with Built-in AI for URL:', url);
     
+    const currentUser = getCurrentUser();
     const domain = new URL(url).hostname;
     
     // Try to get AI-generated title and abstract

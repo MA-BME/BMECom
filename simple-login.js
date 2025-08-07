@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
         console.log('✅ User already logged in, redirecting...');
-        window.location.href = 'articles.html';
+        window.location.href = 'index.html';
         return;
     }
     
@@ -126,7 +126,7 @@ function handleLogin() {
         showMessage('Login successful! Redirecting...', 'success');
         
         setTimeout(function() {
-            window.location.href = 'articles.html';
+            window.location.href = 'index.html';
         }, 1000);
     } else {
         console.log('❌ Login failed - invalid credentials');
@@ -195,7 +195,7 @@ function handleSignup() {
     showMessage('Registration successful! Redirecting...', 'success');
     
     setTimeout(function() {
-        window.location.href = 'articles.html';
+        window.location.href = 'index.html';
     }, 1000);
 }
 

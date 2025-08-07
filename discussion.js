@@ -1,5 +1,4 @@
 // Discussion Forum JavaScript
-let currentUser = null;
 let conversations = [];
 let conversationMessages = {};
 
@@ -14,12 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load data from localStorage
 function loadData() {
     try {
-        // Load current user
-        const userData = localStorage.getItem('currentUser');
-        if (userData) {
-            currentUser = JSON.parse(userData);
-        }
-
         // Load conversations
         const conversationsData = localStorage.getItem('conversations');
         if (conversationsData) {
@@ -100,6 +93,7 @@ function toggleConversationBubble() {
 
 // Handle creating conversation from bubble
 function handleCreateConversationFromBubble() {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to create a conversation', 'error');
         return;
@@ -132,7 +126,7 @@ function handleCreateConversationFromBubble() {
         id: Date.now().toString(),
         name: conversationName,
         topics: selectedTopics,
-        author: currentUser.username,
+        author: currentUser.name,
         timestamp: new Date().toISOString(),
         messageCount: 0
     };
@@ -160,9 +154,7 @@ function handleCreateConversationFromBubble() {
 
 // Check authentication status
 function checkAuthStatus() {
-    const loginLink = document.getElementById('loginLink');
-    const logoutLink = document.getElementById('logoutLink');
-    const moderatorLink = document.getElementById('moderatorLink');
+    const currentUser = getCurrentUser();
     const loginRequiredDiscussion = document.getElementById('loginRequiredDiscussion');
     const newConversationSection = document.getElementById('newConversationSection');
     const conversationBubble = document.getElementById('conversationBubble');
@@ -171,23 +163,15 @@ function checkAuthStatus() {
 
     if (currentUser) {
         // User is logged in
-        if (loginLink) loginLink.style.display = 'none';
-        if (logoutLink) logoutLink.style.display = 'inline';
-        if (moderatorLink && currentUser.role === 'Moderator') {
-            moderatorLink.style.display = 'inline';
-        }
         if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'none';
         if (newConversationSection) newConversationSection.style.display = 'none';
         if (conversationBubble) conversationBubble.style.display = 'flex';
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
-            if (userNameDiscussion) userNameDiscussion.textContent = currentUser.username;
+            if (userNameDiscussion) userNameDiscussion.textContent = currentUser.name;
         }
     } else {
         // User is not logged in
-        if (loginLink) loginLink.style.display = 'inline';
-        if (logoutLink) logoutLink.style.display = 'none';
-        if (moderatorLink) moderatorLink.style.display = 'none';
         if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'block';
         if (newConversationSection) newConversationSection.style.display = 'none';
         if (conversationBubble) conversationBubble.style.display = 'none';
@@ -199,6 +183,7 @@ function checkAuthStatus() {
 function handleCreateConversation(e) {
     e.preventDefault();
 
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to create a conversation', 'error');
         return;
@@ -231,7 +216,7 @@ function handleCreateConversation(e) {
         id: Date.now().toString(),
         name: conversationName,
         topics: selectedTopics,
-        author: currentUser.username,
+        author: currentUser.name,
         timestamp: new Date().toISOString(),
         messageCount: 0
     };
@@ -320,6 +305,7 @@ function displayConversations() {
 // Create conversation detail HTML
 function createConversationDetailHTML(conversation) {
     const messages = conversationMessages[conversation.id] || [];
+    const currentUser = getCurrentUser();
     
     return `
         <div class="messages-container">
@@ -344,6 +330,7 @@ function createConversationDetailHTML(conversation) {
 // Create message HTML
 function createMessageHTML(message, conversationId) {
     const replies = message.replies || [];
+    const currentUser = getCurrentUser();
     const repliesHTML = replies.length > 0 ? `
         <div class="replies-container">
             ${replies.map(reply => createReplyHTML(reply, conversationId, message.id)).join('')}
@@ -358,11 +345,11 @@ function createMessageHTML(message, conversationId) {
             </div>
             <div class="message-content">${escapeHtml(message.content)}</div>
             <div class="message-actions">
-                <button class="message-btn ${message.likes?.includes(currentUser?.username) ? 'liked' : ''}" 
+                <button class="message-btn ${message.likes?.includes(currentUser?.name) ? 'liked' : ''}" 
                         onclick="handleMessageLike('${conversationId}', '${message.id}')">
                     👍 ${message.likes?.length || 0}
                 </button>
-                <button class="message-btn ${message.dislikes?.includes(currentUser?.username) ? 'disliked' : ''}" 
+                <button class="message-btn ${message.dislikes?.includes(currentUser?.name) ? 'disliked' : ''}" 
                         onclick="handleMessageDislike('${conversationId}', '${message.id}')">
                     👎 ${message.dislikes?.length || 0}
                 </button>
@@ -385,6 +372,7 @@ function createMessageHTML(message, conversationId) {
 
 // Create reply HTML
 function createReplyHTML(reply, conversationId, parentMessageId) {
+    const currentUser = getCurrentUser();
     return `
         <div class="reply" id="reply-${reply.id}">
             <div class="message-header">
@@ -393,11 +381,11 @@ function createReplyHTML(reply, conversationId, parentMessageId) {
             </div>
             <div class="message-content">${escapeHtml(reply.content)}</div>
             <div class="message-actions">
-                <button class="message-btn ${reply.likes?.includes(currentUser?.username) ? 'liked' : ''}" 
+                <button class="message-btn ${reply.likes?.includes(currentUser?.name) ? 'liked' : ''}" 
                         onclick="handleReplyLike('${conversationId}', '${parentMessageId}', '${reply.id}')">
                     👍 ${reply.likes?.length || 0}
                 </button>
-                <button class="message-btn ${reply.dislikes?.includes(currentUser?.username) ? 'disliked' : ''}" 
+                <button class="message-btn ${reply.dislikes?.includes(currentUser?.name) ? 'disliked' : ''}" 
                         onclick="handleReplyDislike('${conversationId}', '${parentMessageId}', '${reply.id}')">
                     👎 ${reply.dislikes?.length || 0}
                 </button>
@@ -427,6 +415,7 @@ function handleSendMessage(e, conversationId) {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
 
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to send messages', 'error');
         return;
@@ -447,7 +436,7 @@ function handleSendMessage(e, conversationId) {
     const message = {
         id: Date.now().toString(),
         content: filteredContent,
-        author: currentUser.username,
+        author: currentUser.name,
         timestamp: new Date().toISOString(),
         likes: [],
         dislikes: [],
@@ -478,6 +467,7 @@ function handleSendMessage(e, conversationId) {
 function handleSendReply(e, conversationId, parentMessageId) {
     e.preventDefault();
 
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to send replies', 'error');
         return;
@@ -498,7 +488,7 @@ function handleSendReply(e, conversationId, parentMessageId) {
     const reply = {
         id: Date.now().toString(),
         content: filteredContent,
-        author: currentUser.username,
+        author: currentUser.name,
         timestamp: new Date().toISOString(),
         likes: [],
         dislikes: []
@@ -526,6 +516,7 @@ function handleSendReply(e, conversationId, parentMessageId) {
 
 // Handle message like
 function handleMessageLike(conversationId, messageId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to like messages', 'error');
         return;
@@ -538,12 +529,12 @@ function handleMessageLike(conversationId, messageId) {
         if (!message.likes) message.likes = [];
         if (!message.dislikes) message.dislikes = [];
 
-        const userIndex = message.likes.indexOf(currentUser.username);
-        const dislikeIndex = message.dislikes.indexOf(currentUser.username);
+        const userIndex = message.likes.indexOf(currentUser.name);
+        const dislikeIndex = message.dislikes.indexOf(currentUser.name);
 
         if (userIndex === -1) {
             // Add like
-            message.likes.push(currentUser.username);
+            message.likes.push(currentUser.name);
             if (dislikeIndex !== -1) {
                 message.dislikes.splice(dislikeIndex, 1);
             }
@@ -559,6 +550,7 @@ function handleMessageLike(conversationId, messageId) {
 
 // Handle message dislike
 function handleMessageDislike(conversationId, messageId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to dislike messages', 'error');
         return;
@@ -571,12 +563,12 @@ function handleMessageDislike(conversationId, messageId) {
         if (!message.likes) message.likes = [];
         if (!message.dislikes) message.dislikes = [];
 
-        const userIndex = message.dislikes.indexOf(currentUser.username);
-        const likeIndex = message.likes.indexOf(currentUser.username);
+        const userIndex = message.dislikes.indexOf(currentUser.name);
+        const likeIndex = message.likes.indexOf(currentUser.name);
 
         if (userIndex === -1) {
             // Add dislike
-            message.dislikes.push(currentUser.username);
+            message.dislikes.push(currentUser.name);
             if (likeIndex !== -1) {
                 message.likes.splice(likeIndex, 1);
             }
@@ -592,6 +584,7 @@ function handleMessageDislike(conversationId, messageId) {
 
 // Handle reply like
 function handleReplyLike(conversationId, parentMessageId, replyId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to like replies', 'error');
         return;
@@ -605,11 +598,11 @@ function handleReplyLike(conversationId, parentMessageId, replyId) {
         if (!reply.likes) reply.likes = [];
         if (!reply.dislikes) reply.dislikes = [];
 
-        const userIndex = reply.likes.indexOf(currentUser.username);
-        const dislikeIndex = reply.dislikes.indexOf(currentUser.username);
+        const userIndex = reply.likes.indexOf(currentUser.name);
+        const dislikeIndex = reply.dislikes.indexOf(currentUser.name);
 
         if (userIndex === -1) {
-            reply.likes.push(currentUser.username);
+            reply.likes.push(currentUser.name);
             if (dislikeIndex !== -1) {
                 reply.dislikes.splice(dislikeIndex, 1);
             }
@@ -624,6 +617,7 @@ function handleReplyLike(conversationId, parentMessageId, replyId) {
 
 // Handle reply dislike
 function handleReplyDislike(conversationId, parentMessageId, replyId) {
+    const currentUser = getCurrentUser();
     if (!currentUser) {
         showMessage('Please login to dislike replies', 'error');
         return;
@@ -637,11 +631,11 @@ function handleReplyDislike(conversationId, parentMessageId, replyId) {
         if (!reply.likes) reply.likes = [];
         if (!reply.dislikes) reply.dislikes = [];
 
-        const userIndex = reply.dislikes.indexOf(currentUser.username);
-        const likeIndex = reply.likes.indexOf(currentUser.username);
+        const userIndex = reply.dislikes.indexOf(currentUser.name);
+        const likeIndex = reply.likes.indexOf(currentUser.name);
 
         if (userIndex === -1) {
-            reply.dislikes.push(currentUser.username);
+            reply.dislikes.push(currentUser.name);
             if (likeIndex !== -1) {
                 reply.likes.splice(likeIndex, 1);
             }
@@ -753,13 +747,7 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    checkAuthStatus();
-    displayConversations();
-    showMessage('Logged out successfully', 'success');
-}
+
 
 // Add CSS animations
 const style = document.createElement('style');
