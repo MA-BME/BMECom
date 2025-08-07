@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMECom - Discussion Forum</title>
+    <link rel="stylesheet" href="styles.css?v=1.9">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .discussion-container {
+            padding: 120px 0 80px;
+            background: #e0f2fe;
+            min-height: 100vh;
+        }
+        
+        .discussion-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .discussion-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .discussion-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .new-conversation-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 3rem;
+        }
+        
+        .new-conversation-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .topic-selection {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .topic-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .topic-option:hover {
+            border-color: #2563eb;
+        }
+        
+        .topic-option.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        
+        .topic-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+        }
+        
+        .conversation-name-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .conversation-name-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .create-conversation-btn {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+        
+        .create-conversation-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .create-conversation-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .conversations-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .conversations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .conversations-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .conversations-grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .conversation-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .conversation-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+        }
+        
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .conversation-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .conversation-topics {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .topic-badge {
+            padding: 0.25rem 0.75rem;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .conversation-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .conversation-stats {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .conversation-detail {
+            display: none;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .conversation-detail.active {
+            display: block;
+        }
+        
+        .messages-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .message {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .message-author {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .message-time {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .message-content {
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        
+        .message-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .message-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+        
+        .message-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .message-btn.liked {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        
+        .message-btn.disliked {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+        
+        .reply-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .reply-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        .new-message-form {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .send-message-btn {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .send-message-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .send-message-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .replies-container {
+            margin-left: 2rem;
+            margin-top: 1rem;
+            padding-left: 1rem;
+            border-left: 2px solid #e5e7eb;
+        }
+        
+        .reply {
+            background: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+        
+        .login-required-discussion {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .login-required-discussion h3 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .login-required-discussion p {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        
+        .login-btn-discussion {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .login-btn-discussion:hover {
+            background: #1d4ed8;
+        }
+        
+        .user-info-discussion {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #eff6ff;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .user-info-discussion p {
+            color: #2563eb;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .no-conversations {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        
+        .no-conversations h3 {
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <h2>BMECom</h2>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="articles.html" class="nav-link">Articles</a></li>
+                    <li><a href="discussion.html" class="nav-link active">Discussion</a></li>
+                    <li><a href="index.html#about" class="nav-link">About</a></li>
+                    <li><a href="index.html#services" class="nav-link">Services</a></li>
+                    <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+                    <li><a href="login.html" class="nav-link" id="loginLink">Login</a></li>
+                    <li><a href="#" class="nav-link" id="logoutLink" style="display: none;">Logout</a></li>
+                    <li><a href="moderator-access.html" class="nav-link" id="moderatorLink" style="display: none;">Moderator Access</a></li>
+                </ul>
+                <div class="nav-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="discussion-container">
+            <div class="container">
+                <div class="discussion-header">
+                    <h1 class="discussion-title">Discussion Forum</h1>
+                    <p class="discussion-subtitle">Join conversations about biomedical engineering topics</p>
+                </div>
+
+                <!-- User Info Section -->
+                <div id="userInfoDiscussion" class="user-info-discussion" style="display: none;">
+                    <p>Welcome, <span id="userNameDiscussion"></span>! You can create conversations and participate in discussions.</p>
+                </div>
+
+                <!-- Login Required Section -->
+                <div id="loginRequiredDiscussion" class="login-required-discussion">
+                    <h3>Join the Discussion</h3>
+                    <p>Login to create new conversations and participate in discussions about biomedical engineering topics.</p>
+                    <a href="login.html" class="login-btn-discussion">Login or Sign Up</a>
+                </div>
+
+                <!-- New Conversation Section (for logged in users) -->
+                <div id="newConversationSection" class="new-conversation-section" style="display: none;">
+                    <h3 style="margin-bottom: 2rem; color: #1f2937;">Start a New Conversation</h3>
+                    <form class="new-conversation-form" id="newConversationForm">
+                        <div class="form-group">
+                            <label>Select Topics (Choose one or more):</label>
+                            <div class="topic-selection">
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="A">
+                                    <span>Topic A</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="B">
+                                    <span>Topic B</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="C">
+                                    <span>Topic C</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="conversationName">Conversation Name:</label>
+                            <input type="text" id="conversationName" class="conversation-name-input" placeholder="Enter conversation name" required>
+                        </div>
+                        <button type="submit" class="create-conversation-btn" id="createConversationBtn">
+                            Create Conversation
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Conversations Section -->
+                <div class="conversations-section">
+                    <div class="conversations-header">
+                        <h2 class="conversations-title">Active Conversations</h2>
+                    </div>
+                    <div id="conversationsContainer">
+                        <div class="no-conversations">
+                            <h3>No conversations yet</h3>
+                            <p>Be the first to start a conversation!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="messageContainer"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>BMECom</h3>
+                    <p>Creating amazing digital experiences since 2024.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="articles.html">Articles</a></li>
+                        <li><a href="discussion.html">Discussion</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#services">Services</a></li>
+                        <li><a href="index.html#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <div class="social-links">
+                        <a href="#" class="social-link">Twitter</a>
+                        <a href="#" class="social-link">LinkedIn</a>
+                        <a href="#" class="social-link">GitHub</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 BMECom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="discussion.js?v=1.0"></script>
+</body>
+</html>
