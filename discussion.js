@@ -272,7 +272,7 @@ function createConversationDetailHTML(conversation) {
         </div>
         ${currentUser ? `
             <form class="new-message-form" onsubmit="handleSendMessage(event, '${conversation.id}')">
-                <textarea class="message-input" placeholder="Type your message..." required></textarea>
+                <textarea class="message-input" name="messageContent" placeholder="Type your message..." required></textarea>
                 <button type="submit" class="send-message-btn">Send Message</button>
             </form>
         ` : `
@@ -317,7 +317,7 @@ function createMessageHTML(message, conversationId) {
             </div>
             <div class="reply-form" id="reply-form-${message.id}" style="display: none; margin-top: 1rem;">
                 <form onsubmit="handleSendReply(event, '${conversationId}', '${message.id}')">
-                    <textarea class="message-input" placeholder="Type your reply..." required style="min-height: 40px;"></textarea>
+                    <textarea class="message-input" name="replyContent" placeholder="Type your reply..." required style="min-height: 40px;"></textarea>
                     <button type="submit" class="send-message-btn" style="margin-top: 0.5rem;">Send Reply</button>
                 </form>
             </div>
