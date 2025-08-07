@@ -2238,7 +2238,7 @@ if (urlForm) {
             if (error.message === 'can not read URL') {
                 showMessage('can not read URL', 'error');
             } else {
-                showMessage('An error occurred while analyzing the URL. Please try again.', 'error');
+            showMessage('An error occurred while analyzing the URL. Please try again.', 'error');
             }
             console.error('Analysis error:', error);
         } finally {
@@ -3040,7 +3040,7 @@ function getMostLikedComment(articleUrl) {
     if (comments.length === 0) return null;
     
     let mostLikedComment = null;
-    let maxLikes = -1;
+    let maxLikes = 0; // Start at 0, not -1
     let mostRecentTimestamp = 0;
     
     // Recursive function to check all comments and replies
@@ -3070,7 +3070,9 @@ function getMostLikedComment(articleUrl) {
     }
     
     checkComments(comments);
-    return mostLikedComment;
+    
+    // Only return the comment if it has at least 1 like
+    return maxLikes > 0 ? mostLikedComment : null;
 }
 
 // Function to create HTML for the most liked comment preview
@@ -3083,20 +3085,20 @@ function createMostLikedCommentPreview(articleUrl, articleIndex) {
     
     const timeAgo = getTimeAgo(new Date(mostLikedComment.timestamp));
     const commentText = escapeHtml(mostLikedComment.text);
-    const truncatedText = commentText.length > 150 ? commentText.substring(0, 150) + '...' : commentText;
+    const truncatedText = commentText.length > 120 ? commentText.substring(0, 120) + '...' : commentText;
     
-            return `
-            <div class="most-liked-comment">
-                <div class="most-liked-header">
-                    <span class="most-liked-label">🏆 Most Liked Comment</span>
-                </div>
-                <div class="most-liked-author">by ${mostLikedComment.author}</div>
-                <div class="most-liked-text">${truncatedText}</div>
-                <div class="most-liked-meta">
-                    <span class="most-liked-time">${timeAgo}</span>
-                </div>
+    return `
+        <div class="most-liked-comment">
+            <div class="most-liked-header">
+                <span class="most-liked-label">🏆 Top Comment</span>
             </div>
-        `;
+            <div class="most-liked-author">by ${mostLikedComment.author}</div>
+            <div class="most-liked-text">${truncatedText}</div>
+            <div class="most-liked-meta">
+                <span class="most-liked-time">${timeAgo}</span>
+            </div>
+        </div>
+    `;
 }
 
 function showCommentsSection(articleIndex) {

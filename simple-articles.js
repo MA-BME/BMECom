@@ -1662,20 +1662,21 @@ function createArticleCard(article, index) {
             ${mostLikedComment ? `
                 <div class="most-liked-comment">
                     <div class="most-liked-header">
-                        <span class="most-liked-label">Most Liked Comment</span>
-                        <span class="most-liked-likes">${mostLikedComment.likes} likes</span>
+                        <span class="most-liked-label">🏆 Top Comment</span>
                     </div>
-                    <div class="most-liked-author">${mostLikedComment.author}</div>
-                    <div class="most-liked-text">${mostLikedComment.text.substring(0, 100)}${mostLikedComment.text.length > 100 ? '...' : ''}</div>
+                    <div class="most-liked-author">by ${mostLikedComment.author}</div>
+                    <div class="most-liked-text">${mostLikedComment.text.substring(0, 120)}${mostLikedComment.text.length > 120 ? '...' : ''}</div>
                     <div class="most-liked-meta">
                         <span class="most-liked-time">${getTimeAgo(mostLikedComment.timestamp)}</span>
-                        <button class="view-all-comments-btn" onclick="toggleComments('${article.id}')">View All Comments (${commentCount})</button>
                     </div>
                 </div>
-            ` : commentCount > 0 ? `
+            ` : ''}
+            
+            <!-- Show Comments Button -->
+            ${commentCount > 0 ? `
                 <div class="show-comments-btn-container">
                     <button class="show-comments-btn" onclick="toggleComments('${article.id}')">
-                        View Comments (${commentCount})
+                        💬 Show Comments (${commentCount})
                     </button>
                 </div>
             ` : ''}
@@ -2326,17 +2327,40 @@ function getMostLikedComment(articleId) {
     
     if (articleCommentsList.length === 0) return null;
     
-    // Find the comment with the most likes
-    let mostLikedComment = articleCommentsList[0];
+    let mostLikedComment = null;
+    let maxLikes = 0;
+    let mostRecentTimestamp = 0;
     
-    articleCommentsList.forEach(comment => {
-        if (comment.likes > mostLikedComment.likes) {
-            mostLikedComment = comment;
-        }
-    });
+    // Check all comments and replies recursively
+    function checkComments(comments) {
+        comments.forEach(comment => {
+            const likes = comment.likes || 0;
+            const timestamp = new Date(comment.timestamp).getTime();
+            
+            if (likes > maxLikes) {
+                // New highest like count
+                mostLikedComment = comment;
+                maxLikes = likes;
+                mostRecentTimestamp = timestamp;
+            } else if (likes === maxLikes && likes > 0) {
+                // Tie in likes, check timestamp (most recent wins)
+                if (timestamp > mostRecentTimestamp) {
+                    mostLikedComment = comment;
+                    mostRecentTimestamp = timestamp;
+                }
+            }
+            
+            // Check replies recursively
+            if (comment.replies && comment.replies.length > 0) {
+                checkComments(comment.replies);
+            }
+        });
+    }
     
-    // Only return if the comment has at least 1 like
-    return mostLikedComment.likes > 0 ? mostLikedComment : null;
+    checkComments(articleCommentsList);
+    
+    // Only return the comment if it has at least 1 like
+    return maxLikes > 0 ? mostLikedComment : null;
 }
 
 // Display comments for an article
