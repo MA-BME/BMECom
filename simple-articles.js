@@ -1683,14 +1683,12 @@ function createArticleCard(article, index) {
                 </div>
             ` : ''}
             
-            <!-- Show Comments Button -->
-            ${commentCount > 0 ? `
-                <div class="show-comments-btn-container">
-                    <button class="show-comments-btn" onclick="toggleComments('${article.id}')">
-                        💬 Show Comments (${commentCount})
-                    </button>
-                </div>
-            ` : ''}
+            <!-- Comments Button -->
+            <div class="show-comments-btn-container">
+                <button class="show-comments-btn" onclick="toggleComments('${article.id}')">
+                    💬 ${commentCount > 0 ? `Show Comments (${commentCount})` : 'Add Comment'}
+                </button>
+            </div>
             
             <!-- Comments Section -->
             <div id="comments-section-${article.id}" class="comments-section" style="display: none;">
