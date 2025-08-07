@@ -1283,4 +1283,49 @@ html {
     .pagination-info {
         font-size: 0.8rem;
     }
+}
+
+/* Delete button styles */
+.delete-conversation-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.delete-conversation-btn:hover {
+    background: #dc2626;
+}
+
+.delete-message-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s ease;
+}
+
+.delete-message-btn:hover {
+    background: #dc2626;
+}
+
+.message-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.conversation-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
 } 

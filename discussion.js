@@ -211,6 +211,7 @@ function showValidationError(message) {
 // Display conversations
 function displayConversations() {
     const container = document.getElementById('conversationsContainer');
+    const currentUser = getCurrentUser();
     console.log('displayConversations called, conversations:', conversations.length);
     console.log('Container element:', container);
 
@@ -231,6 +232,9 @@ function displayConversations() {
             `<span class="topic-badge">Topic ${topic}</span>`
         ).join('');
 
+        // Check if current user can delete this conversation (author or moderator)
+        const canDelete = currentUser && (currentUser.name === conversation.author || currentUser.role === 'Moderator');
+
         return `
             <div class="conversation-card" onclick="openConversationDetail('${conversation.id}')">
                 <div class="conversation-header">
@@ -238,6 +242,11 @@ function displayConversations() {
                         <div class="conversation-name">${escapeHtml(conversation.name)}</div>
                         <div class="conversation-topics">${topicsHTML}</div>
                     </div>
+                    ${canDelete ? `
+                        <button class="delete-conversation-btn" onclick="event.stopPropagation(); handleDeleteConversation('${conversation.id}')" title="Delete conversation">
+                            🗑️
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="conversation-meta">
                     <div class="conversation-stats">
@@ -267,11 +276,21 @@ function createMessageHTML(message, conversationId) {
         </div>
     ` : '';
 
+    // Check if current user can delete this message (author or moderator)
+    const canDeleteMessage = currentUser && (currentUser.name === message.author || currentUser.role === 'Moderator');
+
     return `
         <div class="message" id="message-${message.id}">
             <div class="message-header">
                 <span class="message-author">${escapeHtml(message.author)}</span>
-                <span class="message-time">${getTimeAgo(message.timestamp)}</span>
+                <div class="message-header-actions">
+                    <span class="message-time">${getTimeAgo(message.timestamp)}</span>
+                    ${canDeleteMessage ? `
+                        <button class="delete-message-btn" onclick="handleDeleteMessage('${conversationId}', '${message.id}')" title="Delete message">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </div>
             </div>
             <div class="message-content">${escapeHtml(message.content)}</div>
             <div class="message-actions">
@@ -303,11 +322,22 @@ function createMessageHTML(message, conversationId) {
 // Create reply HTML
 function createReplyHTML(reply, conversationId, parentMessageId) {
     const currentUser = getCurrentUser();
+    
+    // Check if current user can delete this reply (author or moderator)
+    const canDeleteReply = currentUser && (currentUser.name === reply.author || currentUser.role === 'Moderator');
+    
     return `
         <div class="reply" id="reply-${reply.id}">
             <div class="message-header">
                 <span class="message-author">${escapeHtml(reply.author)}</span>
-                <span class="message-time">${getTimeAgo(reply.timestamp)}</span>
+                <div class="message-header-actions">
+                    <span class="message-time">${getTimeAgo(reply.timestamp)}</span>
+                    ${canDeleteReply ? `
+                        <button class="delete-message-btn" onclick="handleDeleteReply('${conversationId}', '${parentMessageId}', '${reply.id}')" title="Delete reply">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </div>
             </div>
             <div class="message-content">${escapeHtml(reply.content)}</div>
             <div class="message-actions">
@@ -698,6 +728,121 @@ function testBar() {
     
     const currentUser = getCurrentUser();
     console.log('Current user:', currentUser);
+}
+
+// Handle delete conversation
+function handleDeleteConversation(conversationId) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showAuthRequiredMessage('delete_conversation');
+        return;
+    }
+
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+        showMessage('Conversation not found', 'error');
+        return;
+    }
+
+    // Check if user can delete (author or moderator)
+    if (currentUser.name !== conversation.author && currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own conversations', 'error');
+        return;
+    }
+
+    if (confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+        // Remove conversation from conversations array
+        conversations = conversations.filter(c => c.id !== conversationId);
+        
+        // Remove conversation messages
+        delete conversationMessages[conversationId];
+        
+        // Save to localStorage
+        saveData();
+        
+        // Refresh display
+        displayConversations();
+        
+        showMessage('Conversation deleted successfully', 'success');
+    }
+}
+
+// Handle delete message
+function handleDeleteMessage(conversationId, messageId) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showAuthRequiredMessage('delete_message');
+        return;
+    }
+
+    const messages = conversationMessages[conversationId] || [];
+    const message = messages.find(m => m.id === messageId);
+    
+    if (!message) {
+        showMessage('Message not found', 'error');
+        return;
+    }
+
+    // Check if user can delete (author or moderator)
+    if (currentUser.name !== message.author && currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own messages', 'error');
+        return;
+    }
+
+    if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+        // Remove message from messages array
+        conversationMessages[conversationId] = messages.filter(m => m.id !== messageId);
+        
+        // Save to localStorage
+        saveData();
+        
+        // Refresh display
+        displayConversations();
+        
+        showMessage('Message deleted successfully', 'success');
+    }
+}
+
+// Handle delete reply
+function handleDeleteReply(conversationId, parentMessageId, replyId) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showAuthRequiredMessage('delete_reply');
+        return;
+    }
+
+    const messages = conversationMessages[conversationId] || [];
+    const parentMessage = messages.find(m => m.id === parentMessageId);
+    
+    if (!parentMessage || !parentMessage.replies) {
+        showMessage('Reply not found', 'error');
+        return;
+    }
+
+    const reply = parentMessage.replies.find(r => r.id === replyId);
+    if (!reply) {
+        showMessage('Reply not found', 'error');
+        return;
+    }
+
+    // Check if user can delete (author or moderator)
+    if (currentUser.name !== reply.author && currentUser.role !== 'Moderator') {
+        showMessage('You can only delete your own replies', 'error');
+        return;
+    }
+
+    if (confirm('Are you sure you want to delete this reply? This action cannot be undone.')) {
+        // Remove reply from parent message
+        parentMessage.replies = parentMessage.replies.filter(r => r.id !== replyId);
+        
+        // Save to localStorage
+        saveData();
+        
+        // Refresh display
+        displayConversations();
+        
+        showMessage('Reply deleted successfully', 'success');
+    }
 }
 
 // Add CSS animations
