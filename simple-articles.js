@@ -603,6 +603,16 @@ function loadData() {
             console.log('👎 User dislikes loaded:', userDislikes.size);
         }
         
+        // Load article comments
+        const commentsData = localStorage.getItem('articleComments');
+        if (commentsData) {
+            articleComments = JSON.parse(commentsData);
+            console.log('💬 Article comments loaded:', Object.keys(articleComments).length, 'articles have comments');
+        } else {
+            articleComments = {};
+            console.log('💬 No article comments found, initializing empty object');
+        }
+        
         console.log('📊 Loaded', articles.length, 'articles');
         console.log('🔐 Authentication status:', currentUser ? 'Logged in as ' + currentUser.name : 'Not logged in');
     } catch (error) {
@@ -611,6 +621,7 @@ function loadData() {
         currentUser = null;
         userLikes = new Set();
         userDislikes = new Set();
+        articleComments = {};
     }
 }
 
@@ -2118,18 +2129,25 @@ console.log('💡 To delete all articles from console, run: deleteAllArticlesNow
 
 // Add a comment to an article
 function addComment(articleId, commentText) {
+    console.log('🔧 Adding comment for article:', articleId);
+    console.log('👤 Current user:', currentUser);
+    console.log('📝 Comment text:', commentText);
+    
     if (!currentUser) {
+        console.log('❌ No current user found');
         showMessage('Please log in to add comments', 'error');
         return;
     }
     
     if (!commentText.trim()) {
+        console.log('❌ Empty comment text');
         showMessage('Please enter a comment', 'error');
         return;
     }
     
     // Filter curse words
     const filteredText = filterCurseWords(commentText);
+    console.log('🔍 Filtered text:', filteredText);
     
     const comment = {
         id: Date.now().toString(),
@@ -2142,16 +2160,22 @@ function addComment(articleId, commentText) {
         replies: []
     };
     
+    console.log('💬 Created comment object:', comment);
+    
     // Initialize comments array for this article if it doesn't exist
     if (!articleComments[articleId]) {
         articleComments[articleId] = [];
+        console.log('📝 Initialized comments array for article:', articleId);
     }
     
     // Add the comment
     articleComments[articleId].push(comment);
+    console.log('✅ Comment added to array. Total comments for this article:', articleComments[articleId].length);
     
     // Save to localStorage
     localStorage.setItem('articleComments', JSON.stringify(articleComments));
+    console.log('💾 Comments saved to localStorage');
+    console.log('📊 Current articleComments object:', articleComments);
     
     showMessage('Comment added successfully!', 'success');
     displayArticles(); // Refresh to show the new comment
