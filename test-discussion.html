@@ -3,50 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discussion Forum Test</title>
+    <title>BMECom - Discussion Forum Test</title>
+    <link rel="stylesheet" href="styles.css?v=1.9">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+        .test-container {
+            padding: 120px 0 80px;
+            background: #f0f9ff;
+            min-height: 100vh;
         }
+        
         .test-section {
             background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
         }
+        
+        .test-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 0.5rem;
+        }
+        
         .test-button {
+            padding: 0.75rem 1.5rem;
             background: #2563eb;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
-            margin: 5px;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
         }
+        
         .test-button:hover {
             background: #1d4ed8;
         }
-        .debug-info {
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+        
+        .test-button.secondary {
+            background: #6b7280;
+        }
+        
+        .test-button.secondary:hover {
+            background: #4b5563;
+        }
+        
+        .test-button.danger {
+            background: #ef4444;
+        }
+        
+        .test-button.danger:hover {
+            background: #dc2626;
+        }
+        
+        .test-output {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
             font-family: monospace;
             white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .error {
-            background: #fee;
-            color: #c00;
-            border: 1px solid #fcc;
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
         }
-        .success {
-            background: #efe;
-            color: #0c0;
-            border: 1px solid #cfc;
+        
+        .status-success {
+            background: #10b981;
         }
+        
+        .status-error {
+            background: #ef4444;
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+        }
+        
+        .status-info {
+            background: #3b82f6;
+        }
+        
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .debug-item {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .debug-label {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .debug-value {
+            color: #6b7280;
+            font-family: monospace;
+        }
+        
         .conversation-bubble {
             position: fixed;
             bottom: 30px;
@@ -63,261 +139,333 @@
             transition: all 0.3s ease;
             z-index: 1000;
         }
+        
+        .conversation-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+        
         .conversation-bubble.expanded {
             width: 400px;
             height: auto;
             border-radius: 12px;
             padding: 1.5rem;
         }
+        
+        .conversation-bubble.invalid {
+            animation: shake 0.5s ease-in-out;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+        
         .plus-sign {
             font-size: 2rem;
             color: white;
             font-weight: bold;
         }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
         .new-conversation-form {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem;
         }
+        
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
+        
         .form-group label {
             font-weight: 600;
-            color: #1f2937;
+            color: white;
         }
+        
         .topic-selection {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
+        
         .topic-option {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            gap: 0.25rem;
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: white;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.875rem;
         }
+        
+        .topic-option:hover {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .topic-option.selected {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
         .conversation-name-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
             font-family: inherit;
         }
+        
+        .conversation-name-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .conversation-name-input:focus {
+            outline: none;
+            border-color: white;
+        }
+        
         .create-conversation-btn {
-            padding: 12px 24px;
-            background: #2563eb;
-            color: white;
+            padding: 8px 16px;
+            background: white;
+            color: #2563eb;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             align-self: flex-start;
+            font-size: 0.875rem;
         }
-        .start-conversation-bar {
-            background: white;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid #e5e7eb;
-        }
-        .start-conversation-content {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .plus-icon {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #2563eb;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .start-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1f2937;
+        
+        .create-conversation-btn:hover {
+            background: #f3f4f6;
         }
     </style>
 </head>
 <body>
-    <h1>Discussion Forum Test Page</h1>
-    
-    <!-- Authentication Test Section -->
-    <div class="test-section">
-        <h2>Authentication Test</h2>
-        <button class="test-button" onclick="testAuth()">Test Authentication Status</button>
-        <button class="test-button" onclick="createTestUser()">Create Test User</button>
-        <button class="test-button" onclick="loginTestUser()">Login Test User</button>
-        <button class="test-button" onclick="logoutUser()">Logout</button>
-        <div id="authDebug" class="debug-info"></div>
-    </div>
-
-    <!-- Conversation Bubble Test Section -->
-    <div class="test-section">
-        <h2>Conversation Bubble Test</h2>
-        <button class="test-button" onclick="testBubbleVisibility()">Test Bubble Visibility</button>
-        <button class="test-button" onclick="showBubble()">Show Bubble</button>
-        <button class="test-button" onclick="hideBubble()">Hide Bubble</button>
-        <button class="test-button" onclick="expandBubble()">Expand Bubble</button>
-        <button class="test-button" onclick="collapseBubble()">Collapse Bubble</button>
-        <div id="bubbleDebug" class="debug-info"></div>
-    </div>
-
-    <!-- Start Conversation Bar Test -->
-    <div class="test-section">
-        <h2>Start Conversation Bar Test</h2>
-        <div class="start-conversation-bar" onclick="testStartConversationClick()">
-            <div class="start-conversation-content">
-                <span class="plus-icon">+</span>
-                <span class="start-text">Start Conversation (Test)</span>
-            </div>
-        </div>
-        <div id="startBarDebug" class="debug-info"></div>
-    </div>
-
-    <!-- Floating Conversation Bubble -->
-    <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
-        <div id="plusSign" class="plus-sign">+</div>
-        <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
-            <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
-            <div class="form-group">
-                <label style="color: white;">Select Topics:</label>
-                <div class="topic-selection">
-                    <label class="topic-option">
-                        <input type="checkbox" name="topics" value="A">
-                        <span>Topic A</span>
-                    </label>
-                    <label class="topic-option">
-                        <input type="checkbox" name="topics" value="B">
-                        <span>Topic B</span>
-                    </label>
-                    <label class="topic-option">
-                        <input type="checkbox" name="topics" value="C">
-                        <span>Topic C</span>
-                    </label>
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <h2>BMECom - Discussion Test</h2>
                 </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="articles.html" class="nav-link">Articles</a></li>
+                    <li><a href="discussion.html" class="nav-link">Discussion</a></li>
+                    <li><a href="login.html" class="nav-link" id="loginLink">Login</a></li>
+                </ul>
             </div>
-            <div class="form-group">
-                <label for="conversationNameBubble" style="color: white;">Name:</label>
-                <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
+        </nav>
+    </header>
+
+    <main>
+        <section class="test-container">
+            <div class="container">
+                <div class="test-section">
+                    <h1 class="test-title">🔧 Discussion Forum Test Page</h1>
+                    <p>This page helps debug the discussion forum functionality, bubble visibility, and localStorage issues.</p>
+                </div>
+
+                <!-- Authentication Test Section -->
+                <div class="test-section">
+                    <h2 class="test-title">🔐 Authentication Testing</h2>
+                    <div>
+                        <button class="test-button" onclick="createTestUser()">Create Test User</button>
+                        <button class="test-button" onclick="loginTestUser()">Login Test User</button>
+                        <button class="test-button secondary" onclick="logoutUser()">Logout</button>
+                        <button class="test-button" onclick="checkAuthStatus()">Check Auth Status</button>
+                    </div>
+                    <div id="authOutput" class="test-output">Authentication status will appear here...</div>
+                </div>
+
+                <!-- Bubble Visibility Test Section -->
+                <div class="test-section">
+                    <h2 class="test-title">🎈 Bubble Visibility Testing</h2>
+                    <div>
+                        <button class="test-button" onclick="showBubble()">Show Bubble</button>
+                        <button class="test-button" onclick="hideBubble()">Hide Bubble</button>
+                        <button class="test-button" onclick="expandBubble()">Expand Bubble</button>
+                        <button class="test-button" onclick="collapseBubble()">Collapse Bubble</button>
+                        <button class="test-button" onclick="toggleBubble()">Toggle Bubble</button>
+                        <button class="test-button" onclick="checkBubbleState()">Check Bubble State</button>
+                    </div>
+                    <div id="bubbleOutput" class="test-output">Bubble state will appear here...</div>
+                </div>
+
+                <!-- Function Test Section -->
+                <div class="test-section">
+                    <h2 class="test-title">⚙️ Function Testing</h2>
+                    <div>
+                        <button class="test-button" onclick="testHandleStartConversationClick()">Test handleStartConversationClick</button>
+                        <button class="test-button" onclick="testToggleConversationBubble()">Test toggleConversationBubble</button>
+                        <button class="test-button" onclick="testCheckAuthStatus()">Test checkAuthStatus</button>
+                        <button class="test-button" onclick="testLoadData()">Test loadData</button>
+                        <button class="test-button" onclick="testSaveData()">Test saveData</button>
+                    </div>
+                    <div id="functionOutput" class="test-output">Function test results will appear here...</div>
+                </div>
+
+                <!-- localStorage Test Section -->
+                <div class="test-section">
+                    <h2 class="test-title">💾 localStorage Testing</h2>
+                    <div>
+                        <button class="test-button" onclick="checkLocalStorage()">Check localStorage</button>
+                        <button class="test-button" onclick="clearLocalStorage()">Clear localStorage</button>
+                        <button class="test-button" onclick="createTestConversation()">Create Test Conversation</button>
+                        <button class="test-button" onclick="createTestMessage()">Create Test Message</button>
+                        <button class="test-button danger" onclick="resetAllData()">Reset All Data</button>
+                    </div>
+                    <div id="storageOutput" class="test-output">localStorage status will appear here...</div>
+                </div>
+
+                <!-- Debug Information Section -->
+                <div class="test-section">
+                    <h2 class="test-title">🐛 Debug Information</h2>
+                    <div class="debug-grid">
+                        <div class="debug-item">
+                            <div class="debug-label">Current User:</div>
+                            <div class="debug-value" id="debugCurrentUser">Not loaded</div>
+                        </div>
+                        <div class="debug-item">
+                            <div class="debug-label">Bubble Element:</div>
+                            <div class="debug-value" id="debugBubbleElement">Not found</div>
+                        </div>
+                        <div class="debug-item">
+                            <div class="debug-label">Conversations Count:</div>
+                            <div class="debug-value" id="debugConversationsCount">0</div>
+                        </div>
+                        <div class="debug-item">
+                            <div class="debug-label">Messages Count:</div>
+                            <div class="debug-value" id="debugMessagesCount">0</div>
+                        </div>
+                    </div>
+                    <button class="test-button" onclick="refreshDebugInfo()">Refresh Debug Info</button>
+                </div>
+
+                <!-- Floating Conversation Bubble (for testing) -->
+                <div id="conversationBubble" class="conversation-bubble" style="display: none;" onclick="toggleConversationBubble()">
+                    <div id="plusSign" class="plus-sign">+</div>
+                    <div id="newConversationFormBubble" class="new-conversation-form" style="display: none;">
+                        <h3 style="margin-bottom: 1rem; color: white; font-size: 1.1rem;">New Conversation</h3>
+                        <div class="form-group">
+                            <label style="color: white;">Select Topics:</label>
+                            <div class="topic-selection">
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="A">
+                                    <span>Topic A</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="B">
+                                    <span>Topic B</span>
+                                </label>
+                                <label class="topic-option">
+                                    <input type="checkbox" name="topics" value="C">
+                                    <span>Topic C</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="conversationNameBubble" style="color: white;">Name:</label>
+                            <input type="text" id="conversationNameBubble" class="conversation-name-input" placeholder="Enter conversation name" required>
+                        </div>
+                        <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
+                            Create
+                        </button>
+                    </div>
+                </div>
+
+                <div id="messageContainer"></div>
             </div>
-            <button type="button" class="create-conversation-btn" onclick="handleCreateConversationFromBubble()">
-                Create
-            </button>
-        </div>
-    </div>
-
-    <!-- Function Test Section -->
-    <div class="test-section">
-        <h2>Function Test</h2>
-        <button class="test-button" onclick="testHandleStartConversationClick()">Test handleStartConversationClick</button>
-        <button class="test-button" onclick="testToggleConversationBubble()">Test toggleConversationBubble</button>
-        <button class="test-button" onclick="testCheckAuthStatus()">Test checkAuthStatus</button>
-        <div id="functionDebug" class="debug-info"></div>
-    </div>
-
-    <!-- Global Variables Test -->
-    <div class="test-section">
-        <h2>Global Variables Test</h2>
-        <button class="test-button" onclick="testGlobalVariables()">Test Global Variables</button>
-        <div id="globalDebug" class="debug-info"></div>
-    </div>
+        </section>
+    </main>
 
     <script src="auth.js"></script>
     <script>
-        // Test functions
-        function logDebug(elementId, message, type = 'info') {
-            const element = document.getElementById(elementId);
-            const timestamp = new Date().toLocaleTimeString();
-            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
-            element.innerHTML += `[${timestamp}] ${message}\n`;
-            element.className = `debug-info ${className}`;
-        }
+        // Test page specific variables
+        let conversations = [];
+        let conversationMessages = {};
 
-        function testAuth() {
-            try {
-                const currentUser = getCurrentUser();
-                logDebug('authDebug', `Current User: ${JSON.stringify(currentUser, null, 2)}`);
-                logDebug('authDebug', `Is Authenticated: ${isAuthenticated()}`);
-            } catch (error) {
-                logDebug('authDebug', `Error: ${error.message}`, 'error');
-            }
-        }
+        // Initialize test page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            refreshDebugInfo();
+            updateOutput('authOutput', 'Test page loaded. Ready for testing.');
+        });
 
+        // Authentication Testing Functions
         function createTestUser() {
-            try {
-                const testUser = {
-                    name: 'TestUser',
-                    email: 'test@example.com',
-                    role: 'User'
-                };
-                localStorage.setItem('currentUser', JSON.stringify(testUser));
-                logDebug('authDebug', 'Test user created successfully', 'success');
-                testAuth();
-            } catch (error) {
-                logDebug('authDebug', `Error creating test user: ${error.message}`, 'error');
-            }
+            const testUser = {
+                name: 'TestUser',
+                email: 'test@example.com',
+                password: 'test123',
+                role: 'user'
+            };
+            
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            users.push(testUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            updateOutput('authOutput', `✅ Test user created: ${testUser.name}\nUsers in localStorage: ${users.length}`);
         }
 
         function loginTestUser() {
-            try {
-                const testUser = JSON.parse(localStorage.getItem('currentUser'));
-                if (testUser) {
-                    logDebug('authDebug', 'Test user logged in', 'success');
-                    testAuth();
-                } else {
-                    logDebug('authDebug', 'No test user found', 'error');
-                }
-            } catch (error) {
-                logDebug('authDebug', `Error logging in: ${error.message}`, 'error');
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const testUser = users.find(u => u.name === 'TestUser');
+            
+            if (testUser) {
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                updateOutput('authOutput', `✅ Logged in as: ${testUser.name}`);
+                refreshDebugInfo();
+            } else {
+                updateOutput('authOutput', '❌ Test user not found. Create one first.');
             }
         }
 
         function logoutUser() {
-            try {
-                localStorage.removeItem('currentUser');
-                logDebug('authDebug', 'User logged out', 'success');
-                testAuth();
-            } catch (error) {
-                logDebug('authDebug', `Error logging out: ${error.message}`, 'error');
-            }
+            localStorage.removeItem('currentUser');
+            updateOutput('authOutput', '✅ Logged out successfully');
+            refreshDebugInfo();
         }
 
-        function testBubbleVisibility() {
-            const bubble = document.getElementById('conversationBubble');
-            const display = bubble.style.display;
-            const expanded = bubble.classList.contains('expanded');
-            logDebug('bubbleDebug', `Bubble display: ${display}`);
-            logDebug('bubbleDebug', `Bubble expanded: ${expanded}`);
+        function checkAuthStatus() {
+            const currentUser = getCurrentUser();
+            const status = currentUser ? `✅ Logged in as: ${currentUser.name}` : '❌ Not logged in';
+            updateOutput('authOutput', `Auth Status: ${status}`);
         }
 
+        // Bubble Testing Functions
         function showBubble() {
             const bubble = document.getElementById('conversationBubble');
-            bubble.style.display = 'flex';
-            logDebug('bubbleDebug', 'Bubble shown', 'success');
+            if (bubble) {
+                bubble.style.display = 'flex';
+                updateOutput('bubbleOutput', '✅ Bubble shown');
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble element not found');
+            }
         }
 
         function hideBubble() {
             const bubble = document.getElementById('conversationBubble');
-            bubble.style.display = 'none';
-            logDebug('bubbleDebug', 'Bubble hidden', 'success');
+            if (bubble) {
+                bubble.style.display = 'none';
+                updateOutput('bubbleOutput', '✅ Bubble hidden');
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble element not found');
+            }
         }
 
         function expandBubble() {
@@ -325,10 +473,14 @@
             const form = document.getElementById('newConversationFormBubble');
             const plusSign = document.getElementById('plusSign');
             
-            bubble.classList.add('expanded');
-            form.style.display = 'flex';
-            plusSign.style.display = 'none';
-            logDebug('bubbleDebug', 'Bubble expanded', 'success');
+            if (bubble && form && plusSign) {
+                bubble.classList.add('expanded');
+                form.style.display = 'flex';
+                plusSign.style.display = 'none';
+                updateOutput('bubbleOutput', '✅ Bubble expanded');
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble elements not found');
+            }
         }
 
         function collapseBubble() {
@@ -336,163 +488,280 @@
             const form = document.getElementById('newConversationFormBubble');
             const plusSign = document.getElementById('plusSign');
             
-            bubble.classList.remove('expanded');
-            form.style.display = 'none';
-            plusSign.style.display = 'block';
-            logDebug('bubbleDebug', 'Bubble collapsed', 'success');
-        }
-
-        function testStartConversationClick() {
-            try {
-                logDebug('startBarDebug', 'Start conversation bar clicked');
-                handleStartConversationClick();
-            } catch (error) {
-                logDebug('startBarDebug', `Error: ${error.message}`, 'error');
+            if (bubble && form && plusSign) {
+                bubble.classList.remove('expanded');
+                form.style.display = 'none';
+                plusSign.style.display = 'block';
+                updateOutput('bubbleOutput', '✅ Bubble collapsed');
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble elements not found');
             }
         }
 
+        function toggleBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            if (bubble) {
+                if (bubble.classList.contains('expanded')) {
+                    collapseBubble();
+                } else {
+                    expandBubble();
+                }
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble element not found');
+            }
+        }
+
+        function checkBubbleState() {
+            const bubble = document.getElementById('conversationBubble');
+            if (bubble) {
+                const isVisible = bubble.style.display !== 'none';
+                const isExpanded = bubble.classList.contains('expanded');
+                const form = document.getElementById('newConversationFormBubble');
+                const plusSign = document.getElementById('plusSign');
+                
+                const formVisible = form ? form.style.display !== 'none' : 'N/A';
+                const plusVisible = plusSign ? plusSign.style.display !== 'none' : 'N/A';
+                
+                updateOutput('bubbleOutput', 
+                    `Bubble State:\n` +
+                    `- Visible: ${isVisible}\n` +
+                    `- Expanded: ${isExpanded}\n` +
+                    `- Form visible: ${formVisible}\n` +
+                    `- Plus sign visible: ${plusVisible}`
+                );
+            } else {
+                updateOutput('bubbleOutput', '❌ Bubble element not found');
+            }
+        }
+
+        // Function Testing
         function testHandleStartConversationClick() {
             try {
-                const currentUser = getCurrentUser();
-                logDebug('functionDebug', `Current user: ${JSON.stringify(currentUser)}`);
-                
-                if (!currentUser) {
-                    logDebug('functionDebug', 'No user logged in - should show auth message', 'error');
-                    return;
-                }
-                
-                const conversationBubble = document.getElementById('conversationBubble');
-                if (conversationBubble) {
-                    conversationBubble.style.display = 'flex';
-                    conversationBubble.classList.add('expanded');
-                    const form = document.getElementById('newConversationFormBubble');
-                    const plusSign = document.getElementById('plusSign');
-                    if (form) form.style.display = 'flex';
-                    if (plusSign) plusSign.style.display = 'none';
-                    logDebug('functionDebug', 'Bubble should be visible and expanded', 'success');
+                if (typeof handleStartConversationClick === 'function') {
+                    handleStartConversationClick();
+                    updateOutput('functionOutput', '✅ handleStartConversationClick executed');
+                } else {
+                    updateOutput('functionOutput', '❌ handleStartConversationClick function not found');
                 }
             } catch (error) {
-                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+                updateOutput('functionOutput', `❌ Error: ${error.message}`);
             }
         }
 
         function testToggleConversationBubble() {
             try {
-                const bubble = document.getElementById('conversationBubble');
-                const isExpanded = bubble.classList.contains('expanded');
-                logDebug('functionDebug', `Bubble expanded before toggle: ${isExpanded}`);
-                
-                toggleConversationBubble();
-                
-                const isExpandedAfter = bubble.classList.contains('expanded');
-                logDebug('functionDebug', `Bubble expanded after toggle: ${isExpandedAfter}`);
+                if (typeof toggleConversationBubble === 'function') {
+                    toggleConversationBubble();
+                    updateOutput('functionOutput', '✅ toggleConversationBubble executed');
+                } else {
+                    updateOutput('functionOutput', '❌ toggleConversationBubble function not found');
+                }
             } catch (error) {
-                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+                updateOutput('functionOutput', `❌ Error: ${error.message}`);
             }
         }
 
         function testCheckAuthStatus() {
             try {
-                logDebug('functionDebug', 'Testing checkAuthStatus...');
-                checkAuthStatus();
-                logDebug('functionDebug', 'checkAuthStatus completed');
+                if (typeof checkAuthStatus === 'function') {
+                    checkAuthStatus();
+                    updateOutput('functionOutput', '✅ checkAuthStatus executed');
+                } else {
+                    updateOutput('functionOutput', '❌ checkAuthStatus function not found');
+                }
             } catch (error) {
-                logDebug('functionDebug', `Error: ${error.message}`, 'error');
+                updateOutput('functionOutput', `❌ Error: ${error.message}`);
             }
         }
 
-        function testGlobalVariables() {
+        function testLoadData() {
             try {
-                logDebug('globalDebug', 'Testing global variables...');
-                
-                // Test if functions exist
-                const functions = ['getCurrentUser', 'isAuthenticated', 'showAuthRequiredMessage', 'showGlobalMessage'];
-                functions.forEach(func => {
-                    if (typeof window[func] === 'function') {
-                        logDebug('globalDebug', `✓ ${func} function exists`);
-                    } else {
-                        logDebug('globalDebug', `✗ ${func} function missing`, 'error');
-                    }
-                });
-                
-                // Test localStorage
-                const conversations = localStorage.getItem('conversations');
-                const conversationMessages = localStorage.getItem('conversationMessages');
-                logDebug('globalDebug', `Conversations in localStorage: ${conversations ? 'exists' : 'missing'}`);
-                logDebug('globalDebug', `Conversation messages in localStorage: ${conversationMessages ? 'exists' : 'missing'}`);
-                
+                if (typeof loadData === 'function') {
+                    loadData();
+                    updateOutput('functionOutput', '✅ loadData executed');
+                } else {
+                    updateOutput('functionOutput', '❌ loadData function not found');
+                }
             } catch (error) {
-                logDebug('globalDebug', `Error: ${error.message}`, 'error');
+                updateOutput('functionOutput', `❌ Error: ${error.message}`);
             }
         }
 
-        // Toggle conversation bubble function (simplified)
-        function toggleConversationBubble() {
-            const bubble = document.getElementById('conversationBubble');
-            const form = document.getElementById('newConversationFormBubble');
-            const plusSign = document.getElementById('plusSign');
+        function testSaveData() {
+            try {
+                if (typeof saveData === 'function') {
+                    saveData();
+                    updateOutput('functionOutput', '✅ saveData executed');
+                } else {
+                    updateOutput('functionOutput', '❌ saveData function not found');
+                }
+            } catch (error) {
+                updateOutput('functionOutput', `❌ Error: ${error.message}`);
+            }
+        }
+
+        // localStorage Testing
+        function checkLocalStorage() {
+            const conversationsData = localStorage.getItem('conversations');
+            const messagesData = localStorage.getItem('conversationMessages');
+            const currentUser = localStorage.getItem('currentUser');
+            const users = localStorage.getItem('users');
             
-            if (bubble.classList.contains('expanded')) {
-                // Collapse
-                bubble.classList.remove('expanded');
-                form.style.display = 'none';
-                plusSign.style.display = 'block';
-            } else {
-                // Expand
-                bubble.classList.add('expanded');
-                form.style.display = 'flex';
-                plusSign.style.display = 'none';
-            }
+            updateOutput('storageOutput', 
+                `localStorage Status:\n` +
+                `- Conversations: ${conversationsData ? 'Found' : 'Not found'}\n` +
+                `- Messages: ${messagesData ? 'Found' : 'Not found'}\n` +
+                `- Current User: ${currentUser ? 'Found' : 'Not found'}\n` +
+                `- Users: ${users ? 'Found' : 'Not found'}\n\n` +
+                `Raw Data:\n` +
+                `Conversations: ${conversationsData || 'null'}\n` +
+                `Messages: ${messagesData || 'null'}`
+            );
         }
 
-        // Handle start conversation click (simplified)
-        function handleStartConversationClick() {
+        function clearLocalStorage() {
+            localStorage.removeItem('conversations');
+            localStorage.removeItem('conversationMessages');
+            updateOutput('storageOutput', '✅ localStorage cleared for conversations and messages');
+            refreshDebugInfo();
+        }
+
+        function createTestConversation() {
             const currentUser = getCurrentUser();
             if (!currentUser) {
-                if (typeof showAuthRequiredMessage === 'function') {
-                    showAuthRequiredMessage('create_conversation');
-                } else {
-                    alert('You must be logged in to create conversations.');
-                }
+                updateOutput('storageOutput', '❌ Please login first');
                 return;
             }
+
+            const testConversation = {
+                id: Date.now().toString(),
+                name: 'Test Conversation',
+                topics: ['A', 'B'],
+                author: currentUser.name,
+                timestamp: new Date().toISOString(),
+                messageCount: 0
+            };
+
+            conversations.push(testConversation);
+            conversationMessages[testConversation.id] = [];
+            saveData();
             
-            // Show and expand the conversation bubble
-            const conversationBubble = document.getElementById('conversationBubble');
-            if (conversationBubble) {
-                conversationBubble.style.display = 'flex';
-                // Ensure it's in expanded state
-                conversationBubble.classList.add('expanded');
-                const form = document.getElementById('newConversationFormBubble');
-                const plusSign = document.getElementById('plusSign');
-                if (form) form.style.display = 'flex';
-                if (plusSign) plusSign.style.display = 'none';
+            updateOutput('storageOutput', `✅ Test conversation created: ${testConversation.name}`);
+            refreshDebugInfo();
+        }
+
+        function createTestMessage() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                updateOutput('storageOutput', '❌ Please login first');
+                return;
+            }
+
+            if (conversations.length === 0) {
+                updateOutput('storageOutput', '❌ No conversations found. Create one first.');
+                return;
+            }
+
+            const conversationId = conversations[0].id;
+            const testMessage = {
+                id: Date.now().toString(),
+                content: 'This is a test message',
+                author: currentUser.name,
+                timestamp: new Date().toISOString(),
+                likes: [],
+                dislikes: [],
+                replies: []
+            };
+
+            if (!conversationMessages[conversationId]) {
+                conversationMessages[conversationId] = [];
+            }
+            conversationMessages[conversationId].push(testMessage);
+            saveData();
+            
+            updateOutput('storageOutput', `✅ Test message created in conversation: ${conversations[0].name}`);
+            refreshDebugInfo();
+        }
+
+        function resetAllData() {
+            localStorage.clear();
+            conversations = [];
+            conversationMessages = {};
+            updateOutput('storageOutput', '✅ All data reset');
+            refreshDebugInfo();
+        }
+
+        // Utility Functions
+        function loadData() {
+            try {
+                const conversationsData = localStorage.getItem('conversations');
+                if (conversationsData) {
+                    conversations = JSON.parse(conversationsData);
+                }
+
+                const messagesData = localStorage.getItem('conversationMessages');
+                if (messagesData) {
+                    conversationMessages = JSON.parse(messagesData);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                conversations = [];
+                conversationMessages = {};
             }
         }
 
-        // Handle creating conversation from bubble (simplified)
+        function saveData() {
+            try {
+                localStorage.setItem('conversations', JSON.stringify(conversations));
+                localStorage.setItem('conversationMessages', JSON.stringify(conversationMessages));
+            } catch (error) {
+                console.error('Error saving data:', error);
+            }
+        }
+
+        function refreshDebugInfo() {
+            const currentUser = getCurrentUser();
+            const bubble = document.getElementById('conversationBubble');
+            
+            document.getElementById('debugCurrentUser').textContent = 
+                currentUser ? currentUser.name : 'Not logged in';
+            document.getElementById('debugBubbleElement').textContent = 
+                bubble ? 'Found' : 'Not found';
+            document.getElementById('debugConversationsCount').textContent = 
+                conversations.length;
+            document.getElementById('debugMessagesCount').textContent = 
+                Object.keys(conversationMessages).length;
+        }
+
+        function updateOutput(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            }
+        }
+
+        // Import functions from discussion.js if they exist
         function handleCreateConversationFromBubble() {
             const currentUser = getCurrentUser();
             if (!currentUser) {
-                alert('You must be logged in to create conversations.');
+                updateOutput('functionOutput', '❌ User not logged in');
                 return;
             }
-
+            
             const selectedTopics = Array.from(document.querySelectorAll('#conversationBubble input[name="topics"]:checked'))
                 .map(checkbox => checkbox.value);
 
             if (selectedTopics.length === 0) {
-                alert('Please select at least one topic');
+                updateOutput('functionOutput', '❌ Please select at least one topic');
                 return;
             }
 
             const conversationName = document.getElementById('conversationNameBubble').value.trim();
             if (!conversationName) {
-                alert('Please enter a conversation name');
+                updateOutput('functionOutput', '❌ Please enter a conversation name');
                 return;
             }
 
-            // Create new conversation
             const newConversation = {
                 id: Date.now().toString(),
                 name: conversationName,
@@ -502,61 +771,71 @@
                 messageCount: 0
             };
 
-            // Load existing conversations
-            let conversations = [];
-            try {
-                const conversationsData = localStorage.getItem('conversations');
-                if (conversationsData) {
-                    conversations = JSON.parse(conversationsData);
-                }
-            } catch (error) {
-                console.error('Error loading conversations:', error);
-            }
-
             conversations.unshift(newConversation);
-            localStorage.setItem('conversations', JSON.stringify(conversations));
+            conversationMessages[newConversation.id] = [];
+            saveData();
 
-            // Reset form and collapse the bubble
+            // Reset form
             document.getElementById('conversationNameBubble').value = '';
             document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
                 checkbox.checked = false;
             });
-            
-            // Collapse the conversation bubble back to + sign
-            toggleConversationBubble();
 
-            alert('Conversation created successfully!');
+            updateOutput('functionOutput', `✅ Conversation created: ${conversationName}`);
+            refreshDebugInfo();
         }
 
-        // Check authentication status (simplified)
-        function checkAuthStatus() {
-            const currentUser = getCurrentUser();
-            const conversationBubble = document.getElementById('conversationBubble');
-
-            if (currentUser) {
-                // User is logged in
-                if (conversationBubble) {
-                    conversationBubble.style.display = 'none'; // Start hidden
-                    // Reset bubble to collapsed state
-                    conversationBubble.classList.remove('expanded');
-                    const form = document.getElementById('newConversationFormBubble');
-                    const plusSign = document.getElementById('plusSign');
-                    if (form) form.style.display = 'none';
-                    if (plusSign) plusSign.style.display = 'block';
+        function toggleConversationBubble() {
+            const bubble = document.getElementById('conversationBubble');
+            const form = document.getElementById('newConversationFormBubble');
+            const plusSign = document.getElementById('plusSign');
+            
+            if (bubble && form && plusSign) {
+                if (bubble.classList.contains('expanded')) {
+                    bubble.classList.remove('expanded');
+                    form.style.display = 'none';
+                    plusSign.style.display = 'block';
+                } else {
+                    bubble.classList.add('expanded');
+                    form.style.display = 'flex';
+                    plusSign.style.display = 'none';
                 }
-            } else {
-                // User is not logged in
-                if (conversationBubble) conversationBubble.style.display = 'none';
             }
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            logDebug('authDebug', 'Page loaded - testing initial state');
-            testAuth();
-            testGlobalVariables();
-            checkAuthStatus();
-        });
+        function handleStartConversationClick() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                updateOutput('functionOutput', '❌ User not logged in');
+                return;
+            }
+            
+            const conversationBubble = document.getElementById('conversationBubble');
+            if (conversationBubble) {
+                conversationBubble.style.display = 'flex';
+                conversationBubble.classList.add('expanded');
+                const form = document.getElementById('newConversationFormBubble');
+                const plusSign = document.getElementById('plusSign');
+                if (form) form.style.display = 'flex';
+                if (plusSign) plusSign.style.display = 'none';
+            }
+        }
+
+        function checkAuthStatus() {
+            const currentUser = getCurrentUser();
+            const conversationBubble = document.getElementById('conversationBubble');
+            
+            if (currentUser) {
+                if (conversationBubble) {
+                    conversationBubble.style.display = 'flex';
+                }
+            } else {
+                if (conversationBubble) {
+                    conversationBubble.style.display = 'none';
+                }
+            }
+        }
     </script>
 </body>
 </html>
+
