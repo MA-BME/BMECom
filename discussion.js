@@ -155,7 +155,6 @@ function handleCreateConversationFromBubble() {
 // Check authentication status
 function checkAuthStatus() {
     const currentUser = getCurrentUser();
-    const loginRequiredDiscussion = document.getElementById('loginRequiredDiscussion');
     const newConversationSection = document.getElementById('newConversationSection');
     const conversationBubble = document.getElementById('conversationBubble');
     const userInfoDiscussion = document.getElementById('userInfoDiscussion');
@@ -163,7 +162,6 @@ function checkAuthStatus() {
 
     if (currentUser) {
         // User is logged in
-        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'none';
         if (newConversationSection) newConversationSection.style.display = 'none';
         if (conversationBubble) conversationBubble.style.display = 'flex';
         if (userInfoDiscussion) {
@@ -172,7 +170,6 @@ function checkAuthStatus() {
         }
     } else {
         // User is not logged in
-        if (loginRequiredDiscussion) loginRequiredDiscussion.style.display = 'block';
         if (newConversationSection) newConversationSection.style.display = 'none';
         if (conversationBubble) conversationBubble.style.display = 'none';
         if (userInfoDiscussion) userInfoDiscussion.style.display = 'none';
