@@ -17,12 +17,18 @@ function loadData() {
         const conversationsData = localStorage.getItem('conversations');
         if (conversationsData) {
             conversations = JSON.parse(conversationsData);
+            console.log('Loaded conversations:', conversations.length);
+        } else {
+            console.log('No conversations found in localStorage');
         }
 
         // Load conversation messages
         const messagesData = localStorage.getItem('conversationMessages');
         if (messagesData) {
             conversationMessages = JSON.parse(messagesData);
+            console.log('Loaded conversation messages:', Object.keys(conversationMessages).length);
+        } else {
+            console.log('No conversation messages found in localStorage');
         }
     } catch (error) {
         console.error('Error loading data:', error);
@@ -36,6 +42,10 @@ function saveData() {
     try {
         localStorage.setItem('conversations', JSON.stringify(conversations));
         localStorage.setItem('conversationMessages', JSON.stringify(conversationMessages));
+        console.log('Data saved successfully:', {
+            conversations: conversations.length,
+            messages: Object.keys(conversationMessages).length
+        });
     } catch (error) {
         console.error('Error saving data:', error);
     }
@@ -85,12 +95,7 @@ function checkAuthStatus() {
         // User is logged in
         if (conversationBubble) {
             conversationBubble.style.display = 'flex';
-            // Reset bubble to collapsed state
-            conversationBubble.classList.remove('expanded');
-            const form = document.getElementById('newConversationFormBubble');
-            const plusSign = document.getElementById('plusSign');
-            if (form) form.style.display = 'none';
-            if (plusSign) plusSign.style.display = 'block';
+            // Keep bubble in current state (don't reset to collapsed)
         }
         if (userInfoDiscussion) {
             userInfoDiscussion.style.display = 'block';
@@ -165,10 +170,13 @@ function handleCreateConversationFromBubble() {
     conversations.unshift(newConversation);
     conversationMessages[newConversation.id] = [];
 
+    // Save data first
     saveData();
+    
+    // Display conversations to make sure it's visible
     displayConversations();
 
-    // Reset form and collapse the bubble
+    // Reset form but DON'T collapse the bubble yet
     document.getElementById('conversationNameBubble').value = '';
     document.querySelectorAll('#conversationBubble input[name="topics"]').forEach(checkbox => {
         checkbox.checked = false;
@@ -176,11 +184,13 @@ function handleCreateConversationFromBubble() {
     document.querySelectorAll('#conversationBubble .topic-option').forEach(option => {
         option.classList.remove('selected');
     });
-    
-    // Collapse the conversation bubble back to + sign
-    toggleConversationBubble();
 
     showMessage('Conversation created successfully!', 'success');
+    
+    // Wait a moment for the user to see the success, then collapse
+    setTimeout(() => {
+        toggleConversationBubble();
+    }, 2000);
 }
 
 // Handle start conversation click
@@ -249,19 +259,24 @@ function handleCreateConversation(e) {
     conversations.unshift(newConversation);
     conversationMessages[newConversation.id] = [];
 
+    // Save data first
     saveData();
+    
+    // Display conversations to make sure it's visible
     displayConversations();
 
-    // Reset form and collapse the bubble
+    // Reset form but DON'T collapse the bubble yet
     document.getElementById('newConversationForm').reset();
     document.querySelectorAll('.topic-option').forEach(option => {
         option.classList.remove('selected');
     });
-    
-    // Collapse the conversation bubble back to + sign
-    toggleConversationBubble();
 
     showMessage('Conversation created successfully!', 'success');
+    
+    // Wait a moment for the user to see the success, then collapse
+    setTimeout(() => {
+        toggleConversationBubble();
+    }, 2000);
 }
 
 // Display conversations
